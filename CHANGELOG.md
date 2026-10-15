@@ -3,6 +3,19 @@
 Elke versie hieronder wordt een release op GitHub (zie `tools/release.sh` en `docs/firmware.md`).
 De tekst onder een kop is de omschrijving van die release. Nieuwste bovenaan.
 
+## v0.3.2
+
+Zuiniger: de buddy tekent alleen nog als er iets beweegt, en updates lukken ook vanuit de slaapstand.
+
+- **Veel minder CPU-gebruik** (van ~95% naar ~40% als hij wakker is en stilstaat): er wordt niets
+  getekend als er niets beweegt, de ademhaling verspringt per hele pixel, en het gezicht wordt niet
+  hertekend als de klok of het info-paneel eroverheen ligt.
+- **Slaperig en slapend op laag pitje** (~10 en ~8 beelden per seconde), wat de accu spaart.
+- **Updates vanuit de slaapstand**: bij het starten van een update wordt de buddy eerst wakker.
+  Daarvóór liepen uploads vanuit slaap vast.
+- **Touch** wordt alleen nog uitgelezen als het scherm wordt aangeraakt.
+- Nieuw commando `reboot` (herstarten op afstand).
+
 ## v0.3.1
 
 Updates en Bluetooth gaan nu samen, plus nieuwe acties en een snellere schermaansturing.
