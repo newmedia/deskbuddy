@@ -3,6 +3,20 @@
 Elke versie hieronder wordt een release op GitHub (zie `tools/release.sh` en `docs/firmware.md`).
 De tekst onder een kop is de omschrijving van die release. Nieuwste bovenaan.
 
+## v0.3.1
+
+Updates en Bluetooth gaan nu samen, plus nieuwe acties en een snellere schermaansturing.
+
+- **Updates met Bluetooth aan**: tijdens een update stopt BLE alleen met adverteren in plaats van
+  helemaal uit te gaan. In v0.3.0 kon de buddy daardoor zijn Wi-Fi-verbinding kwijtraken; zet
+  bij v0.3.0 dus eerst BLE of updates uit, of installeer deze versie handmatig.
+- **Meer vrij werkgeheugen met Bluetooth aan** (van een paar KB naar ruim 50 KB), zodat de web-
+  interface en updates stabiel blijven.
+- **Eigen schermaansturing**: sneller tekenen via asynchrone DMA; de mascotte hertekent in rust
+  alleen wat beweegt.
+- **Nieuwe acties**: niezen, lachen (3x snel aaien = kietelen), ogen rollen (2x snel heen en weer
+  vegen) en de hik, met geluid en knoppen in de webinterface.
+
 ## v0.3.0
 
 Bluetooth, een app voor je telefoon en een snellere, zuinigere buddy.
