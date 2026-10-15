@@ -8,6 +8,7 @@
 #include <Update.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <esp_netif.h>
 #include <esp_sntp.h>
 
 #include "app.h"
@@ -69,6 +70,14 @@ void sendJson(int code, const String& body) {
   server.send(code, "application/json", body);
 }
 
+// Debug: in setup-modus elk verzoek loggen (serial), om captive-portal-gedrag te kunnen volgen.
+void logReq(const char* what) {
+  if (!apUp) return;
+  Serial.printf("[web] %s %s%s -> %s  UA=\"%s\" Accept=\"%s\"\n", server.method() == HTTP_GET ? "GET" : "POST",
+                server.hostHeader().c_str(), server.uri().c_str(), what, server.header("User-Agent").c_str(),
+                server.header("Accept").c_str());
+}
+
 bool captiveRedirect() {
   // In AP-modus elk onbekend domein naar de setup-pagina sturen (captive portal).
   if (!apUp) return false;
@@ -79,7 +88,21 @@ bool captiveRedirect() {
   return true;
 }
 
+void sendCaptiveJson() {
+  String ip = WiFi.softAPIP().toString();
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/captive+json",
+              String("{\"captive\":") + (apUp ? "true" : "false") + ",\"user-portal-url\":\"http://" + ip + "/\"}");
+}
+
 void handleIndex() {
+  logReq("index");
+  // Android haalt de portal-API (DHCP-optie 114) op met een Dalvik-UA en verwacht JSON (RFC 8908).
+  if (apUp && (server.header("User-Agent").startsWith("Dalvik") ||
+               server.header("Accept").indexOf("application/captive+json") >= 0)) {
+    sendCaptiveJson();
+    return;
+  }
   if (captiveRedirect()) return;
   server.sendHeader("Content-Encoding", "gzip");
   server.sendHeader("Cache-Control", "no-cache");
@@ -168,8 +191,14 @@ void handleUpdateUpload() {
 void startServices() {
   if (servicesUp) return;
   servicesUp = true;
+  static const char* hdrs[] = {"User-Agent", "Accept"};
+  server.collectHeaders(hdrs, 2);
   server.on("/", HTTP_GET, handleIndex);
   server.on("/api/status", HTTP_GET, handleStatus);
+  server.on("/captive", HTTP_GET, [] {
+    logReq("captive-api");
+    sendCaptiveJson();
+  });
   server.on("/api/cmd", HTTP_POST, handleCmd);
   server.on("/api/wifi/scan", HTTP_GET, handleScan);
   server.on("/api/wifi", HTTP_POST, handleWifiPost);
@@ -178,6 +207,7 @@ void startServices() {
   for (const char* probe : {"/generate_204", "/gen_204", "/hotspot-detect.html", "/library/test/success.html",
                             "/connecttest.txt", "/ncsi.txt", "/redirect", "/canonical.html", "/success.txt"}) {
     server.on(probe, HTTP_GET, [] {
+      logReq("probe");
       if (apUp) {
         server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
         server.send(302, "text/plain", "");
@@ -187,6 +217,7 @@ void startServices() {
     });
   }
   server.onNotFound([] {
+    logReq("notfound");
     if (!captiveRedirect()) server.send(404, "text/plain", "niet gevonden");
   });
   server.begin();
@@ -212,9 +243,21 @@ void startAp() {
   if (apUp) return;
   WiFi.mode(WIFI_AP_STA);  // STA erbij: nodig voor scannen en om het thuisnetwerk te blijven proberen
   WiFi.softAP(apName);
-  // DHCP laat telefoons onze DNS gebruiken en meldt de portal-URL (RFC 8910). Zonder dit ziet een
-  // telefoon alleen "geen internet" en opent er geen setup-pagina.
-  WiFi.AP.enableDhcpCaptivePortal();
+  // Laat DHCP onszelf als DNS-server meegeven (staat in IDF 5 standaard uit). Zonder DNS kan een
+  // telefoon de controle-URL's niet opzoeken en denkt hij alleen "geen internet".
+  const IPAddress apIp(192, 168, 4, 1);
+  WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0), IPAddress(192, 168, 4, 2), apIp);
+  // DHCP-optie 114 (RFC 8910) wijst naar onze captive-portal-API (RFC 8908). Android vraagt die
+  // direct na verbinden op en verwacht JSON. Met HTML terug (zoals WiFi.AP.enableDhcpCaptivePortal()
+  // doet, die naar "/" wijst) negeert Android de portal en komt er geen "Inloggen op netwerk"-melding.
+  {
+    static char uri[40];
+    snprintf(uri, sizeof(uri), "http://%s/captive", WiFi.softAPIP().toString().c_str());
+    esp_netif_t* nif = WiFi.AP.netif();
+    esp_netif_dhcps_stop(nif);
+    esp_netif_dhcps_option(nif, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, uri, strlen(uri));
+    esp_netif_dhcps_start(nif);
+  }
   dns.setErrorReplyCode(DNSReplyCode::NoError);
   dns.start(53, "*", WiFi.softAPIP());
   apUp = true;
@@ -243,6 +286,12 @@ void connectSta() {
 void begin(buddy::App& a) {
   app = &a;
   WiFi.persistent(false);  // inloggegevens bewaren we zelf in NVS
+  WiFi.onEvent([](arduino_event_id_t e, arduino_event_info_t info) {
+    if (e == ARDUINO_EVENT_WIFI_AP_STACONNECTED) Serial.println("[ap] apparaat verbonden");
+    if (e == ARDUINO_EVENT_WIFI_AP_STADISCONNECTED) Serial.println("[ap] apparaat weg");
+    if (e == ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED)
+      Serial.printf("[ap] IP uitgedeeld: %s\n", IPAddress(info.wifi_ap_staipassigned.ip.addr).toString().c_str());
+  });
   loadCreds();
   // Eerst Wi-Fi (en daarmee de lwIP-stack) starten; pas daarna kan de webserver een socket openen.
   WiFi.mode(ssid[0] ? WIFI_STA : WIFI_AP_STA);
@@ -313,6 +362,7 @@ void fill(buddy::DeviceInfo& d) {
       snprintf(d.ssid, sizeof(d.ssid), "%s", apName);
       snprintf(d.ip, sizeof(d.ip), "%s", WiFi.softAPIP().toString().c_str());
       d.rssi = 0;
+      d.apClients = WiFi.softAPgetStationNum();
       break;
     case Mode::Connecting:
       snprintf(d.ssid, sizeof(d.ssid), "%s", ssid);

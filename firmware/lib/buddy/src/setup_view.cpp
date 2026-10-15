@@ -43,13 +43,26 @@ void SetupView::show(const char* ssid, const char* ip, uint32_t autoHideMs) {
   char qr[80];
   snprintf(qr, sizeof(qr), "WIFI:T:nopass;S:%s;;", ssid);
   lv_qrcode_update(qr_, qr, (uint32_t)strlen(qr));
-  lv_label_set_text_fmt(title_, "Wi-Fi instellen\n%s", ssid);
-  lv_label_set_text_fmt(hint_, "Scan met je telefoon\nof open %s", ip);
+  lv_label_set_text_fmt(title_, "Stap 1: verbind met\n%s", ssid);
+  lv_label_set_text(hint_, "Scan met je telefooncamera");
+  snprintf(ip_, sizeof(ip_), "%s", ip);
+  linkStep_ = false;
   hideIn_ = autoHideMs;
   if (visible_) return;
   visible_ = true;
   lv_obj_remove_flag(root_, LV_OBJ_FLAG_HIDDEN);
   lv_obj_fade_in(root_, 250, 0);
+}
+
+void SetupView::showLinkStep() {
+  if (linkStep_) return;
+  linkStep_ = true;
+  char url[40];
+  snprintf(url, sizeof(url), "http://%s/", ip_);
+  lv_qrcode_update(qr_, url, (uint32_t)strlen(url));
+  lv_label_set_text(title_, "Stap 2: open de\nsetup-pagina");
+  lv_label_set_text_fmt(hint_, "Scan opnieuw, of ga naar\n%s", ip_);
+  hideIn_ = 180000;
 }
 
 void SetupView::hide() {

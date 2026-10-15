@@ -163,6 +163,19 @@ void App::update(uint32_t dtMs) {
   info.update(dev_, dtMs);
   setup.update(dtMs);
   if (setup.visible() && dev_.wifi == DeviceInfo::WifiMode::Station) setup.hide();  // gelukt!
+  if (setup.visible() && !setup.linkStep() && dev_.apClients > 0) setup.showLinkStep();
+  // Telefoon verbindt met het setup-AP zonder dat het setupscherm open is: meteen stap 2 tonen.
+  if (dev_.wifi == DeviceInfo::WifiMode::AccessPoint && dev_.apClients > 0) {
+    if (!autoSetupShown_ && !setup.visible()) {
+      info.hide();
+      clock.hide();
+      setup.show(dev_.ssid, dev_.ip);
+      setup.showLinkStep();
+    }
+    autoSetupShown_ = true;
+  } else if (dev_.apClients == 0) {
+    autoSetupShown_ = false;
+  }
   applyBrightness();
 
   // Instellingen pas na een korte pauze opslaan (spaart flash bij snel schuiven/tikken).

@@ -171,6 +171,9 @@ int main(int argc, char** argv) {
     s.app.showWifiSetup();
     s.step(700);
     savePpm(out + "/wifi_setup.ppm");
+    d.apClients = 1;
+    s.step(1200);
+    savePpm(out + "/wifi_setup_step2.ppm");
     return 0;
   }
 

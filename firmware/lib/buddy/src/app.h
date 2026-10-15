@@ -86,6 +86,7 @@ class App : public CommandHost {
   Settings settings_;
   Emotion lastEmotion_ = Emotion::Neutral;
   bool muteNextEmotion_ = false;
+  bool autoSetupShown_ = false;
   int appliedBrightness_ = -1;
   uint32_t saveIn_ = 0;
   uint32_t infoPoll_ = 0;

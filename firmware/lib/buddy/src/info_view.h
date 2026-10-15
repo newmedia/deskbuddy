@@ -13,6 +13,7 @@ struct DeviceInfo {
   char ssid[33] = "";      // verbonden netwerk, of naam van het eigen AP
   char ip[16] = "";
   int rssi = 0;            // dBm (alleen Station)
+  int apClients = 0;       // telefoons verbonden met het setup-AP
   char hostname[32] = "deskbuddy";
 
   bool bleEnabled = false;
