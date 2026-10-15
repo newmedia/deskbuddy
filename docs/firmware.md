@@ -28,10 +28,16 @@ toont dan "niet verbonden" en "uit". BLE volgt in fase 3.
 
 1. Zonder bekend netwerk start hij het open setup-netwerk **`deskbuddy-XXXX`** (de laatste 4 tekens
    van het MAC-adres). Na 10 minuten zonder bezoekers gaat het weer uit.
-2. Veeg omlaag en tik op de Wi-Fi-rij. Er verschijnt een **QR-code**: scan die met je telefoon, dan
-   opent de setup-pagina vanzelf (captive portal). Lukt dat niet, ga dan naar `http://192.168.4.1`.
-3. Kies je netwerk, vul het wachtwoord in en tik op Verbinden. Het info-paneel toont daarna het IP.
-4. Daarna is hij bereikbaar op **`http://deskbuddy.local`** (of via het IP).
+2. Veeg omlaag en tik op de Wi-Fi-rij. **Stap 1:** scan de QR-code om met het setup-netwerk te
+   verbinden. **Stap 2:** zodra je telefoon verbonden is, toont het scherm een tweede QR-code met de
+   link `http://192.168.4.1`. Op veel telefoons opent de setup-pagina ook vanzelf (captive portal);
+   Samsung doet dat niet altijd, en stap 2 werkt overal.
+3. Kies je netwerk (alleen 2.4 GHz), vul het wachtwoord in (met "Wachtwoord tonen" kun je het
+   controleren) en tik op Verbinden. Onder de knop zie je de voortgang, het IP-adres of de reden van
+   een mislukte poging.
+4. 30 seconden na een gelukte verbinding schakelt hij over naar je thuisnetwerk. Daar is hij
+   bereikbaar via het IP uit het info-paneel, of via **`http://deskbuddy.local`** als je apparaat mDNS
+   ondersteunt.
 
 De webinterface biedt:
 - emoties, knipperen, stuiteren en schudden
@@ -46,9 +52,11 @@ De webinterface biedt:
 | `POST /api/cmd` (`c=<commando>`) | elk serial-commando, antwoord als JSON |
 | `GET /api/wifi/scan` | netwerken zoeken (asynchroon: herhaal tot `scanning:false`) |
 | `POST /api/wifi` (`ssid`, `pass`) | verbinden en opslaan |
+| `GET /api/wifi/state` | voortgang: `connecting`/`connected`/`failed` + IP of reden |
 | `POST /update` (multipart `firmware`) | firmware bijwerken (OTA) |
 
-Firmware bijwerken zonder kabel kan via de webpagina (`firmware/.pio/build/esp32/firmware.bin`),
+Firmware bijwerken zonder kabel kan via de webpagina, of met
+`curl -F firmware=@firmware/.pio/build/esp32/firmware.bin http://<ip>/update`,
 of met `cd firmware && ../.venv/bin/pio run -e esp32 -t upload --upload-port deskbuddy.local`
 (ArduinoOTA). Na verbinding haalt hij de tijd via NTP op en zet die in de RTC.
 

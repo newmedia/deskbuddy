@@ -95,6 +95,8 @@ void logReq(const char* what) {
 bool captiveRedirect() {
   // In AP-modus elk onbekend domein naar de setup-pagina sturen (captive portal).
   if (!apUp) return false;
+  // Alleen verzoeken die via het setup-netwerk binnenkomen; via het thuisnetwerk gewoon de pagina.
+  if (server.client().localIP() != WiFi.softAPIP()) return false;
   String host = server.hostHeader();
   if (host == WiFi.softAPIP().toString() || host.startsWith(kHost)) return false;
   server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
