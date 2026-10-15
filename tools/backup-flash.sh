@@ -3,7 +3,7 @@
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 mkdir -p "$ROOT/backups"
-OUT="$ROOT/backups/deskimon-$(date +%Y%m%d-%H%M%S).bin"
+OUT="$ROOT/backups/original-firmware-$(date +%Y%m%d-%H%M%S).bin"
 "$ESPTOOL" --chip esp32s3 --port "$PORT" --baud 921600 read-flash 0 0x1000000 "$OUT"
 sha256sum "$OUT" | tee "$OUT.sha256"
 echo "Partitietabel (offset 0x8000):"

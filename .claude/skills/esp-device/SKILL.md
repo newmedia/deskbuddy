@@ -1,9 +1,9 @@
 ---
 name: esp-device
-description: Inspect, back up, monitor or flash the Deskimon ESP32-S3 (Waveshare AMOLED 1.75) on USB. Use for "lees de chip", "backup", "serial log", "flash firmware", "wat draait er op".
+description: Inspect, back up, monitor or flash the deskbuddy ESP32-S3 (Waveshare AMOLED 1.75) on USB. Use for "lees de chip", "backup", "serial log", "flash firmware", "wat draait er op".
 ---
 
-# ESP32-S3 Deskimon workflow
+# ESP32-S3 deskbuddy workflow
 
 1. **Check aanwezigheid**: `lsusb | grep 303a:1001`. Ontbreekt het apparaat, vraag dan of het is
    aangesloten en aanstaat (PWR-knop).
@@ -21,4 +21,4 @@ description: Inspect, back up, monitor or flash the Deskimon ESP32-S3 (Waveshare
 6. Werkt de verbinding niet, zet dan de downloadmodus aan: houd BOOT ingedrukt, tik PWR of reset aan
    en laat BOOT los.
 
-Voeg nieuwe bevindingen (framework, partities, gebruik van Wi-Fi) toe aan `docs/deskimon-software.md`.
+Voeg nieuwe bevindingen (framework, partities, gebruik van Wi-Fi) toe aan `docs/original-firmware.md`.

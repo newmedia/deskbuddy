@@ -1,14 +1,14 @@
 # deskbuddy
 
-Werkmap rond een **Deskimon** desk-robot (Orbit & Sprout, van
-[Creative Chance](https://creative-chance.com/en-eur/products/orbit-sprout-deskimon)).
-De robot bestaat uit een 3D-geprinte behuizing om een
+Een desk-robot met een rond AMOLED-scherm, gebouwd op een
 [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm)
-met closed-source Deskimon-firmware.
+in een 3D-geprinte behuizing. Op het bord staat nu nog de originele closed-source firmware;
+doel is eigen deskbuddy-firmware.
 
 ## Documentatie
 - [docs/hardware.md](docs/hardware.md): het bord, de chips, de pin-mapping en hoe het zich op USB meldt
-- [docs/deskimon-software.md](docs/deskimon-software.md): wat de Deskimon-firmware doet en wat nog open staat
+- [docs/original-firmware.md](docs/original-firmware.md): wat de originele firmware doet en wat nog open staat
+- [docs/plan.md](docs/plan.md): plan voor eigen deskbuddy-firmware, web/PWA, desktop-app en HA
 
 ## Snel starten
 ```bash
@@ -22,4 +22,4 @@ tools/monitor.sh                 # serial log bekijken
 Het apparaat verschijnt als `303a:1001` (Espressif USB JTAG/serial) op `/dev/ttyACM0`.
 Stel `PORT=...` in om een andere poort te gebruiken.
 
-> Maak altijd een backup vóór je flasht. De Deskimon-firmware is niet open source.
+> Maak altijd een backup vóór je flasht. De originele firmware is niet open source.

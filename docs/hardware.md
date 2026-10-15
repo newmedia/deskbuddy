@@ -1,9 +1,8 @@
 # Hardware: Waveshare ESP32-S3-Touch-AMOLED-1.75
 
-De "Deskimon" (Orbit & Sprout) van Creative Chance is **geen eigen hardware**: het is een
-3D-geprinte behuizing rond een standaard Waveshare-ontwikkelbord, plus closed-source firmware.
+De deskbuddy draait op een standaard Waveshare-ontwikkelbord in een 3D-geprinte behuizing. Op dit
+moment staat er nog de originele closed-source firmware op (zie `docs/original-firmware.md`).
 
-- Product (digitale download, €7,27): https://creative-chance.com/en-eur/products/orbit-sprout-deskimon
 - Bord: https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm (± $30–40)
 - Wiki: https://docs.waveshare.com/ESP32-S3-Touch-AMOLED-1.75
 - Voorbeeldcode: https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75

@@ -1,13 +1,10 @@
-# Deskimon-software (Creative Chance)
+# Originele firmware
 
 ## Wat het is
 - Closed-source firmware, alleen als **kant-en-klaar binary** ("ready to flash") geleverd bij de
   digitale download. De broncode zit er bewust niet bij.
-- De download bevat ook 3MF/STL-bestanden voor Orbit en Sprout, accessoires, een bouwhandleiding en
-  flash-instructies. Printen kost ongeveer 9 uur en 185 g filament voor beide figuren. Je kunt het
-  object met de AMS printen, maar dat hoeft niet.
-- Andere figuren in dezelfde reeks: Neo, Poko (panda) en Hopper (konijn). Hoofden, lichamen en
-  accessoires zijn onderling uitwisselbaar.
+- Geleverd met 3D-printbestanden voor de behuizing (de figuren, accessoires) en een bouwhandleiding.
+  De behuizing is modulair: hoofden, lichamen en accessoires zijn onderling uitwisselbaar.
 
 ## Functies (volgens de productpagina)
 - Geanimeerd gezicht met emoties dat reageert op aanraking
@@ -24,14 +21,14 @@ Uit de backup blijkt dat de firmware het display, de touch, de PMU, de IMU en de
 Dit bord is dus een goede basis voor eigen firmware in het `deskbuddy`-project.
 
 ## Belangrijk vóór je zelf iets flasht
-De Deskimon-firmware staat alleen op de chip. **Maak eerst een volledige flash-backup** met
+De originele firmware staat alleen op de chip. **Maak eerst een volledige flash-backup** met
 `tools/backup-flash.sh`. Zonder backup kun je niet terug, behalve met een nieuwe download van
-Creative Chance. De backup is alleen voor eigen gebruik. Verspreid hem niet, want de firmware valt
-onder het IP van Creative Chance.
+de oorspronkelijke maker. De backup is alleen voor eigen gebruik. Verspreid hem niet, want de firmware valt
+onder het IP van de oorspronkelijke maker.
 
 ## Analyse van de flash-backup (2026-10-15)
 
-Backup: `backups/deskimon-20261015-205611.bin` (16 MB, sha256 `54b3dc52…bf4c0a`, gecontroleerd met
+Backup: `backups/original-firmware-20261015-205611.bin` (16 MB, sha256 `54b3dc52…bf4c0a`, gecontroleerd met
 `verify-flash`). De backup staat niet in git.
 
 ### Chip
@@ -44,7 +41,7 @@ flash-encryptie: de image is leesbaar en de bootlog meldt niets.
 |---|---|---|---|
 | nvs | 0x9000 | 20 KB | namespace `settings`, key `volume` (u8) |
 | otadata | 0xe000 | 8 KB | actieve slot = **app0** |
-| app0 | 0x10000 | 6400 KB | Deskimon-firmware (~2.9 MB gebruikt) |
+| app0 | 0x10000 | 6400 KB | originele firmware (~2.9 MB gebruikt) |
 | app1 | 0x650000 | 6400 KB | leeg (OTA-slot, ongebruikt) |
 | spiffs | 0xc90000 | 3456 KB | leeg (alles 0xFF) |
 | coredump | 0xff0000 | 64 KB | — |
