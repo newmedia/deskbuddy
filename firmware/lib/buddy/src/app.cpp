@@ -17,6 +17,7 @@ void App::create(lv_obj_t* screen) {
   clock.create(screen);
   info.create(screen);
   setup.create(screen);
+  updating.create(screen);
 
   platform_.loadSettings(settings_);
   sound.setEnabled(settings_.sound);
@@ -56,6 +57,9 @@ void App::onGesture(const GestureEvent& g) {
     } else if (h == InfoView::Hit::Sound) {
       setSound(!settings_.sound);
       info.show();  // auto-sluiten opnieuw starten
+    } else if (h == InfoView::Hit::Update) {
+      char reply[96];
+      firmwareUpdate("install", reply, sizeof(reply));
     } else if (h == InfoView::Hit::Skin) {
       setSkin(settings_.skin == Skin::Mascot ? Skin::Classic : Skin::Mascot);
       info.show();
@@ -118,6 +122,12 @@ void App::wifi(const char* action, const char* ssid, const char* pass, char* rep
   platform_.wifi(action, ssid, pass, reply, len);
 }
 
+void App::firmwareUpdate(const char* action, char* reply, size_t len) {
+  platform_.firmwareUpdate(action, reply, len);
+  platform_.deviceInfo(dev_);
+  syncDev();
+}
+
 void App::statusJson(char* out, size_t len) {
   const char* wifi = "off";
   switch (dev_.wifi) {
@@ -129,10 +139,13 @@ void App::statusJson(char* out, size_t len) {
   snprintf(out, len,
            "{\"version\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
-           "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u}",
+           "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u,\"updates\":\"%s\",\"update\":\"%s\","
+           "\"latest\":\"%s\",\"progress\":%u}",
            dev_.version, emotionName(face.emotion()), skinName(settings_.skin), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
-           dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin);
+           dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin,
+           updateModeName(dev_.updateMode), updateStateName(dev_.updateState), dev_.updateVersion,
+           (unsigned)dev_.updateProgress);
 }
 
 void App::update(uint32_t dtMs) {
@@ -188,6 +201,18 @@ void App::update(uint32_t dtMs) {
   } else if (dev_.apClients == 0) {
     autoSetupShown_ = false;
   }
+  // Firmware-update: verrast gezicht en voortgangsring; mislukt = even verdrietig.
+  bool installing = dev_.updateState == UpdateState::Installing;
+  if (installing && !wasInstalling_) {
+    info.hide();
+    clock.hide();
+    setup.hide();
+    behaviour.command(Emotion::Surprised);
+  } else if (!installing && wasInstalling_) {
+    behaviour.command(dev_.updateState == UpdateState::Failed ? Emotion::Sad : Emotion::Neutral, 4000);
+  }
+  wasInstalling_ = installing;
+  updating.update(installing, dev_.updateProgress, dev_.updateVersion);
   applyBrightness();
 
   // Instellingen pas na een korte pauze opslaan (spaart flash bij snel schuiven/tikken).

@@ -16,7 +16,8 @@ bool DeviceInfo::operator==(const DeviceInfo& o) const {
   return wifi == o.wifi && !strcmp(ssid, o.ssid) && !strcmp(ip, o.ip) && rssi / 5 == o.rssi / 5 &&
          !strcmp(hostname, o.hostname) && bleEnabled == o.bleEnabled && bleConnected == o.bleConnected &&
          !strcmp(bleName, o.bleName) && sound == o.sound && mascot == o.mascot && batteryPct == o.batteryPct && charging == o.charging &&
-         !strcmp(version, o.version);
+         !strcmp(version, o.version) && updateMode == o.updateMode && updateState == o.updateState &&
+         updateProgress == o.updateProgress && !strcmp(updateVersion, o.updateVersion);
 }
 
 lv_obj_t* InfoView::row(const char* symbol, lv_obj_t** value, lv_obj_t** sub, lv_obj_t** iconOut) {
@@ -156,6 +157,11 @@ InfoView::Hit InfoView::hit(int x, int y) const {
   if (inside(wifiRow_)) return Hit::Wifi;
   if (inside(soundRow_)) return Hit::Sound;
   if (inside(skinRow_)) return Hit::Skin;
+  if (last_.updateState == UpdateState::Available) {
+    lv_area_t a;  // smalle regel: ruimere marge
+    lv_obj_get_coords(footer_, &a);
+    if (x >= a.x1 - 20 && x <= a.x2 + 20 && y >= a.y1 - 14 && y <= a.y2 + 10) return Hit::Update;
+  }
   return Hit::None;
 }
 
@@ -204,7 +210,13 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
   lv_obj_invalidate(skinIcon_);
   lv_label_set_text(skinSub_, "Tik voor ander uiterlijk");
 
-  lv_label_set_text_fmt(footer_, "deskbuddy %s", in.version);
+  if (in.updateState == UpdateState::Available) {
+    lv_label_set_text_fmt(footer_, LV_SYMBOL_DOWNLOAD " Update beschikbaar: %s (tik)", in.updateVersion);
+    lv_obj_set_style_text_color(footer_, kAccent, 0);
+  } else {
+    lv_label_set_text_fmt(footer_, "deskbuddy %s", in.version);
+    lv_obj_set_style_text_color(footer_, kDim, 0);
+  }
   if (in.batteryPct < 0)
     lv_label_set_text(battery_, LV_SYMBOL_USB "  USB");
   else

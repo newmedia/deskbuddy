@@ -13,6 +13,7 @@
 
 #include "app.h"
 #include "board/board.h"
+#include "updater.h"
 #include "web_index.h"  // gegenereerd door scripts/embed_web.py uit web/index.html
 
 namespace net {
@@ -128,7 +129,7 @@ void handleStatus() {
 void handleCmd() {
   String line = server.hasArg("c") ? server.arg("c") : server.arg("plain");
   line.trim();
-  char reply[320];
+  char reply[400];
   bool ok = app->command(line.c_str(), reply, sizeof(reply));
   String body = String("{\"ok\":") + (ok ? "true" : "false") + ",\"reply\":\"";
   jsonEscape(body, reply);
@@ -369,6 +370,7 @@ void loop() {
       break;
     case Mode::Station:
       ArduinoOTA.handle();
+      updater::loop(connected);
       if (!timeSynced && esp_sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED) {
         timeSynced = true;
         board::rtcWrite(time(nullptr));
@@ -381,6 +383,7 @@ void loop() {
 }
 
 void fill(buddy::DeviceInfo& d) {
+  updater::fill(d);
   snprintf(d.hostname, sizeof(d.hostname), "%s", kHost);
   d.wifi = mode;
   switch (mode) {

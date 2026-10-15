@@ -104,6 +104,14 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
       }
     }
     host.wifi(action, a2 ? a2 : "", pass, reply, len);
+  } else if (!strcmp(cmd, "update")) {
+    const char* action = a1 ? a1 : "status";
+    if (strcmp(action, "status") && strcmp(action, "check") && strcmp(action, "install") && strcmp(action, "auto") &&
+        strcmp(action, "notify") && strcmp(action, "off")) {
+      snprintf(reply, len, "gebruik: update [status|check|install|auto|notify|off]");
+      return false;
+    }
+    host.firmwareUpdate(action, reply, len);
   } else if (!strcmp(cmd, "sleep") && a1) {
     int m = !strcmp(a1, "off") || !strcmp(a1, "never") ? 0 : LV_CLAMP(0, atoi(a1), 120);
     host.setSleep((uint8_t)m);
@@ -121,7 +129,8 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
   } else if (!strcmp(cmd, "help")) {
     snprintf(reply, len,
              "emotion <naam> [ms] | play whistle|wink|kiss|rage|explode | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
-             "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | sleep <min>|off | wifi status|setup|off|join <ssid> <pw> | status");
+             "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | sleep <min>|off | wifi status|setup|off|join <ssid> <pw> | "
+             "update check|install|auto|notify|off | status");
   } else {
     snprintf(reply, len, "onbekend commando (probeer 'help')");
     return false;

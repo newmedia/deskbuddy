@@ -27,6 +27,11 @@ struct CommandHost {
     (void)action; (void)ssid; (void)pass;
     snprintf(reply, len, "wifi niet beschikbaar");
   }
+  // action: status | check | install | auto | notify | off
+  virtual void firmwareUpdate(const char* action, char* reply, size_t len) {
+    (void)action;
+    snprintf(reply, len, "updates niet beschikbaar");
+  }
   virtual void status(char* out, size_t len) { (void)len; out[0] = 0; }
 };
 

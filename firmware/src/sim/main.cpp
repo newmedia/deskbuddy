@@ -199,6 +199,20 @@ int main(int argc, char** argv) {
     d.apClients = 1;
     s.step(1200);
     savePpm(out + "/wifi_setup_step2.ppm");
+    s.app.setup.hide();
+    d.wifi = DeviceInfo::WifiMode::Station;
+    d.apClients = 0;
+    snprintf(d.ip, sizeof(d.ip), "192.168.1.42");
+    d.updateState = UpdateState::Available;
+    snprintf(d.updateVersion, sizeof(d.updateVersion), "v0.2.0");
+    s.app.setSkin(Skin::Classic);
+    s.app.showInfo();
+    s.step(700);
+    savePpm(out + "/update_available.ppm");
+    d.updateState = UpdateState::Installing;
+    d.updateProgress = 42;
+    s.step(900);
+    savePpm(out + "/update_installing.ppm");
     return 0;
   }
 

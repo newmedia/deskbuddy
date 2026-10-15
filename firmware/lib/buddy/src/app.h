@@ -15,6 +15,7 @@
 #include "info_view.h"
 #include "setup_view.h"
 #include "sound.h"
+#include "update.h"
 
 namespace buddy {
 
@@ -37,6 +38,11 @@ struct Platform {
   virtual void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) {
     (void)action; (void)ssid; (void)pass;
     snprintf(reply, len, "wifi niet beschikbaar op dit platform");
+  }
+  // Firmware-updates (zie update.h); action: status | check | install | auto | notify | off
+  virtual void firmwareUpdate(const char* action, char* reply, size_t len) {
+    (void)action;
+    snprintf(reply, len, "updates niet beschikbaar op dit platform");
   }
 };
 
@@ -65,6 +71,7 @@ class App : public CommandHost {
   void setSkin(Skin s) override;
   void setSleep(uint8_t minutes) override;
   void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override;
+  void firmwareUpdate(const char* action, char* reply, size_t len) override;
 
   Face face;
   Behaviour behaviour{face};
@@ -72,6 +79,7 @@ class App : public CommandHost {
   InfoView info;
   SetupView setup;
   SoundSynth sound;
+  UpdateView updating;
 
  private:
   void applyBrightness();
@@ -87,6 +95,7 @@ class App : public CommandHost {
   Emotion lastEmotion_ = Emotion::Neutral;
   bool muteNextEmotion_ = false;
   bool autoSetupShown_ = false;
+  bool wasInstalling_ = false;
   int appliedBrightness_ = -1;
   uint32_t saveIn_ = 0;
   uint32_t infoPoll_ = 0;

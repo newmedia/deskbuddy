@@ -12,6 +12,7 @@
 #include "board/board.h"
 #include "board/pins.h"
 #include "net/net.h"
+#include "net/updater.h"
 
 #ifndef DESKBUDDY_VERSION
 #define DESKBUDDY_VERSION "0.1.0"
@@ -59,6 +60,9 @@ struct EspPlatform : Platform {
   void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override {
     net::action(action, ssid, pass, reply, len);
   }
+  void firmwareUpdate(const char* action, char* reply, size_t len) override {
+    net::updater::action(action, reply, len);
+  }
 };
 
 EspPlatform platform;
@@ -74,7 +78,7 @@ void handleSerial() {
     if (c == '\n' || lineLen == sizeof(line) - 1) {
       line[lineLen] = 0;
       lineLen = 0;
-      char reply[320];
+      char reply[400];
       app.command(line, reply, sizeof(reply));
       if (reply[0]) Serial.println(reply);
     } else {
@@ -98,6 +102,7 @@ void setup() {
 
   app.create(lv_screen_active());
   bool audio = board::beginAudio(app.sound);
+  net::updater::begin(DESKBUDDY_VERSION);
   net::begin(app);
   Serial.printf("deskbuddy %s  display=%d touch=%d imu=%d pmu=%d rtc=%d audio=%d  psram=%u KB vrij\n",
                 DESKBUDDY_VERSION, disp, touch, imu, pmu, rtc, audio, (unsigned)(ESP.getFreePsram() / 1024));

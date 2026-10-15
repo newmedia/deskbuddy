@@ -111,7 +111,19 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
 
   <section>
     <h2>Firmware bijwerken</h2>
-    <p class="muted">Kies <code>firmware.bin</code> (uit <code>firmware/.pio/build/esp32/</code>).</p>
+    <p id="upd-now" class="status" hidden></p>
+    <div class="row" style="margin-top:8px">
+      <button data-cmd="update check">Nu controleren</button>
+      <button id="upd-install" class="on" hidden>Installeren</button>
+    </div>
+    <label for="updates">Nieuwe versies van GitHub</label>
+    <select id="updates">
+      <option value="notify">Melden (zelf installeren)</option>
+      <option value="auto">Automatisch installeren</option>
+      <option value="off">Niet controleren</option>
+    </select>
+    <progress id="upd-p" value="0" max="100" hidden></progress>
+    <p class="muted" style="margin-top:14px">Of handmatig: kies <code>firmware.bin</code> (uit <code>firmware/.pio/build/esp32/</code>).</p>
     <input type="file" id="fw" accept=".bin">
     <progress id="fw-p" value="0" max="100" hidden></progress>
   </section>
@@ -152,6 +164,8 @@ for (const id of ["volume", "brightness"]) {
   el.onchange = () => cmd(`${id} ${el.value}`);
 }
 $("#sleep").onchange = e => cmd(`sleep ${e.target.value}`);
+$("#updates").onchange = e => cmd(`update ${e.target.value}`);
+$("#upd-install").onclick = () => cmd("update install");
 $("#send").onclick = () => { const c = $("#cmd").value.trim(); if (c) cmd(c); };
 $("#cmd").onkeydown = e => { if (e.key === "Enter") $("#send").click(); };
 
@@ -174,6 +188,22 @@ async function refresh() {
   $("#stat").innerHTML = [["Wi-Fi", wifi], ["IP", st.ip || "-"], ["Signaal", st.wifi === "sta" ? `${st.rssi} dBm` : "-"],
     ["Accu", batt], ["Inactief", `${st.idle} s`]].map(([k, v]) => `<span>${k}</span><span>${esc(v)}</span>`).join("");
   $("#wifi-now").textContent = `Nu: ${wifi}`;
+  updateUi();
+}
+function updateUi() {
+  if (document.activeElement !== $("#updates")) $("#updates").value = st.updates;
+  const rel = `https://github.com/newmedia/deskbuddy/releases/tag/${encodeURIComponent(st.latest)}`;
+  const txt = {
+    available: [`Update beschikbaar: ${esc(st.latest)} (nu v${esc(st.version)}). <a href="${rel}" target="_blank" rel="noopener">Wat is er nieuw?</a>`, "ok"],
+    installing: [`Bezig met installeren van ${esc(st.latest)}… ${st.progress}%. Daarna herstart de deskbuddy.`, ""],
+    uptodate: [`Up-to-date (v${esc(st.version)}).`, ""],
+    checking: ["Controleren…", ""],
+    failed: ["Controleren of installeren mislukt; probeer het later opnieuw (details: commando <code>update</code>).", "bad"],
+  }[st.update];
+  const p = $("#upd-now"); p.hidden = !txt;
+  if (txt) { p.innerHTML = txt[0]; p.className = "status " + txt[1]; }
+  $("#upd-install").hidden = st.update !== "available";
+  $("#upd-p").hidden = st.update !== "installing"; $("#upd-p").value = st.progress;
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])); }
 

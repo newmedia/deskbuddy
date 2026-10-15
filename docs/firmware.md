@@ -61,6 +61,45 @@ Firmware bijwerken zonder kabel kan via de webpagina, of met
 of met `cd firmware && ../.venv/bin/pio run -e esp32 -t upload --upload-port deskbuddy.local`
 (ArduinoOTA). Na verbinding haalt hij de tijd via NTP op en zet die in de RTC.
 
+## Automatische updates (GitHub Releases)
+
+Verbonden met het thuisnetwerk vraagt de deskbuddy 30 s na het verbinden en daarna elke 12 uur
+`https://api.github.com/repos/newmedia/deskbuddy/releases/latest` op (HTTPS met de CA-bundel uit
+ESP-IDF). Is de tag nieuwer dan de eigen versie (semver), dan haalt hij het asset `firmware.bin`
+van die release op en flasht hem met `HTTPUpdate` (de redirect naar de downloadserver van GitHub
+wordt gevolgd). Controleren en installeren lopen in een eigen taak; het gezicht blijft bewegen.
+
+Instelling (in NVS, standaard `notify`), via commando of web-UI:
+
+| `update …` | effect |
+|---|---|
+| `notify` | alleen melden: het info-paneel toont onderaan "Update beschikbaar: vX (tik)", de web-UI een knop |
+| `auto` | nieuwe versie meteen installeren |
+| `off` | niet zelf controleren |
+| `check` / `install` | nu controleren / nu installeren |
+| (leeg) | status: modus, toestand, huidige en nieuwste versie, laatste fout |
+
+Tijdens het installeren kijkt het gezicht verrast en loopt er een voortgangsring langs de rand.
+Daarna herstart hij met de nieuwe versie; mislukt het, dan kijkt hij even verdrietig en probeert
+hij het na 30 min opnieuw te controleren.
+
+### Een release maken
+
+We bouwen zelf, niet met GitHub Actions. `tools/release.sh` doet alles:
+
+1. Schrijf bovenaan `CHANGELOG.md` een sectie `## v0.2.0` met wat er nieuw is (die tekst wordt de
+   omschrijving van de release op GitHub). Zonder sectie stopt het script en toont het een concept
+   op basis van de commits sinds de vorige tag. Commit de changelog.
+2. `tools/release.sh 0.2.0` controleert dat de werkmap schoon is en dat de versie nieuwer is dan de
+   laatste tag, bouwt `esp32` met `-D DESKBUDDY_VERSION="0.2.0"`, maakt en pusht tag `v0.2.0`
+   (`git tag -a v0.2.0 && git push origin v0.2.0`) en maakt met `gh release create` de release met
+   `firmware.bin` en `firmware.bin.sha256`.
+
+Oude releases blijven altijd staan (het script past bestaande tags of releases nooit aan), zodat je
+een oudere versie nog handmatig kunt installeren: download die `firmware.bin` en upload hem via de
+web-UI of `curl -F firmware=@firmware.bin http://<ip>/update`. Automatisch gaat hij alleen vooruit,
+nooit terug.
+
 > Beveiliging: de webinterface en OTA hebben nog geen wachtwoord. Iedereen op je (thuis)netwerk kan
 > hem dus bedienen en bijwerken. Een pincode is gepland.
 
@@ -125,6 +164,7 @@ sound on|off|<blip|happy|love|surprised|sad|angry|dizzy|yawn|wake|purr|toggle>
 volume <0-100>
 skin classic|mascot
 wifi status | setup | on | off | forget | join <ssid> <wachtwoord>
+update [check|install|auto|notify|off]
 clock | info | status | help
 ```
 

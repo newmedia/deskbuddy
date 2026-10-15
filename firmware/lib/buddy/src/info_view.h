@@ -5,6 +5,8 @@
 #include <lvgl.h>
 #include <stdint.h>
 
+#include "update.h"
+
 namespace buddy {
 
 struct DeviceInfo {
@@ -27,6 +29,11 @@ struct DeviceInfo {
   bool charging = false;
   char version[16] = "0.1.0";
 
+  UpdateMode updateMode = UpdateMode::Notify;
+  UpdateState updateState = UpdateState::Idle;
+  uint8_t updateProgress = 0;  // 0..100 tijdens installeren
+  char updateVersion[16] = ""; // nieuwste release, bijv. "v0.2.0"
+
   bool operator==(const DeviceInfo& o) const;
 };
 
@@ -37,7 +44,7 @@ class InfoView {
   void hide();
   bool visible() const { return visible_; }
   void update(const DeviceInfo& info, uint32_t dtMs);
-  enum class Hit : uint8_t { None, Wifi, Sound, Skin };
+  enum class Hit : uint8_t { None, Wifi, Sound, Skin, Update };
   Hit hit(int x, int y) const;  // schermcoördinaten
 
  private:
