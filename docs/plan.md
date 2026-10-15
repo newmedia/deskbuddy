@@ -57,7 +57,11 @@ tools/
 
 ## Fases
 
-1. **Basis-firmware**: het display werkt met LVGL 9 op 466×466. Het procedurele gezicht knippert,
+Navigatie (vast): **veeg omlaag** opent het info-paneel met Wi-Fi (IP/SSID of AP), BLE en accu.
+**Veeg omhoog** opent de klok. Wi-Fi en BLE zijn optioneel; zonder verbinding werkt de buddy
+offline, maar met minder functies.
+
+1. ✅ **Basis-firmware** (zie `firmware.md`): het display werkt met LVGL 9 op 466×466. Het procedurele gezicht knippert,
    kijkt rond en heeft 6–8 emoties. Touch-gestures (tik, aai, lang drukken) en IMU-events
    (schudden, oppakken, kantelen) geven reacties. Plus klok via de RTC en de accu-indicator.
 2. **Wi-Fi en web**: captive-portal-setup, mDNS `deskbuddy.local`, webserver met WebSocket,
@@ -71,9 +75,11 @@ tools/
    beweging, en het tonen van HA-waarden op het scherm.
 6. **Klok, weer en agenda**: weer via Open-Meteo (geen API-key nodig). De agenda loopt via de
    desktop-app of HA.
-7. **Geluid en spraak**: geluidseffecten via de ES8311, klap- en stemdetectie via de ES7210, en
+7. **Geluid en spraak** (✅ geluidseffecten via de synth, aan/uit in het info-paneel): geluidseffecten via de ES8311, klap- en stemdetectie via de ES7210, en
    later eventueel spraakinteractie met een LLM via de desktop-app of HA.
-8. **Sprite-animaties**: speciale animaties uit LittleFS (bijvoorbeeld een LVGL-image-reeks) voor
+8. ✅ **Skins**: `classic` (robot) en `mascot` (cartoon met haar, bril en lach). Later
+   eventueel meer skins.
+9. **Sprite-animaties**: speciale animaties uit LittleFS (bijvoorbeeld een LVGL-image-reeks) voor
    events zoals een verjaardag of een nieuwe melding.
 
 ## Risico's en aandachtspunten

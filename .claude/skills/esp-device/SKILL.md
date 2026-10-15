@@ -16,7 +16,8 @@ description: Inspect, back up, monitor or flash the deskbuddy ESP32-S3 (Waveshar
    - `tools/backup-flash.sh`: dump van 16 MB plus partitietabel
    - `timeout 10 tools/monitor.sh`: bootlog. Een reset via esptool levert de volledige bootlog op.
 5. **Schrijven** (flashen of wissen): alleen na expliciete bevestiging van de gebruiker **en** met een
-   bestaande backup in `backups/`. Herstellen gaat zo:
+   bestaande backup in `backups/`. Eigen firmware: `tools/flash.sh --yes` (pas na die bevestiging).
+   Herstellen gaat zo:
    `.venv/bin/esptool --chip esp32s3 --port $PORT write-flash 0 backups/<file>.bin`
 6. Werkt de verbinding niet, zet dan de downloadmodus aan: houd BOOT ingedrukt, tik PWR of reset aan
    en laat BOOT los.

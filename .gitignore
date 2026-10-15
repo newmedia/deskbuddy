@@ -1,3 +1,5 @@
 .venv/
 backups/
 .claude/settings.local.json
+sim-out/
+firmware/.pio/

@@ -1,0 +1,32 @@
+#pragma once
+// Hardwarelaag: display + LVGL, touch, IMU, PMU en RTC.
+
+#include <stdint.h>
+#include <time.h>
+
+namespace buddy {
+class SoundSynth;
+}
+
+namespace board {
+
+bool beginDisplay();               // CO5300 + LVGL-display
+void setBrightness(uint8_t value);
+
+bool beginTouch();
+bool readTouch(int& x, int& y);    // true = ingedrukt
+
+bool beginImu();
+bool readAccel(float& ax, float& ay, float& az);  // in g, false = geen nieuwe data
+
+bool beginPmu();
+int batteryPercent();              // -1 = geen accu
+bool isCharging();
+bool pwrKeyPressed();              // korte druk op PWR sinds vorige aanroep
+
+bool beginRtc();                   // zet ook de systeemtijd vanuit de RTC
+void rtcWrite(time_t t);
+
+bool beginAudio(buddy::SoundSynth& synth);  // ES8311 + I2S, start een audio-task
+
+}  // namespace board

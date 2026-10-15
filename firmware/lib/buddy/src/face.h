@@ -1,0 +1,127 @@
+#pragma once
+// Procedureel getekend gezicht: twee ogen met oogleden, blosjes, mond en Z'jes.
+// Alleen afhankelijk van LVGL, zodat dezelfde code op het apparaat en in de simulator draait.
+
+#include <lvgl.h>
+#include <stdint.h>
+
+namespace buddy {
+
+enum class Emotion : uint8_t {
+  Neutral,
+  Happy,
+  Sad,
+  Angry,
+  Surprised,
+  Sleepy,
+  Love,
+  Dizzy,
+  Asleep,
+  Count
+};
+
+// Uiterlijk. Classic = cyaan robotogen op zwart; Mascot = cartoongezicht met haar, bril en lach.
+enum class Skin : uint8_t { Classic, Mascot, Count };
+
+const char* skinName(Skin s);
+bool skinFromName(const char* name, Skin& out);
+
+const char* emotionName(Emotion e);
+bool emotionFromName(const char* name, Emotion& out);
+
+// Kritisch-ish gedempte veer: geeft beweging een beetje "overshoot" en voelt levendiger dan lerp.
+struct Spring {
+  float x = 0, v = 0, target = 0;
+  float k = 180, d = 24;
+  void step(float dt) {
+    float a = k * (target - x) - d * v;
+    v += a * dt;
+    x += v * dt;
+  }
+  void snap(float val) { x = target = val; v = 0; }
+};
+
+class Face {
+ public:
+  static constexpr int kSize = 466;
+
+  void create(lv_obj_t* parent);
+  void update(uint32_t dtMs);
+
+  void setEmotion(Emotion e);
+  Emotion emotion() const { return emotion_; }
+
+  // Kijkrichting -1..1. hold=true houdt de blik vast tot releaseLook().
+  void lookAt(float x, float y, bool hold = true);
+  void releaseLook();
+  void blink();
+  void bounce(float amount = 1.0f);  // squash & stretch-impuls
+  void setAutoBlink(bool on) { autoBlink_ = on; }
+  void setSkin(Skin s);
+  Skin skin() const { return skin_; }
+
+  lv_obj_t* obj() const { return obj_; }
+
+ private:
+  struct Pose {
+    float w, h, r;        // oogmaat en hoekradius
+    float lidTop;         // 0..1 bovenooglid dicht
+    float tilt;           // graden; + = binnenhoek omlaag (boos), - = binnenhoek omhoog (verdrietig)
+    float lidBottom;      // 0..1 onderooglid omhoog (blije "^ ^"-ogen)
+    float dy;             // verticale verschuiving van beide ogen
+    float blush;          // 0..1
+    uint32_t color;
+    uint8_t mouth;        // MouthType
+    bool heart;
+  };
+  enum MouthType : uint8_t { MouthNone, MouthSmile, MouthFrown, MouthO, MouthFlat };
+
+  struct EyeState {
+    Spring w, h, r, lidTop, tilt, lidBottom;
+  };
+
+  static Pose poseFor(Emotion e);
+  static void drawCb(lv_event_t* e);
+  void draw(lv_layer_t* layer);
+  void drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale);
+  void drawZs(lv_layer_t* layer, lv_color_t color);
+  void drawMascot(lv_layer_t* layer);
+  void drawMascotEye(lv_layer_t* layer, int side, float cx, float cy);
+  void drawMascotMouth(lv_layer_t* layer, float cx, float cy);
+  void drawHair(lv_layer_t* layer, float dy);
+  void mascotTargets();
+  void drawMouth(lv_layer_t* layer, float cx, float cy);
+  void applyPose(const Pose& p);
+  void invalidate();
+  void scheduleNextBlink();
+  void scheduleNextSaccade();
+  float rnd();
+
+  lv_obj_t* obj_ = nullptr;
+  Skin skin_ = Skin::Classic;
+  bool fullRedraw_ = true;
+  // Mascotte-specifiek
+  Spring browAngle_, browRaise_, mouthOpen_, mouthWidth_, hairY_;
+  Emotion emotion_ = Emotion::Neutral;
+  Pose pose_{};
+  EyeState eye_;
+  Spring lookX_, lookY_, dy_, blush_, squash_;
+  Spring colR_, colG_, colB_;
+  float mouthAlpha_ = 0;
+  uint8_t mouthShown_ = MouthNone;
+  bool heartShown_ = false;
+  bool pendingHeart_ = false;
+
+  float t_ = 0;           // seconden sinds start
+  float blinkT_ = -1;     // -1 = geen knipper bezig, anders 0..1
+  float nextBlink_ = 2;
+  float nextSaccade_ = 1;
+  bool lookHeld_ = false;
+  bool autoBlink_ = true;
+  uint32_t seed_ = 0x1234567;
+
+  lv_area_t prevBox_{0, 0, kSize - 1, kSize - 1};
+  lv_area_t box_{};
+};
+
+}  // namespace buddy

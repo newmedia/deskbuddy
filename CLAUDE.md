@@ -10,6 +10,19 @@ Taal van docs en commits: Nederlands.
   het de gebruiker. Is de groep al toegevoegd maar nog niet actief in de shell, gebruik dan `sg dialout -c "…"`.
 - Gebruik de scripts in `tools/` (esptool v5 in `.venv/`, commando's met streepjes, zoals `read-flash`)
 
+## Code
+- `firmware/`: PlatformIO, met env `esp32` (apparaat), `sim` (headless PC-simulator) en `emu`
+  (interactieve SDL-emulator, `tools/emu.sh`). Uitleg in
+  `docs/firmware.md`.
+- Hardware-onafhankelijke logica hoort in `firmware/lib/buddy/` (alleen LVGL), zodat de simulator
+  hem ook draait. Hardware hoort in `firmware/src/board/`.
+- Controleer UI-wijzigingen met `tools/sim.sh` en bekijk de PNG's in `sim-out/` voordat je om
+  flashen vraagt.
+- Plan en fases staan in `docs/plan.md`. Navigatie: veeg omlaag = info (Wi-Fi/BLE/geluid/skin),
+  veeg omhoog = klok.
+- Start de emulator ontkoppeld met `setsid … &` en stop hem met `pkill -x program`. Gebruik geen
+  `pkill -f`, want die matcht ook je eigen shell.
+
 ## Regels
 - **Nooit flashen, wissen of `write-flash` uitvoeren zonder expliciete toestemming** en zonder dat er
   een backup in `backups/` staat. Op de chip staat de enige kopie van de closed-source

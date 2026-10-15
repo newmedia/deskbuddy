@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Bouwt de PC-simulator en rendert previews naar sim-out/:
+#   tools/sim.sh            -> PNG per emotie + contactsheet + demo.gif
+#   tools/sim.sh emotions   -> alleen de PNG's
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="$ROOT/sim-out"
+MODE="${1:-all}"
+cd "$ROOT/firmware"
+"$ROOT/.venv/bin/pio" run -e sim -s
+BIN="$ROOT/firmware/.pio/build/sim/program"
+rm -rf "$OUT" && mkdir -p "$OUT/frames"
+
+"$BIN" "$OUT" emotions
+for f in "$OUT"/*.ppm; do ffmpeg -loglevel error -y -i "$f" "${f%.ppm}.png" && rm "$f"; done
+ffmpeg -loglevel error -y -pattern_type glob -i "$OUT/emotion_*.png" \
+  -filter_complex "scale=233:233,tile=3x3:padding=6:color=0x303030" -frames:v 1 "$OUT/emotions.png"
+ffmpeg -loglevel error -y -pattern_type glob -i "$OUT/mascot_*.png" \
+  -filter_complex "scale=233:233,tile=3x3:padding=6:color=0x303030" -frames:v 1 "$OUT/mascot.png"
+
+if [ "$MODE" != "emotions" ]; then
+  "$BIN" "$OUT/frames" demo
+  ffmpeg -loglevel error -y -framerate 30 -i "$OUT/frames/frame_%05d.ppm" \
+    -vf "scale=300:300:flags=lanczos,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse" "$OUT/demo.gif"
+  ffmpeg -loglevel error -y -framerate 30 -i "$OUT/frames/frame_%05d.ppm" -i "$OUT/frames/demo.wav" \
+    -pix_fmt yuv420p -c:a aac -shortest "$OUT/demo.mp4"
+  mv "$OUT/frames/demo.wav" "$OUT/demo.wav"
+  rm -rf "$OUT/frames"
+fi
+ls -1 "$OUT"

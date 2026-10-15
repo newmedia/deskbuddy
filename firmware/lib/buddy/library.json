@@ -1,0 +1,7 @@
+{
+  "name": "buddy",
+  "version": "0.1.0",
+  "description": "deskbuddy: procedureel gezicht, gedrag, gestures en commando's (hardware-onafhankelijk, alleen LVGL)",
+  "frameworks": "*",
+  "platforms": "*"
+}
