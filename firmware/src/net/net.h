@@ -13,6 +13,7 @@ namespace net {
 
 void begin(buddy::App& app);
 void loop();
+void setPump(void (*pump)());  // tijdens web-/ArduinoOTA-upload aangeroepen om het scherm bij te werken
 void fill(buddy::DeviceInfo& d);
 
 void startSetupAp();

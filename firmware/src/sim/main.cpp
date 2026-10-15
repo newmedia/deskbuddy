@@ -200,6 +200,16 @@ int main(int argc, char** argv) {
     s.step(1200);
     savePpm(out + "/wifi_setup_step2.ppm");
     s.app.setup.hide();
+    d.updateState = UpdateState::Installing;
+    d.updateProgress = 42;
+    snprintf(d.updateVersion, sizeof(d.updateVersion), "v0.3.0");
+    s.step(900);
+    savePpm(out + "/matrix_update.ppm");
+    s.step(500);
+    savePpm(out + "/matrix_update2.ppm");
+    d.updateState = UpdateState::Idle;
+    s.step(600);
+    s.app.setup.hide();
     d.wifi = DeviceInfo::WifiMode::Station;
     d.apClients = 0;
     snprintf(d.ip, sizeof(d.ip), "192.168.1.42");

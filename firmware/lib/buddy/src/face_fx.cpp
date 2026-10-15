@@ -242,6 +242,70 @@ void Face::updateAction(float dt) {
   }
 }
 
+void Face::setMatrix(bool on) {
+  if (on == matrix_) return;
+  matrix_ = on;
+  fullRedraw_ = true;
+  for (int e = 0; e < 2; e++)
+    for (int c = 0; c < 7; c++) {
+      matrixHead_[e][c] = rnd() * 10 - 6;
+      matrixSpeed_[e][c] = 5 + rnd() * 9;  // tekens per seconde
+    }
+  if (obj_) {
+    lv_obj_set_pos(obj_, 0, 0);
+    lv_obj_invalidate(obj_);
+  }
+}
+
+void Face::drawMatrix(lv_layer_t* layer) {
+  static const char kGlyphs[] = "0123456789ABCDEFZ#$%&@";
+  const lv_color_t green = lv_color_hex(0x00FF66), dark = lv_color_hex(0x002A12), bright = lv_color_hex(0xCCFFDD);
+  fillRect(layer, 0, 0, kSize, kSize, 0, lv_color_black());
+
+  // Gesloten "mond": een rustig groen streepje
+  fillRect(layer, C - 34, C + 108, C + 34, C + 116, 4, green, 200);
+
+  for (int e = 0; e < 2; e++) {
+    int side = e ? 1 : -1;
+    float ex = C + side * 94, ey = C - 18;
+    float x1 = ex - 58, y1 = ey - 50, x2 = ex + 58, y2 = ey + 50;
+    fillRect(layer, x1, y1, x2, y2, 18, dark);
+
+    // Vallende code, geknipt op het oogvenster
+    lv_area_t saved = layer->_clip_area;
+    lv_area_t clip = {ri(x1 + 4), ri(y1 + 4), ri(x2 - 5), ri(y2 - 5)};
+    lv_area_t inter = {LV_MAX(saved.x1, clip.x1), LV_MAX(saved.y1, clip.y1), LV_MIN(saved.x2, clip.x2),
+                       LV_MIN(saved.y2, clip.y2)};
+    if (inter.x1 <= inter.x2 && inter.y1 <= inter.y2) {
+      layer->_clip_area = inter;
+      lv_draw_label_dsc_t d;
+      lv_draw_label_dsc_init(&d);
+      d.font = &lv_font_montserrat_14;
+      char ch[2] = {0, 0};
+      d.text = ch;
+      d.text_local = 1;
+      const float cell = 15;
+      for (int c = 0; c < 7; c++) {
+        float head = matrixHead_[e][c];
+        for (int k = 0; k < 7; k++) {  // kop + staart van 6
+          float row = floorf(head) - k;
+          float y = y1 + 2 + row * cell;
+          if (y < y1 - cell || y > y2) continue;
+          int gi = ((int)row * 7 + c * 13 + e * 5 + (k == 0 ? (int)(t_ * 12) : 0)) % (int)(sizeof(kGlyphs) - 1);
+          if (gi < 0) gi += sizeof(kGlyphs) - 1;
+          ch[0] = kGlyphs[gi];
+          d.color = k == 0 ? bright : green;
+          d.opa = (lv_opa_t)(k == 0 ? 255 : 230 - k * 34);
+          lv_area_t a = {ri(x1 + 8 + c * 15.5f), ri(y), ri(x1 + 8 + c * 15.5f) + 14, ri(y) + 16};
+          lv_draw_label(layer, &d, &a);
+        }
+      }
+      layer->_clip_area = saved;
+    }
+    frame(layer, x1, y1, x2, y2, 18, 5, green, lv_color_black(), 0);
+  }
+}
+
 void Face::drawPucker(lv_layer_t* layer, float cx, float cy, lv_color_t col, bool mascot) {
   if (mascot) {
     fillEllipse(layer, cx, cy, 46, 40, lv_color_hex(0x111522));

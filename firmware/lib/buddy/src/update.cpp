@@ -6,9 +6,9 @@
 namespace buddy {
 
 namespace {
-const lv_color_t kAccent = LV_COLOR_MAKE(0x6E, 0xE7, 0xF7);
-const lv_color_t kTrack = LV_COLOR_MAKE(0x16, 0x26, 0x2B);
-const lv_color_t kText = LV_COLOR_MAKE(0xE6, 0xF0, 0xF2);
+const lv_color_t kAccent = LV_COLOR_MAKE(0x00, 0xFF, 0x66);  // matrix-groen
+const lv_color_t kTrack = LV_COLOR_MAKE(0x08, 0x2A, 0x14);
+const lv_color_t kText = LV_COLOR_MAKE(0xB8, 0xFF, 0xD0);
 
 void parse(const char* s, long v[3]) {
   v[0] = v[1] = v[2] = 0;

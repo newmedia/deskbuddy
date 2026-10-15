@@ -37,6 +37,16 @@ char ssid[33] = "", pass[65] = "";
 char apName[24] = "";
 uint32_t modeSince = 0, apLastClient = 0;
 bool servicesUp = false, apUp = false, timeSynced = false, otaBusy = false;
+uint8_t otaPct = 0;
+void (*pumpFn)() = nullptr;  // houdt het scherm (matrix + ring) in beweging tijdens een blokkerende upload
+
+void pumpNow() {
+  static uint32_t last = 0;
+  if (pumpFn && millis() - last >= 100) {  // ~10 fps: genoeg voor de animatie, upload krijgt voorrang
+    last = millis();
+    pumpFn();
+  }
+}
 // Verbindingspoging (voor terugkoppeling in de setup-pagina)
 bool joining = false;
 uint32_t joinStart = 0, staSince = 0;
@@ -202,10 +212,14 @@ void handleUpdateUpload() {
   HTTPUpload& up = server.upload();
   if (up.status == UPLOAD_FILE_START) {
     otaBusy = true;
-    app->behaviour.command(buddy::Emotion::Surprised);
+    otaPct = 0;
     Update.begin(UPDATE_SIZE_UNKNOWN);
+    pumpNow();
   } else if (up.status == UPLOAD_FILE_WRITE) {
     Update.write(up.buf, up.currentSize);
+    size_t total = server.clientContentLength();
+    if (total) otaPct = (uint8_t)LV_MIN(99u, (unsigned)((uint64_t)up.totalSize * 100 / total));
+    pumpNow();
   } else if (up.status == UPLOAD_FILE_END) {
     Update.end(true);
   } else if (up.status == UPLOAD_FILE_ABORTED) {
@@ -257,7 +271,11 @@ void startStationServices() {
   ArduinoOTA.setMdnsEnabled(false);  // mDNS doen we zelf (zie hierboven)
   ArduinoOTA.onStart([] {
     otaBusy = true;
-    app->behaviour.command(buddy::Emotion::Surprised);
+    otaPct = 0;
+  });
+  ArduinoOTA.onProgress([](unsigned int cur, unsigned int total) {
+    otaPct = total ? (uint8_t)((uint64_t)cur * 100 / total) : 0;
+    pumpNow();
   });
   ArduinoOTA.onEnd([] { otaBusy = false; });
   ArduinoOTA.onError([](ota_error_t) { otaBusy = false; });
@@ -294,6 +312,7 @@ void stopAp() {
 void connectSta() {
   if (!ssid[0]) return;
   if (!apUp) WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);  // geen modem-sleep: veel lagere latency (web-UI, OTA-uploads); kost wat stroom
   WiFi.setHostname(kHost);
   WiFi.setAutoReconnect(true);
   WiFi.begin(ssid, pass);
@@ -382,8 +401,15 @@ void loop() {
   }
 }
 
+void setPump(void (*fn)()) { pumpFn = fn; }
+
 void fill(buddy::DeviceInfo& d) {
   updater::fill(d);
+  if (otaBusy) {  // upload via web of ArduinoOTA: zelfde weergave als een GitHub-update
+    d.updateState = buddy::UpdateState::Installing;
+    d.updateProgress = otaPct;
+    snprintf(d.updateVersion, sizeof(d.updateVersion), "upload");
+  }
   snprintf(d.hostname, sizeof(d.hostname), "%s", kHost);
   d.wifi = mode;
   switch (mode) {

@@ -180,6 +180,16 @@ void Face::scheduleNextSaccade() { nextSaccade_ = t_ + 0.9f + rnd() * 2.8f; }
 void Face::update(uint32_t dtMs) {
   float dt = LV_MIN(dtMs, 50u) / 1000.0f;
   t_ += dt;
+  if (matrix_) {
+    for (int e = 0; e < 2; e++)
+      for (int c = 0; c < 7; c++) {
+        matrixHead_[e][c] += matrixSpeed_[e][c] * dt;
+        if (matrixHead_[e][c] > 14) {  // onderaan uit beeld: opnieuw van boven
+          matrixHead_[e][c] = -rnd() * 3;
+          matrixSpeed_[e][c] = 5 + rnd() * 9;
+        }
+      }
+  }
 
   // Knipperen
   if (autoBlink_ && blinkT_ < 0 && t_ >= nextBlink_ && emotion_ != Emotion::Asleep) {
@@ -243,6 +253,15 @@ static float closure(float blinkT) { return blinkT < 0 ? 0 : sinf(blinkT * kPi);
 
 void Face::invalidate() {
   if (!obj_) return;
+  if (matrix_ && !fullRedraw_) {
+    // Alleen de twee oogvensters veranderen: dat houdt de update-download snel.
+    for (int side = -1; side <= 1; side += 2) {
+      lv_area_t a = {(int32_t)(kCenter + side * 94 - 64), (int32_t)(kCenter - 18 - 56),
+                     (int32_t)(kCenter + side * 94 + 64), (int32_t)(kCenter - 18 + 56)};
+      lv_obj_invalidate_area(obj_, &a);
+    }
+    return;
+  }
   if (skin_ == Skin::Mascot || fullRedraw_ || effectsActive()) {
     // Mascotte beweegt over bijna het hele scherm (haar, wenkbrauwen, mond): alles opnieuw.
     lv_obj_invalidate(obj_);
@@ -279,6 +298,10 @@ void Face::drawCb(lv_event_t* e) {
 }
 
 void Face::draw(lv_layer_t* layer) {
+  if (matrix_) {
+    drawMatrix(layer);
+    return;
+  }
   if (skin_ == Skin::Mascot) {
     drawMascot(layer);
     drawEffects(layer);

@@ -66,6 +66,9 @@ class Face {
   void bounce(float amount = 1.0f);  // squash & stretch-impuls
   void setAutoBlink(bool on) { autoBlink_ = on; }
   void setSkin(Skin s);
+  // Matrix-gezicht tijdens firmware-updates: groene ogen met vallende code (alleen de ogen hertekenen).
+  void setMatrix(bool on);
+  bool matrix() const { return matrix_; }
   void play(Action a);
   Action action() const { return action_; }
   bool busy() const { return action_ != Action::None; }
@@ -117,6 +120,7 @@ class Face {
   void updateParticles(float dt);
   void spawn(uint8_t type, float x, float y, float vx, float vy, float life, float size, uint32_t color);
   void drawEffects(lv_layer_t* layer);
+  void drawMatrix(lv_layer_t* layer);
   void drawPucker(lv_layer_t* layer, float cx, float cy, lv_color_t col, bool mascot);
   bool effectsActive() const;
   float eyeClosure(int side) const;  // knipper + knipoog/kus voor één oog
@@ -128,6 +132,9 @@ class Face {
   float rnd();
 
   lv_obj_t* obj_ = nullptr;
+  bool matrix_ = false;
+  float matrixHead_[2][7];  // per oog, per kolom: positie van de kop (in tekens)
+  float matrixSpeed_[2][7];
   // Actie-status
   Action action_ = Action::None;
   Cue cue_ = Cue::None;

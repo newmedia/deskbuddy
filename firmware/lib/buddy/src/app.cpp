@@ -226,12 +226,13 @@ void App::update(uint32_t dtMs) {
     info.hide();
     clock.hide();
     setup.hide();
-    behaviour.command(Emotion::Surprised);
+    pair.hide();
   } else if (!installing && wasInstalling_) {
     behaviour.command(dev_.updateState == UpdateState::Failed ? Emotion::Sad : Emotion::Neutral, 4000);
   }
   wasInstalling_ = installing;
   updating.update(installing, dev_.updateProgress, dev_.updateVersion);
+  face.setMatrix(installing);
   applyBrightness();
 
   // Instellingen pas na een korte pauze opslaan (spaart flash bij snel schuiven/tikken).
