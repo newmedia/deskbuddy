@@ -9,6 +9,7 @@ De eigen deskbuddy-firmware staat in `firmware/`.
 - [docs/hardware.md](docs/hardware.md): het bord, de chips, de pin-mapping en hoe het zich op USB meldt
 - [docs/original-firmware.md](docs/original-firmware.md): wat de originele firmware doet en wat nog open staat
 - [docs/firmware.md](docs/firmware.md): de eigen deskbuddy-firmware: bediening, opbouw, bouwen en flashen
+- [docs/multi-buddy.md](docs/multi-buddy.md): idee en ontwerp voor meerdere buddies die op elkaar reageren
 - [docs/plan.md](docs/plan.md): plan voor eigen deskbuddy-firmware, web/PWA, desktop-app en HA
 
 ## Snel starten

@@ -90,6 +90,11 @@ offline, maar met minder functies.
 - Voor flashen is toestemming nodig (zie `CLAUDE.md`). De eerste keer flashen overschrijft de
   originele firmware; de backup staat klaar.
 
+## Meerdere buddies (idee)
+
+Op elkaar reageren en samen dingen doen (aanstekelijk gedrag, koor, wave, berichtjes naar collega's):
+zie `multi-buddy.md` voor het ontwerpvoorstel (ESP-NOW lokaal + MQTT op afstand).
+
 ## Animaties (✅ fluiten, knipoog, kusje, rage en ontploffen gebouwd; de rest staat nog open)
 
 Speciale animaties zijn *acties*: een korte tijdlijn bovenop de gewone emotie. Ze krijgen een eigen
