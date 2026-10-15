@@ -3,6 +3,7 @@
 // Alleen afhankelijk van LVGL, zodat dezelfde code op het apparaat en in de simulator draait.
 
 #include <lvgl.h>
+#include <math.h>
 #include <stdint.h>
 
 namespace buddy {
@@ -47,6 +48,15 @@ struct Spring {
     x += v * dt;
   }
   void snap(float val) { x = target = val; v = 0; }
+  // Stilgevallen (en dan precies op het doel gezet, zodat het beeld niet meer verandert)?
+  bool settle(float eps) {
+    if (fabsf(x - target) < eps && fabsf(v) < eps * 4) {
+      x = target;
+      v = 0;
+      return true;
+    }
+    return false;
+  }
 };
 
 class Face {
@@ -68,6 +78,8 @@ class Face {
   void setSkin(Skin s);
   // Matrix-gezicht tijdens firmware-updates: groene ogen met vallende code (alleen de ogen hertekenen).
   void setMatrix(bool on);
+  // Afgedekt door een ondoorzichtig paneel (klok, info, ...): dan niets hertekenen.
+  void setCovered(bool covered);
   bool matrix() const { return matrix_; }
   void play(Action a);
   Action action() const { return action_; }
@@ -123,6 +135,7 @@ class Face {
   void drawMatrix(lv_layer_t* layer);
   void drawPucker(lv_layer_t* layer, float cx, float cy, lv_color_t col, bool mascot);
   bool effectsActive() const;
+  bool settled();  // niets beweegt: dan hoeft er niets hertekend te worden (scheelt veel CPU)
   float eyeClosure(int side) const;  // knipper + knipoog/kus voor één oog
   void drawMouth(lv_layer_t* layer, float cx, float cy);
   void applyPose(const Pose& p);
@@ -133,6 +146,9 @@ class Face {
 
   lv_obj_t* obj_ = nullptr;
   bool matrix_ = false;
+  int bobPx_ = 0, drawnBobPx_ = 0;  // ademhaling in hele pixels: alleen hertekenen als hij echt verschuift
+  bool wasSettled_ = false;
+  bool covered_ = false;
   float matrixHead_[2][7];  // per oog, per kolom: positie van de kop (in tekens)
   float matrixSpeed_[2][7];
   // Actie-status

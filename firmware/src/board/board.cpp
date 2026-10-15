@@ -24,6 +24,8 @@ SensorQMI8658 imu;
 XPowersPMU pmu;
 SensorPCF85063 rtc;
 bool touchOk = false, imuOk = false, pmuOk = false, rtcOk = false;
+volatile bool touchIrq = false;
+void IRAM_ATTR onTouchIrq() { touchIrq = true; }
 
 // Dagen sinds 1970-01-01 (proleptische Gregoriaanse kalender), voor UTC <-> time_t zonder timegm.
 int64_t daysFromCivil(int y, unsigned m, unsigned d) {
@@ -48,14 +50,25 @@ bool beginTouch() {
   if (touchOk) {
     touch.setMaxCoordinates(LCD_WIDTH, LCD_HEIGHT);
     touch.setMirrorXY(true, true);
+    pinMode(TP_INT, INPUT_PULLUP);
+    attachInterrupt(TP_INT, onTouchIrq, FALLING);
   }
   return touchOk;
 }
 
 bool readTouch(int& x, int& y) {
   if (!touchOk) return false;
+  // Alleen via I2C uitlezen als de touch-chip iets meldt (interrupt), vlak na een aanraking, of als
+  // vangnet elke 100 ms. Scheelt het meeste I2C-verkeer als niemand het scherm aanraakt.
+  static uint32_t lastActive = 0, lastPoll = 0;
+  uint32_t now = millis();
+  bool irq = touchIrq;
+  if (!irq && now - lastActive > 150 && now - lastPoll < 100) return false;
+  touchIrq = false;
+  lastPoll = now;
   const TouchPoints& p = touch.getTouchPoints();
   if (p.getPointCount() == 0) return false;  // hasPoints() kan true zijn zonder geldig punt
+  lastActive = now;
   int px = p.getPoint(0).x, py = p.getPoint(0).y;
   // Fysiek -> logisch (inverse van ROTATION_270: logisch (x,y) -> fysiek (W-1-y, x))
   x = py;

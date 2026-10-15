@@ -12,6 +12,8 @@ namespace board {
 
 bool beginDisplay();               // CO5300 + LVGL-display
 void setBrightness(uint8_t value);
+void setRefreshPeriod(uint32_t ms);
+uint32_t displayTimeouts();  // diagnose: DMA-buffer kwam niet op tijd vrij  // LVGL-verversing (33 = 30 fps)
 // Sinds vorige aanroep: frames, totale frametijd, waarvan draaien en versturen (QSPI)
 void takeFrameStats(uint32_t& frames, uint64_t& renderUs, uint64_t& rotateUs, uint64_t& sendUs);
 

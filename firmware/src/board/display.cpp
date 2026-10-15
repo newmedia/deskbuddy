@@ -41,6 +41,7 @@ SemaphoreHandle_t txFree = nullptr;       // telt vrije DMA-buffers
 // Prestaties (zie takeFrameStats)
 volatile uint32_t frames = 0;
 volatile uint64_t renderUs = 0, rotateUs = 0, sendUs = 0;
+volatile uint32_t timeouts = 0;  // aantal keren dat een DMA-buffer niet op tijd vrijkwam
 int64_t refrStart = 0;
 
 inline uint32_t cmdWord(uint8_t op, uint8_t cmd) { return ((uint32_t)op << 24) | ((uint32_t)cmd << 8); }
@@ -66,7 +67,11 @@ bool IRAM_ATTR onTxDone(esp_lcd_panel_io_handle_t, esp_lcd_panel_io_event_data_t
 
 void flushCb(lv_display_t* disp, const lv_area_t* area, uint8_t* px) {
   int64_t t0 = esp_timer_get_time();
-  xSemaphoreTake(txFree, portMAX_DELAY);  // wacht tot een DMA-buffer vrij is
+  // Wacht tot een DMA-buffer vrij is, maar nooit eeuwig: gaat een "klaar"-melding verloren (bijv. tijdens
+  // flash-schrijven bij een OTA-update), dan na 50 ms gewoon door i.p.v. de hele lus te laten hangen.
+  if (xSemaphoreTake(txFree, pdMS_TO_TICKS(50)) != pdTRUE) {
+    timeouts++;
+  }
   int64_t t1 = esp_timer_get_time();
 
   lv_area_t a = *area;
@@ -185,6 +190,16 @@ bool beginDisplay() {
   lv_display_add_event_cb(disp, refrStartCb, LV_EVENT_REFR_START, nullptr);
   lv_display_add_event_cb(disp, refrReadyCb, LV_EVENT_REFR_READY, nullptr);
   return true;
+}
+
+uint32_t displayTimeouts() { return timeouts; }
+
+void setRefreshPeriod(uint32_t ms) {
+  static uint32_t current = 0;
+  if (ms == current) return;
+  current = ms;
+  lv_timer_t* t = lv_display_get_refr_timer(lv_display_get_default());
+  if (t) lv_timer_set_period(t, ms);
 }
 
 void setBrightness(uint8_t v) {

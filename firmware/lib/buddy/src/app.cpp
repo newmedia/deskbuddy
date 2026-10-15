@@ -228,6 +228,9 @@ void App::update(uint32_t dtMs) {
   // Firmware-update: verrast gezicht en voortgangsring; mislukt = even verdrietig.
   bool installing = dev_.updateState == UpdateState::Installing;
   if (installing && !wasInstalling_) {
+    // Wakker worden: slaapstand (lage verversing, gedimd) en een update gaan slecht samen, en zo zie
+    // je de Matrix-animatie op normale helderheid.
+    behaviour.command(Emotion::Neutral, 0);
     info.hide();
     clock.hide();
     setup.hide();
@@ -238,6 +241,7 @@ void App::update(uint32_t dtMs) {
   wasInstalling_ = installing;
   updating.update(installing, dev_.updateProgress, dev_.updateVersion);
   face.setMatrix(installing);
+  face.setCovered(!installing && (clock.visible() || info.visible() || setup.visible() || pair.visible()));
   applyBrightness();
 
   if (rebootIn_) {

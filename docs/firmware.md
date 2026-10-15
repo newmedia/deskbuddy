@@ -168,6 +168,15 @@ Elke actie zet *cues*, waar de App een geluid aan koppelt. Ze werken in beide sk
   - Maximaal 30 fps (`LV_DEF_REFR_PERIOD`).
 - **Mascotte in rust:** alleen ogen, wenkbrauwen en mond worden hertekend. Haar en bril staan
   stil.
+- **Niets tekenen als er niets beweegt:** alle veren worden op hun doel vastgeklikt zodra ze
+  stilvallen. De ademhaling gaat in hele pixels. Is het gezicht afgedekt door een paneel, dan wordt
+  het niet hertekend.
+- **Lagere verversing bij weinig beweging:** slaperig ~10 fps, slapend ~8 fps.
+- **Hoofdlus:** wacht tot er werk is (`delay` op basis van `lv_timer_handler`).
+- **Touch:** alleen uitlezen bij een interrupt, met een vangnet elke 100 ms.
+- **Belasting:** wakker en stil ~35–45%, was ~95%. De CPU blijft bewust op 240 MHz.
+- **Updates:** bij het starten van een update wordt hij eerst wakker. Vanuit de slaapstand liepen
+  uploads anders vast.
 - **`perf`-commando:** fps, frametijd (tekenen/draaien/versturen), belasting van de hoofdlus en vrij
   intern RAM (ook het laagste punt). Gemeten (Wi-Fi verbonden, BLE aan):
 

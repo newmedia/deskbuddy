@@ -213,6 +213,7 @@ void handleUpdateUpload() {
   if (up.status == UPLOAD_FILE_START) {
     otaBusy = true;
     otaPct = 0;
+    app->behaviour.command(buddy::Emotion::Neutral, 0);  // direct wakker, niet pas bij de eerste pomp
     Update.begin(UPDATE_SIZE_UNKNOWN);
     pumpNow();
   } else if (up.status == UPLOAD_FILE_WRITE) {

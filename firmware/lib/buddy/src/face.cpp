@@ -237,6 +237,7 @@ void Face::update(uint32_t dtMs) {
                     &mouthOpen_, &mouthWidth_, &hairY_}) {
     s->step(dt);
   }
+  bobPx_ = skin_ == Skin::Mascot ? 0 : (int)lroundf(sinf(t_ * 2 * kPi / 4.2f) * 3.0f);
   updateAction(dt);
   updateParticles(dt);
   // Trillen: het hele gezichtsobject heen en weer zetten (goedkoop, geen hertekenen per pixel nodig)
@@ -251,8 +252,37 @@ void Face::update(uint32_t dtMs) {
 
 static float closure(float blinkT) { return blinkT < 0 ? 0 : sinf(blinkT * kPi); }
 
+void Face::setCovered(bool c) {
+  if (c == covered_) return;
+  covered_ = c;
+  if (!c) fullRedraw_ = true;  // weer zichtbaar: één keer alles tekenen
+}
+
+bool Face::settled() {
+  if (matrix_ || fullRedraw_ || effectsActive() || blinkT_ >= 0 || pendingHeart_) return false;
+  if (bobPx_ != drawnBobPx_) return false;
+  // Emoties met een doorlopende animatie (hartslag, wiebelen, zwevende Z'jes, pulserende o-mond)
+  if (emotion_ == Emotion::Love || emotion_ == Emotion::Dizzy || emotion_ == Emotion::Sleepy ||
+      emotion_ == Emotion::Asleep)
+    return false;
+  if (pose_.mouth != mouthShown_ || mouthShown_ == MouthO) return false;
+  if (mouthShown_ != MouthNone && mouthAlpha_ < 1.0f) return false;
+  bool s = true;
+  for (Spring* sp : {&eye_.w, &eye_.h, &eye_.r, &lookX_, &lookY_, &dy_, &mouthWidth_, &hairY_}) s &= sp->settle(0.15f);
+  for (Spring* sp : {&eye_.lidTop, &eye_.lidBottom, &blush_, &squash_, &mouthOpen_}) s &= sp->settle(0.003f);
+  for (Spring* sp : {&eye_.tilt, &browAngle_, &browRaise_}) s &= sp->settle(0.05f);
+  for (Spring* sp : {&colR_, &colG_, &colB_}) s &= sp->settle(0.6f);
+  return s;
+}
+
 void Face::invalidate() {
   if (!obj_) return;
+  // Stilstaand gezicht: het laatste frame klopt nog, dus niets hertekenen. Het eerste "stille" frame
+  // tekenen we nog wel, zodat de exact vastgeklikte eindwaarden op het scherm staan.
+  if (covered_) return;
+  bool s = settled();
+  if (s && wasSettled_) return;
+  wasSettled_ = s;
   if (matrix_ && !fullRedraw_) {
     // Alleen de twee oogvensters veranderen: dat houdt de update-download snel.
     for (int side = -1; side <= 1; side += 2) {
@@ -327,7 +357,8 @@ void Face::draw(lv_layer_t* layer) {
     drawEffects(layer);
     return;
   }
-  float bob = sinf(t_ * 2 * kPi / 4.2f) * 3.0f;
+  float bob = (float)bobPx_;
+  drawnBobPx_ = bobPx_;
   float baseY = kCenter + kEyeY + dy_.x + lookY_.x + bob;
   for (int side = -1; side <= 1; side += 2) {
     // Perspectief: het oog aan de kant waar hij naartoe kijkt wordt iets groter.

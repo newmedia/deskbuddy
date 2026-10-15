@@ -131,6 +131,7 @@ void setup() {
     static uint32_t last = millis();
     uint32_t now = millis();
     if (now - last < 100) return;
+    board::setRefreshPeriod(33);  // tijdens een update nooit de trage slaap-verversing
     app.update(LV_MIN(now - last, 100u));
     last = now;
     lv_timer_handler();
@@ -205,7 +206,10 @@ void loop() {
   net::loop();
   ble::loop();
   app.update(dt);
-  lv_timer_handler();
+  // Slaperig of slapend: alleen trage animaties (Z'jes, oogleden), dus ~8-10 fps; wakker: 30 fps.
+  Emotion e = app.face.emotion();
+  board::setRefreshPeriod(e == Emotion::Asleep ? 125 : (e == Emotion::Sleepy && !app.face.busy() ? 100 : 33));
+  uint32_t idleMs = lv_timer_handler();
 
   // Belasting: tijd dat deze lus bezig was (alles behalve de delay hieronder)
   perf.busyUs += (uint64_t)(micros() - loopStartUs);
@@ -222,5 +226,6 @@ void loop() {
     perf.busyUs = 0;
     perf.windowStart = now;
   }
-  delay(2);
+  // Echt wachten tot er werk is (LVGL-timer, touch-poll elke 15 ms) i.p.v. rondjes draaien.
+  delay(LV_CLAMP(1u, idleMs, 10u));
 }
