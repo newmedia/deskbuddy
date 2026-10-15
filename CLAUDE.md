@@ -7,7 +7,7 @@ Taal van docs en commits: Nederlands.
 ## Apparaat
 - USB `303a:1001`, poort `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*-if00`
 - Voor toegang tot de poort moet de gebruiker in `dialout` zitten. Sudo nooit zelf uitvoeren; vraag
-  het de gebruiker.
+  het de gebruiker. Is de groep al toegevoegd maar nog niet actief in de shell, gebruik dan `sg dialout -c "…"`.
 - Gebruik de scripts in `tools/` (esptool v5 in `.venv/`, commando's met streepjes, zoals `read-flash`)
 
 ## Regels

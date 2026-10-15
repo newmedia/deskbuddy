@@ -8,7 +8,8 @@ description: Inspect, back up, monitor or flash the Deskimon ESP32-S3 (Waveshare
 1. **Check aanwezigheid**: `lsusb | grep 303a:1001`. Ontbreekt het apparaat, vraag dan of het is
    aangesloten en aanstaat (PWR-knop).
 2. **Check rechten**: `id -nG | grep -w dialout`. Ontbreekt de groep, geef de gebruiker
-   `sudo usermod -aG dialout $USER` (opnieuw inloggen). Voer het niet zelf uit.
+   `sudo usermod -aG dialout $USER` (opnieuw inloggen). Voer het niet zelf uit. Staat de gebruiker wel
+   in `getent group dialout` maar heeft de shell de groep nog niet, gebruik dan `sg dialout -c "tools/…"`.
 3. **Tooling**: bestaat `.venv/bin/esptool` niet, run dan `tools/setup.sh`.
 4. **Alleen lezen** (veilig, zonder te vragen):
    - `tools/chip-info.sh`: chip, MAC, flash-grootte
