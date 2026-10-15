@@ -124,6 +124,23 @@ void setup() {
   Serial.printf("[mem] na display/sensoren: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
   bool audio = board::beginAudio(app.sound);
   net::updater::begin(DESKBUDDY_VERSION);
+  // Tijdens een update-installatie staat loop() stil; dan houdt dit het gezicht en de ring in beweging.
+  net::updater::setPump([] {
+    static uint32_t last = millis();
+    uint32_t now = millis();
+    app.update(LV_MIN(now - last, 100u));
+    last = now;
+    lv_timer_handler();
+  });
+  // BLE houdt ~64 KB intern RAM vast; TLS naar GitHub past dan niet. Tijdens een update-klus even uit,
+  // maar een automatische controle niet doen terwijl er een telefoon verbonden is.
+  net::updater::setHooks(
+      [](bool urgent) {
+        if (!urgent && ble::isConnected()) return false;
+        ble::suspend();
+        return true;
+      },
+      [] { ble::resume(); });
   net::begin(app);
   {
     uint64_t mac = ESP.getEfuseMac();

@@ -26,7 +26,7 @@ buddy::App* app = nullptr;
 QueueHandle_t queue = nullptr;
 NimBLEServer* server = nullptr;
 NimBLECharacteristic* tx = nullptr;
-bool inited = false, enabled = false;
+bool inited = false, enabled = false, suspended = false;
 char devName[24] = "deskbuddy";
 std::atomic<uint32_t> passkey{0};   // >0 = tonen op het scherm
 std::atomic<uint8_t> connected{0};
@@ -117,6 +117,10 @@ void begin(buddy::App& a, bool on, const char* name) {
 }
 
 void setEnabled(bool on) {
+  if (suspended) {  // resume() regelt het
+    enabled = on;
+    return;
+  }
   if (on) {
     init();
     NimBLEDevice::getAdvertising()->start();
@@ -141,6 +145,26 @@ void loop() {
     send(m.conn, reply);
   }
 }
+
+bool suspend() {
+  if (!inited || suspended) return false;
+  NimBLEDevice::deinit(true);  // ook de controller; koppelingen blijven in NVS bewaard
+  inited = false;
+  server = nullptr;
+  tx = nullptr;
+  connected = 0;
+  passkey = 0;
+  suspended = true;
+  return true;
+}
+
+void resume() {
+  if (!suspended) return;
+  suspended = false;
+  setEnabled(enabled);
+}
+
+bool isConnected() { return connected > 0; }
 
 void fill(buddy::DeviceInfo& d) {
   d.bleEnabled = enabled;
