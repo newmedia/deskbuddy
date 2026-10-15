@@ -1,6 +1,7 @@
 #pragma once
 // Herkent gebaren uit ruwe touch- en accelerometer-samples. Platform-onafhankelijk.
 
+#include <math.h>
 #include <stdint.h>
 
 namespace buddy {
@@ -45,13 +46,22 @@ class MotionGestures {
  public:
   // Acceleratie in g. Geeft hooguit één event terug.
   GestureEvent feed(float ax, float ay, float az, uint32_t nowMs);
-  // Laagdoorlaat-zwaartekrachtvector, voor "kijk naar beneden als je hem kantelt".
+  // Laagdoorlaat-zwaartekrachtvector (in schermassen).
   float gx() const { return gx_; }
   float gy() const { return gy_; }
   float gz() const { return gz_; }
+  // Kanteling t.o.v. de rustpositie (die zich na een paar seconden stil staan aanpast), zodat het
+  // werkt of hij nu plat ligt of rechtop staat. x = links/rechts, y = voor/achter.
+  float tiltX() const { return gx_ - rx_; }
+  // Rechtop: voor/achter zit in z (+ = bovenkant naar je toe -> naar beneden kijken).
+  // Plat liggend: in y.
+  float tiltY() const { return fabsf(ry_) >= fabsf(rz_) ? gz_ - rz_ : gy_ - ry_; }
 
  private:
   float gx_ = 0, gy_ = 0, gz_ = 1;
+  float rx_ = 0, ry_ = 0, rz_ = 1;   // rustpositie
+  bool init_ = false;
+  int warmup_ = 0;
   float still_ = 0;          // hoe lang (ms) het apparaat stil ligt
   uint32_t last_ = 0;
   uint32_t shakeWindow_ = 0, lastShake_ = 0, lastPick_ = 0;

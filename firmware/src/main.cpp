@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <Wire.h>
+#include <esp_system.h>
 #include <lvgl.h>
 
 #include "app.h"
@@ -64,7 +65,7 @@ void handleSerial() {
     if (c == '\n' || lineLen == sizeof(line) - 1) {
       line[lineLen] = 0;
       lineLen = 0;
-      char reply[192];
+      char reply[320];
       app.command(line, reply, sizeof(reply));
       if (reply[0]) Serial.println(reply);
     } else {
@@ -90,6 +91,10 @@ void setup() {
   bool audio = board::beginAudio(app.sound);
   Serial.printf("deskbuddy %s  display=%d touch=%d imu=%d pmu=%d rtc=%d audio=%d  psram=%u KB vrij\n",
                 DESKBUDDY_VERSION, disp, touch, imu, pmu, rtc, audio, (unsigned)(ESP.getFreePsram() / 1024));
+  static const char* const reasons[] = {"onbekend", "aan", "extern", "software", "PANIC", "int-watchdog",
+                                        "task-watchdog", "watchdog", "deepsleep", "BROWNOUT", "sdio"};
+  int rr = (int)esp_reset_reason();
+  Serial.printf("reset-reden: %s\n", rr < 11 ? reasons[rr] : "?");
   Serial.println("typ 'help' voor commando's");
 }
 

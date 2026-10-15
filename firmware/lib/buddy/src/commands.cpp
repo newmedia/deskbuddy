@@ -88,7 +88,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     host.setVolume((uint8_t)v);
     snprintf(reply, len, "ok volume=%d", v);
   } else if (!strcmp(cmd, "status")) {
-    char extra[128];
+    char extra[224];
     host.status(extra, sizeof(extra));
     snprintf(reply, len, "emotion=%s idle=%lus %s", emotionName(face.emotion()),
              (unsigned long)(behaviour.idleMs() / 1000), extra);

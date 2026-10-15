@@ -101,10 +101,25 @@ GestureEvent TouchGestures::feed(bool pressed, int x, int y, uint32_t now) {
 GestureEvent MotionGestures::feed(float ax, float ay, float az, uint32_t now) {
   uint32_t dt = last_ ? now - last_ : 20;
   last_ = now;
+  float mag0 = ax * ax + ay * ay + az * az;
+  if (!init_ && mag0 < 0.25f) return {};  // eerste metingen kunnen nul zijn
+  if (!init_) {
+    init_ = true;
+    gx_ = rx_ = ax;
+    gy_ = ry_ = ay;
+    gz_ = rz_ = az;
+  }
   const float a = 0.08f;
   gx_ += (ax - gx_) * a;
   gy_ += (ay - gy_) * a;
   gz_ += (az - gz_) * a;
+  // Rustpositie: eerste 1,5 s direct volgen (opstarten), daarna langzaam mee (~5 s als
+  // hij stil staat), zodat een scheve stand na een tijdje als "recht" geldt.
+  if (warmup_ < 75) warmup_++;
+  const float r = warmup_ < 75 ? 1.0f : (still_ > 1500 ? 0.004f : 0.0015f);
+  rx_ += (gx_ - rx_) * r;
+  ry_ += (gy_ - ry_) * r;
+  rz_ += (gz_ - rz_) * r;
 
   float mag = sqrtf(ax * ax + ay * ay + az * az);
   float dev = fabsf(mag - 1.0f);

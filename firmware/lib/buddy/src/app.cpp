@@ -33,7 +33,7 @@ void App::onTouch(bool pressed, int x, int y, uint32_t now) {
 void App::onAccel(float ax, float ay, float az, uint32_t now) {
   GestureEvent g = motion_.feed(ax, ay, az, now);
   if (g.type != Gesture::None) onGesture(g);
-  if (!clock.visible() && !info.visible()) behaviour.onGravity(motion_.gx(), motion_.gy(), motion_.gz());
+  if (!clock.visible() && !info.visible()) behaviour.onGravity(motion_.tiltX(), motion_.tiltY(), 0);
 }
 
 void App::onGesture(const GestureEvent& g) {
@@ -180,6 +180,11 @@ void App::status(char* out, size_t len) {
     case DeviceInfo::WifiMode::Connecting: wifi = "connecting"; break;
     default: break;
   }
+  int n = snprintf(out, len, "g=%.2f,%.2f,%.2f tilt=%.2f,%.2f ", motion_.gx(), motion_.gy(), motion_.gz(),
+                   motion_.tiltX(), motion_.tiltY());
+  if (n < 0 || (size_t)n >= len) return;
+  out += n;
+  len -= n;
   snprintf(out, len, "skin=%s brightness=%u sound=%s volume=%u battery=%d%s wifi=%s ip=%s ble=%s",
            skinName(settings_.skin), settings_.brightness,
            settings_.sound ? "on" : "off", settings_.volume, dev_.batteryPct, dev_.charging ? "+" : "", wifi,

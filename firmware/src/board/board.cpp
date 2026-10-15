@@ -135,9 +135,11 @@ bool readAccel(float& ax, float& ay, float& az) {
   if (!imuOk || !imu.getDataReady()) return false;
   float x, y;
   if (!imu.getAccelerometer(x, y, az)) return false;
-  // Zelfde 90°-draaiing als het scherm, zodat kantelen in schermrichting klopt.
-  ax = y;
-  ay = -x;
+  // IMU-assen -> schermassen, gemeten met tools/imu-measure.py: rechtop staand wijst de
+  // zwaartekracht langs IMU-y (= omlaag op het scherm), rechts kantelen geeft +x, en de bovenkant
+  // naar je toe kantelen geeft +z.
+  ax = x;
+  ay = y;
   return true;
 }
 

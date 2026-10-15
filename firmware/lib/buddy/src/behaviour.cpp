@@ -82,10 +82,10 @@ void Behaviour::onGesture(const GestureEvent& g) {
 void Behaviour::onGravity(float gx, float gy, float gz) {
   (void)gz;
   float tx = gx * tiltSignX, ty = gy * tiltSignY;
-  bool tilted = fabsf(tx) > 0.28f || fabsf(ty) > 0.28f;
+  bool tilted = fabsf(tx) > 0.17f || fabsf(ty) > 0.17f;  // ~10°
   if (tilted && !asleep()) {
     // Kijk "bergafwaarts", net alsof de ogen meerollen.
-    face_.lookAt(LV_CLAMP(-1.f, tx * 1.6f, 1.f), LV_CLAMP(-1.f, ty * 1.6f, 1.f), true);
+    face_.lookAt(LV_CLAMP(-1.f, tx * 2.2f, 1.f), LV_CLAMP(-1.f, ty * 2.2f, 1.f), true);
     tiltLook_ = true;
   } else if (tiltLook_) {
     face_.releaseLook();
