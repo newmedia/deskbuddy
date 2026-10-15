@@ -22,6 +22,10 @@ struct CommandHost {
   virtual void playSound(Sound) {}
   virtual void setSkin(Skin) {}
   virtual void setSleep(uint8_t) {}
+  virtual void ble(const char* action, char* reply, size_t len) {
+    (void)action;
+    snprintf(reply, len, "ble niet beschikbaar");
+  }
   // action: status | setup | off | join (dan ssid + pass)
   virtual void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) {
     (void)action; (void)ssid; (void)pass;

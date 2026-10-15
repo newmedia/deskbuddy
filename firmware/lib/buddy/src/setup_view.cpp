@@ -79,4 +79,54 @@ void SetupView::update(uint32_t dtMs) {
   if (!visible_ && lv_obj_get_style_opa(root_, LV_PART_MAIN) == LV_OPA_TRANSP) lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
 }
 
+void PairView::create(lv_obj_t* parent) {
+  root_ = lv_obj_create(parent);
+  lv_obj_remove_style_all(root_);
+  lv_obj_set_size(root_, LV_PCT(100), LV_PCT(100));
+  lv_obj_set_style_bg_color(root_, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(root_, LV_OPA_COVER, 0);
+  lv_obj_remove_flag(root_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(root_, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_t* icon = lv_label_create(root_);
+  lv_label_set_text(icon, LV_SYMBOL_BLUETOOTH);
+  lv_obj_set_style_text_font(icon, &lv_font_montserrat_48, 0);
+  lv_obj_set_style_text_color(icon, lv_color_hex(0x6EE7F7), 0);
+  lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 70);
+
+  lv_obj_t* title = lv_label_create(root_);
+  lv_label_set_text(title, "Koppelcode");
+  lv_obj_set_style_text_font(title, &lv_font_montserrat_28, 0);
+  lv_obj_set_style_text_color(title, lv_color_hex(0xE6F0F2), 0);
+  lv_obj_align(title, LV_ALIGN_CENTER, 0, -55);
+
+  code_ = lv_label_create(root_);
+  lv_obj_set_style_text_font(code_, &lv_font_montserrat_48, 0);
+  lv_obj_set_style_text_color(code_, lv_color_hex(0x6EE7F7), 0);
+  lv_obj_set_style_text_letter_space(code_, 6, 0);
+  lv_obj_align(code_, LV_ALIGN_CENTER, 0, 10);
+
+  lv_obj_t* hint = lv_label_create(root_);
+  lv_label_set_text(hint, "Vul deze code in\nop je telefoon");
+  lv_obj_set_style_text_font(hint, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(hint, lv_color_hex(0x9AA8AD), 0);
+  lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align(hint, LV_ALIGN_CENTER, 0, 90);
+
+  lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
+}
+
+void PairView::show(uint32_t code) {
+  lv_label_set_text_fmt(code_, "%03lu %03lu", (unsigned long)(code / 1000), (unsigned long)(code % 1000));
+  if (visible_) return;
+  visible_ = true;
+  lv_obj_remove_flag(root_, LV_OBJ_FLAG_HIDDEN);
+}
+
+void PairView::hide() {
+  if (!visible_) return;
+  visible_ = false;
+  lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
+}
+
 }  // namespace buddy

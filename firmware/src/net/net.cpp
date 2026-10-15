@@ -444,6 +444,23 @@ void action(const char* act, const char* s, const char* p, char* reply, size_t l
   } else if (!strcmp(act, "join")) {
     join(s, p);
     snprintf(reply, len, "ok verbinden met %s", s);
+  } else if (!strcmp(act, "scan")) {
+    // Synchroon zoeken (~2 s): handig via BLE, waar geen asynchrone polling is.
+    if (WiFi.getMode() == WIFI_OFF) WiFi.mode(WIFI_STA);
+    int n = WiFi.scanNetworks(false);
+    String body = "{\"networks\":[";
+    int shown = 0;
+    for (int i = 0; i < n && shown < 12; i++) {
+      if (WiFi.SSID(i).isEmpty()) continue;
+      if (shown++) body += ',';
+      body += "{\"ssid\":\"";
+      jsonEscape(body, WiFi.SSID(i).c_str());
+      body += "\",\"rssi\":" + String(WiFi.RSSI(i)) +
+              ",\"open\":" + (WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "true" : "false") + "}";
+    }
+    body += "]}";
+    WiFi.scanDelete();
+    snprintf(reply, len, "%s", body.c_str());
   } else if (!strcmp(act, "forget")) {
     ssid[0] = pass[0] = 0;
     saveCreds();

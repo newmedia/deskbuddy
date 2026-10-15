@@ -18,6 +18,7 @@ void App::create(lv_obj_t* screen) {
   info.create(screen);
   setup.create(screen);
   updating.create(screen);
+  pair.create(screen);
 
   platform_.loadSettings(settings_);
   sound.setEnabled(settings_.sound);
@@ -54,6 +55,14 @@ void App::onGesture(const GestureEvent& g) {
         info.hide();
         showWifiSetup();
       }
+    } else if (h == InfoView::Hit::Ble) {
+      settings_.ble = !settings_.ble;
+      platform_.setBle(settings_.ble);
+      sound.play(Sound::Toggle);
+      save();
+      platform_.deviceInfo(dev_);
+      syncDev();
+      info.show();
     } else if (h == InfoView::Hit::Sound) {
       setSound(!settings_.sound);
       info.show();  // auto-sluiten opnieuw starten
@@ -140,12 +149,12 @@ void App::statusJson(char* out, size_t len) {
            "{\"version\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
            "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u,\"updates\":\"%s\",\"update\":\"%s\","
-           "\"latest\":\"%s\",\"progress\":%u}",
+           "\"latest\":\"%s\",\"progress\":%u,\"ble\":%s,\"bleConnected\":%s}",
            dev_.version, emotionName(face.emotion()), skinName(settings_.skin), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
            dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin,
            updateModeName(dev_.updateMode), updateStateName(dev_.updateState), dev_.updateVersion,
-           (unsigned)dev_.updateProgress);
+           (unsigned)dev_.updateProgress, settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false");
 }
 
 void App::update(uint32_t dtMs) {
@@ -187,6 +196,14 @@ void App::update(uint32_t dtMs) {
   clock.update(now, dev_.batteryPct, dev_.charging, dtMs);
   info.update(dev_, dtMs);
   setup.update(dtMs);
+  // Bluetooth-koppelcode tonen zolang de telefoon erom vraagt
+  if (dev_.blePasskey && !pair.visible()) {
+    info.hide();
+    clock.hide();
+    pair.show(dev_.blePasskey);
+  } else if (!dev_.blePasskey && pair.visible()) {
+    pair.hide();
+  }
   if (setup.visible() && dev_.wifi == DeviceInfo::WifiMode::Station) setup.hide();  // gelukt!
   if (setup.visible() && !setup.linkStep() && dev_.apClients > 0) setup.showLinkStep();
   // Telefoon verbindt met het setup-AP zonder dat het setupscherm open is: meteen stap 2 tonen.
@@ -305,7 +322,26 @@ void App::status(char* out, size_t len) {
 }
 
 bool App::command(const char* line, char* reply, size_t len) {
+  if (!strcmp(line, "json")) {  // status als JSON (voor BLE-clients; web gebruikt /api/status)
+    statusJson(reply, len);
+    return true;
+  }
   return runCommand(line, face, behaviour, *this, reply, len);
+}
+
+void App::ble(const char* action, char* reply, size_t len) {
+  if (!strcmp(action, "on") || !strcmp(action, "off")) {
+    settings_.ble = !strcmp(action, "on");
+    platform_.setBle(settings_.ble);
+    save();
+    snprintf(reply, len, "ok ble %s", action);
+  } else if (!strcmp(action, "forget")) {
+    platform_.forgetBle();
+    snprintf(reply, len, "ok gekoppelde apparaten vergeten");
+  } else {
+    snprintf(reply, len, "ble=%s naam=%s verbonden=%s", dev_.bleEnabled ? "aan" : "uit", dev_.bleName,
+             dev_.bleConnected ? "ja" : "nee");
+  }
 }
 
 }  // namespace buddy

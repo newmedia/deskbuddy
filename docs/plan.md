@@ -67,7 +67,7 @@ offline, maar met minder functies.
 2. ✅ **Wi-Fi en web** (QR-setup, captive portal, `deskbuddy.local`, web-UI, OTA, NTP): captive-portal-setup, mDNS `deskbuddy.local`, webserver met WebSocket,
    web-UI met de knoppen emotie, bericht, helderheid en volume, NTP-tijd en OTA.
    → *Dit is het MVP.* ✅ Plus automatische updates via GitHub Releases (`tools/release.sh`).
-3. **BLE en PWA**: GATT-service met hetzelfde protocol, Wi-Fi-provisioning via BLE en een
+3. ✅ **BLE en PWA** (NUS met pincode-koppeling, PWA op GitHub Pages via Web Bluetooth): GATT-service met hetzelfde protocol, Wi-Fi-provisioning via BLE en een
    installeerbare PWA.
 4. **Desktop-app (Tauri)**: verbindt via mDNS of BLE en pusht PC-status, notificaties en
    agenda-items naar de buddy.

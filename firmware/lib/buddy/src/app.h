@@ -25,6 +25,7 @@ struct Settings {
   uint8_t brightness = 200; // 0..255
   Skin skin = Skin::Classic;
   uint8_t sleepMin = 3;     // minuten tot in slaap; 0 = nooit
+  bool ble = true;          // Bluetooth aan
 };
 
 struct Platform {
@@ -35,6 +36,8 @@ struct Platform {
   virtual void deviceInfo(DeviceInfo& out) = 0;
   virtual void setBrightness(uint8_t) {}
   virtual void startWifiSetup() {}  // setup-AP starten (als er nog geen verbinding is)
+  virtual void setBle(bool) {}
+  virtual void forgetBle() {}
   virtual void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) {
     (void)action; (void)ssid; (void)pass;
     snprintf(reply, len, "wifi niet beschikbaar op dit platform");
@@ -59,6 +62,7 @@ class App : public CommandHost {
   // Status als JSON voor de web-API (en later BLE/MQTT).
   void statusJson(char* out, size_t len);
   void showWifiSetup();
+  const Settings& settings() const { return settings_; }
 
   // CommandHost
   void setBrightness(uint8_t v) override;
@@ -70,6 +74,7 @@ class App : public CommandHost {
   void playSound(Sound s) override { sound.play(s); }
   void setSkin(Skin s) override;
   void setSleep(uint8_t minutes) override;
+  void ble(const char* action, char* reply, size_t len) override;
   void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override;
   void firmwareUpdate(const char* action, char* reply, size_t len) override;
 
@@ -78,6 +83,7 @@ class App : public CommandHost {
   ClockView clock;
   InfoView info;
   SetupView setup;
+  PairView pair;
   SoundSynth sound;
   UpdateView updating;
 

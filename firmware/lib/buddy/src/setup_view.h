@@ -30,4 +30,18 @@ class SetupView {
   uint32_t hideIn_ = 0;
 };
 
+// Bluetooth-koppelcode: groot in beeld zolang de telefoon om de pincode vraagt.
+class PairView {
+ public:
+  void create(lv_obj_t* parent);
+  void show(uint32_t code);
+  void hide();
+  bool visible() const { return visible_; }
+
+ private:
+  lv_obj_t* root_ = nullptr;
+  lv_obj_t* code_ = nullptr;
+  bool visible_ = false;
+};
+
 }  // namespace buddy

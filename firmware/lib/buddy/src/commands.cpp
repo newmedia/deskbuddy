@@ -92,18 +92,38 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     host.setSkin(s);
     snprintf(reply, len, "ok skin=%s", a1);
   } else if (!strcmp(cmd, "wifi")) {
-    // wifi status | setup | off | join <ssid> <wachtwoord>   (ssid zonder spaties; wachtwoord = rest van de regel)
+    // wifi status | setup | on | off | forget | scan | join <ssid> <wachtwoord>
+    // De ssid mag tussen aanhalingstekens staan (voor namen met spaties); wachtwoord = rest van de regel.
     const char* action = a1 ? a1 : "status";
-    const char* pass = "";
     if (!strcmp(action, "join")) {
-      char* rest = strtok_r(nullptr, "\r\n", &save);
-      pass = rest ? rest : "";
-      if (!a2) {
-        snprintf(reply, len, "gebruik: wifi join <ssid> <wachtwoord>");
+      const char* p = strstr(line, "join");
+      p = p ? p + 4 : "";
+      while (*p == ' ') p++;
+      char ssid[33] = "";
+      size_t n = 0;
+      if (*p == '"') {
+        p++;
+        while (*p && *p != '"' && n < sizeof(ssid) - 1) ssid[n++] = *p++;
+        if (*p == '"') p++;
+      } else {
+        while (*p && *p != ' ' && n < sizeof(ssid) - 1) ssid[n++] = *p++;
+      }
+      ssid[n] = 0;
+      while (*p == ' ') p++;
+      char pass[65];
+      snprintf(pass, sizeof(pass), "%s", p);
+      size_t pl = strlen(pass);
+      while (pl && (pass[pl - 1] == '\r' || pass[pl - 1] == '\n')) pass[--pl] = 0;
+      if (!ssid[0]) {
+        snprintf(reply, len, "gebruik: wifi join \"<ssid>\" <wachtwoord>");
         return false;
       }
+      host.wifi("join", ssid, pass, reply, len);
+    } else {
+      host.wifi(action, "", "", reply, len);
     }
-    host.wifi(action, a2 ? a2 : "", pass, reply, len);
+  } else if (!strcmp(cmd, "ble")) {
+    host.ble(a1 ? a1 : "status", reply, len);
   } else if (!strcmp(cmd, "update")) {
     const char* action = a1 ? a1 : "status";
     if (strcmp(action, "status") && strcmp(action, "check") && strcmp(action, "install") && strcmp(action, "auto") &&
@@ -129,8 +149,8 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
   } else if (!strcmp(cmd, "help")) {
     snprintf(reply, len,
              "emotion <naam> [ms] | play whistle|wink|kiss|rage|explode | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
-             "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | sleep <min>|off | wifi status|setup|off|join <ssid> <pw> | "
-             "update check|install|auto|notify|off | status");
+             "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | sleep <min>|off | "
+             "wifi status|setup|scan|off|join \"<ssid>\" <pw> | ble on|off|forget | update check|install|auto|notify|off | status");
   } else {
     snprintf(reply, len, "onbekend commando (probeer 'help')");
     return false;

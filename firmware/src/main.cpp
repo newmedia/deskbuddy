@@ -11,6 +11,7 @@
 #include "app.h"
 #include "board/board.h"
 #include "board/pins.h"
+#include "net/ble.h"
 #include "net/net.h"
 #include "net/updater.h"
 
@@ -33,6 +34,7 @@ struct EspPlatform : Platform {
     s.skin = (Skin)prefs.getUChar("skin", (uint8_t)s.skin);
     if (s.skin >= Skin::Count) s.skin = Skin::Classic;
     s.sleepMin = prefs.getUChar("sleep", s.sleepMin);
+    s.ble = prefs.getBool("ble", s.ble);
     prefs.end();
   }
   void saveSettings(const Settings& s) override {
@@ -42,6 +44,7 @@ struct EspPlatform : Platform {
     prefs.putUChar("bright", s.brightness);
     prefs.putUChar("skin", (uint8_t)s.skin);
     prefs.putUChar("sleep", s.sleepMin);
+    prefs.putBool("ble", s.ble);
     prefs.end();
   }
   void localTime(struct tm& out) override {
@@ -53,10 +56,12 @@ struct EspPlatform : Platform {
     d.charging = board::isCharging();
     snprintf(d.version, sizeof(d.version), "%s", DESKBUDDY_VERSION);
     net::fill(d);
-    // BLE volgt in fase 3.
+    ble::fill(d);
   }
   void setBrightness(uint8_t v) override { board::setBrightness(v); }
   void startWifiSetup() override { net::startSetupAp(); }
+  void setBle(bool on) override { ble::setEnabled(on); }
+  void forgetBle() override { ble::forgetBonds(); }
   void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override {
     net::action(action, ssid, pass, reply, len);
   }
@@ -104,6 +109,12 @@ void setup() {
   bool audio = board::beginAudio(app.sound);
   net::updater::begin(DESKBUDDY_VERSION);
   net::begin(app);
+  {
+    uint64_t mac = ESP.getEfuseMac();
+    char name[24];
+    snprintf(name, sizeof(name), "deskbuddy-%02X%02X", (unsigned)((mac >> 32) & 0xff), (unsigned)((mac >> 40) & 0xff));
+    ble::begin(app, app.settings().ble, name);
+  }
   Serial.printf("deskbuddy %s  display=%d touch=%d imu=%d pmu=%d rtc=%d audio=%d  psram=%u KB vrij\n",
                 DESKBUDDY_VERSION, disp, touch, imu, pmu, rtc, audio, (unsigned)(ESP.getFreePsram() / 1024));
   static const char* const reasons[] = {"onbekend", "aan", "extern", "software", "PANIC", "int-watchdog",
@@ -151,6 +162,7 @@ void loop() {
 
   handleSerial();
   net::loop();
+  ble::loop();
   app.update(dt);
   lv_timer_handler();
   delay(2);

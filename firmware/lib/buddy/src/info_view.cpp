@@ -75,7 +75,7 @@ void InfoView::create(lv_obj_t* parent) {
   lv_obj_set_style_pad_left(root_, 40, 0);
 
   wifiRow_ = row(LV_SYMBOL_WIFI, &wifi_, &wifiSub_);
-  row(LV_SYMBOL_BLUETOOTH, &ble_, &bleSub_);
+  bleRow_ = row(LV_SYMBOL_BLUETOOTH, &ble_, &bleSub_);
   soundRow_ = row(LV_SYMBOL_VOLUME_MAX, &sound_, &soundSub_, &soundIcon_);
   skinRow_ = row(nullptr, &skin_, &skinSub_, &skinIcon_);
   lv_obj_add_event_cb(skinIcon_, drawSkinIcon, LV_EVENT_DRAW_MAIN, this);
@@ -155,6 +155,7 @@ InfoView::Hit InfoView::hit(int x, int y) const {
     return x >= a.x1 - m && x <= a.x2 + m && y >= a.y1 - m && y <= a.y2 + m;
   };
   if (inside(wifiRow_)) return Hit::Wifi;
+  if (inside(bleRow_)) return Hit::Ble;
   if (inside(soundRow_)) return Hit::Sound;
   if (inside(skinRow_)) return Hit::Skin;
   if (last_.updateState == UpdateState::Available) {
@@ -196,11 +197,11 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
   }
 
   if (!in.bleEnabled) {
-    lv_label_set_text(ble_, "Uit");
-    lv_label_set_text(bleSub_, "Bluetooth uitgeschakeld");
+    lv_label_set_text(ble_, "Bluetooth uit");
+    lv_label_set_text(bleSub_, "Tik om aan te zetten");
   } else {
     lv_label_set_text(ble_, in.bleName);
-    lv_label_set_text(bleSub_, in.bleConnected ? "Verbonden" : "Zichtbaar");
+    lv_label_set_text(bleSub_, in.bleConnected ? "Verbonden (tik = uit)" : "Zichtbaar (tik = uit)");
   }
 
   lv_label_set_text(soundIcon_, in.sound ? LV_SYMBOL_VOLUME_MAX : LV_SYMBOL_MUTE);

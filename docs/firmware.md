@@ -112,6 +112,27 @@ nooit terug.
 De pagina staat in `firmware/web/index.html`. Bij het bouwen wordt hij gzip-gecomprimeerd in de
 firmware gezet (`scripts/embed_web.py`).
 
+## Bluetooth en PWA (fase 3)
+
+- De deskbuddy adverteert als **`deskbuddy-XXXX`** met de Nordic UART Service (NUS, `6E400001-…`).
+  Commando's gaan naar RX (`…0002`, write), en antwoorden komen als notify op TX (`…0003`), in
+  stukjes en afgesloten met `\n`. Het protocol is gelijk aan serial/web, plus `json` voor de status.
+- **Koppelen met pincode:** bij de eerste verbinding toont het scherm een 6-cijferige code, die je op
+  je telefoon invult. Alleen gekoppelde apparaten mogen commando's sturen. `ble forget` wist alle
+  koppelingen.
+- **De PWA** staat op **https://newmedia.github.io/deskbuddy/**. Hij gebruikt dezelfde pagina
+  (`firmware/web/`), maar praat via Web Bluetooth, werkt ook zonder Wi-Fi en is te installeren als
+  app ("Toevoegen aan startscherm"). Via Bluetooth kun je ook Wi-Fi instellen: netwerken zoeken,
+  verbinden.
+  - Werkt in Chrome op Android en desktop. **Niet op iPhone**: Safari heeft geen Web Bluetooth. Gebruik
+    daar Wi-Fi via het IP-adres.
+  - De versie die het apparaat zelf serveert (http) gebruikt Wi-Fi. Web Bluetooth vereist https,
+    daarom staat de BLE-versie op GitHub Pages.
+- BLE aan/uit: tik op de Bluetooth-rij in het info-paneel, of gebruik `ble on|off`. De instelling
+  wordt bewaard.
+- Publiceren gaat via `.github/workflows/pages.yml` bij elke push naar `main` die `firmware/web/`
+  raakt. Eenmalig nodig: GitHub → Settings → Pages → Source: **GitHub Actions**.
+
 ## Acties
 
 Korte animaties bovenop de emotie (`face_fx.cpp`). Na afloop keert hij terug naar de vorige emotie.
@@ -169,7 +190,9 @@ brightness <0-255>
 sound on|off|<blip|happy|love|surprised|sad|angry|dizzy|yawn|wake|purr|toggle>
 volume <0-100>
 skin classic|mascot
-wifi status | setup | on | off | forget | join <ssid> <wachtwoord>
+wifi status | setup | on | off | forget | scan | join "<ssid>" <wachtwoord>
+ble on | off | forget | status
+json                          # status als JSON (voor BLE-clients)
 update [check|install|auto|notify|off]
 clock | info | status | help
 ```
