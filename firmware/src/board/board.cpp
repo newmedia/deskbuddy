@@ -30,11 +30,24 @@ SensorPCF85063 rtc;
 bool touchOk = false, imuOk = false, pmuOk = false, rtcOk = false;
 
 constexpr int kBufLines = 80;
+// Het bord zit 90° gedraaid in de behuizing: de fysieke bovenkant van het panel wijst naar links.
+// ROTATION_270 legt de logische bovenkant op de fysieke rechterkant, zodat het beeld rechtop staat.
+constexpr lv_display_rotation_t kRotation = LV_DISPLAY_ROTATION_270;
+uint8_t* rotBuf = nullptr;
 
 uint32_t tickCb() { return millis(); }
 
-void flushCb(lv_display_t* disp, const lv_area_t* a, uint8_t* px) {
-  gfx->draw16bitRGBBitmap(a->x1, a->y1, (uint16_t*)px, a->x2 - a->x1 + 1, a->y2 - a->y1 + 1);
+void flushCb(lv_display_t* disp, const lv_area_t* area, uint8_t* px) {
+  lv_area_t a = *area;
+  if (kRotation != LV_DISPLAY_ROTATION_0) {
+    const lv_color_format_t cf = LV_COLOR_FORMAT_RGB565;
+    int32_t w = lv_area_get_width(area), h = lv_area_get_height(area);
+    lv_display_rotate_area(disp, &a);
+    lv_draw_sw_rotate(px, rotBuf, w, h, lv_draw_buf_width_to_stride(w, cf),
+                      lv_draw_buf_width_to_stride(lv_area_get_width(&a), cf), kRotation, cf);
+    px = rotBuf;
+  }
+  gfx->draw16bitRGBBitmap(a.x1, a.y1, (uint16_t*)px, a.x2 - a.x1 + 1, a.y2 - a.y1 + 1);
   lv_display_flush_ready(disp);
 }
 
@@ -71,6 +84,10 @@ bool beginDisplay() {
   void* buf = heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   if (!buf) buf = heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM);
   if (!buf) return false;
+  rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  if (!rotBuf) rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM);
+  if (!rotBuf) return false;
+  lv_display_set_rotation(disp, kRotation);
   lv_display_set_buffers(disp, buf, nullptr, bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(disp, flushCb);
   lv_display_add_event_cb(disp, rounderCb, LV_EVENT_INVALIDATE_AREA, nullptr);
@@ -98,8 +115,10 @@ bool readTouch(int& x, int& y) {
   if (!touchOk) return false;
   const TouchPoints& p = touch.getTouchPoints();
   if (p.getPointCount() == 0) return false;  // hasPoints() kan true zijn zonder geldig punt
-  x = p.getPoint(0).x;
-  y = p.getPoint(0).y;
+  int px = p.getPoint(0).x, py = p.getPoint(0).y;
+  // Fysiek -> logisch (inverse van ROTATION_270: logisch (x,y) -> fysiek (W-1-y, x))
+  x = py;
+  y = LCD_WIDTH - 1 - px;
   return true;
 }
 
@@ -114,7 +133,12 @@ bool beginImu() {
 
 bool readAccel(float& ax, float& ay, float& az) {
   if (!imuOk || !imu.getDataReady()) return false;
-  return imu.getAccelerometer(ax, ay, az);
+  float x, y;
+  if (!imu.getAccelerometer(x, y, az)) return false;
+  // Zelfde 90°-draaiing als het scherm, zodat kantelen in schermrichting klopt.
+  ax = y;
+  ay = -x;
+  return true;
 }
 
 bool beginPmu() {

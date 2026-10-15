@@ -124,4 +124,6 @@ heen en weer slepen = aaien, vegen omlaag of omhoog = info of klok.
   oppakken goed zijn
 - Framerate. Zo nodig de QSPI-klok verhogen (`gfx->begin(80000000)`) of de buffers in DMA-RAM
   zetten.
-- Of de touch-oriëntatie klopt (`setMirrorXY(true, true)` uit het Waveshare-voorbeeld)
+- Of touch en kantelen dezelfde kant op werken als het beeld. Het scherm is vast 90° gedraaid
+  (`kRotation` in `src/board/board.cpp`), omdat het bord gedraaid in de behuizing zit. Touch en
+  IMU draaien mee.
