@@ -95,6 +95,12 @@ We bouwen zelf, niet met GitHub Actions. `tools/release.sh` doet alles:
    (`git tag -a v0.2.0 && git push origin v0.2.0`) en maakt met `gh release create` de release met
    `firmware.bin` en `firmware.bin.sha256`.
 
+`gh` moet schrijfrechten op `newmedia/deskbuddy` hebben via de API (het script controleert dat).
+Pushen via SSH is niet genoeg: blokkeert de organisatie de GitHub CLI-app, keur die dan goed onder
+*Organization settings → Third-party access*, of gebruik een fine-grained token met
+"Contents: read and write" voor deze repo (`GH_TOKEN=… tools/release.sh 0.2.0`). Faalt het uploaden
+nadat de tag al gepusht is, dan hervat een tweede run met dezelfde versie op dezelfde commit.
+
 Oude releases blijven altijd staan (het script past bestaande tags of releases nooit aan), zodat je
 een oudere versie nog handmatig kunt installeren: download die `firmware.bin` en upload hem via de
 web-UI of `curl -F firmware=@firmware.bin http://<ip>/update`. Automatisch gaat hij alleen vooruit,
