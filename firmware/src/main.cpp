@@ -75,6 +75,7 @@ struct EspPlatform : Platform {
   }
   void setBrightness(uint8_t v) override { board::setBrightness(v); }
   void startWifiSetup() override { net::startSetupAp(); }
+  void reboot() override { ESP.restart(); }
   void setBle(bool on) override { ble::setEnabled(on); }
   void forgetBle() override { ble::forgetBonds(); }
   void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override {

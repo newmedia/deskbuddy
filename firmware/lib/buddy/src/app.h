@@ -35,6 +35,7 @@ struct Platform {
   virtual void localTime(struct tm& out) = 0;
   virtual void deviceInfo(DeviceInfo& out) = 0;
   virtual void setBrightness(uint8_t) {}
+  virtual void reboot() {}
   virtual void startWifiSetup() {}  // setup-AP starten (als er nog geen verbinding is)
   virtual void setBle(bool) {}
   virtual void forgetBle() {}
@@ -104,6 +105,7 @@ class App : public CommandHost {
   bool wasInstalling_ = false;
   int appliedBrightness_ = -1;
   uint32_t saveIn_ = 0;
+  uint32_t rebootIn_ = 0;
   uint32_t infoPoll_ = 0;
 };
 

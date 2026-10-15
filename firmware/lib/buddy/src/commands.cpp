@@ -150,7 +150,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     snprintf(reply, len,
              "emotion <naam> [ms] | play whistle|wink|kiss|rage|explode | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
              "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | sleep <min>|off | "
-             "wifi status|setup|scan|off|join \"<ssid>\" <pw> | ble on|off|forget | update check|install|auto|notify|off | status");
+             "wifi status|setup|scan|off|join \"<ssid>\" <pw> | ble on|off|forget | update check|install|auto|notify|off | perf | reboot | status");
   } else {
     snprintf(reply, len, "onbekend commando (probeer 'help')");
     return false;

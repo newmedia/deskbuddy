@@ -235,6 +235,15 @@ void App::update(uint32_t dtMs) {
   face.setMatrix(installing);
   applyBrightness();
 
+  if (rebootIn_) {
+    if (dtMs >= rebootIn_) {
+      platform_.saveSettings(settings_);
+      platform_.reboot();
+    } else {
+      rebootIn_ -= dtMs;
+    }
+  }
+
   // Instellingen pas na een korte pauze opslaan (spaart flash bij snel schuiven/tikken).
   if (saveIn_) {
     if (dtMs >= saveIn_) {
@@ -325,6 +334,11 @@ void App::status(char* out, size_t len) {
 }
 
 bool App::command(const char* line, char* reply, size_t len) {
+  if (!strcmp(line, "reboot")) {
+    snprintf(reply, len, "ok herstarten");
+    rebootIn_ = 500;  // eerst het antwoord laten versturen
+    return true;
+  }
   if (!strcmp(line, "perf")) {
     snprintf(reply, len,
              "fps=%.1f frame=%.1f ms (tekenen %.1f, draaien %.1f, versturen %.1f) lus-belasting=%.0f%% "
