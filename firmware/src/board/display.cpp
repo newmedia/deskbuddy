@@ -24,7 +24,9 @@ namespace board {
 
 namespace {
 
-constexpr int kBufLines = 40;                         // 466 x 40 x 2 = 37 KB per buffer
+// 466 x 20 x 2 = 18,6 KB per buffer, 2 DMA-buffers = 37 KB intern. Groter past niet naast Wi-Fi + BLE
+// (de BT-controller houdt zelf al een flink deel van het interne RAM vast).
+constexpr int kBufLines = 20;
 constexpr size_t kBufBytes = LCD_WIDTH * kBufLines * 2;
 constexpr int kColOffset = 6;                          // het panel begint op kolom 6 (Waveshare)
 // Het bord zit 90° gedraaid in de behuizing: de fysieke bovenkant van het panel wijst naar links.
