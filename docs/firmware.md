@@ -146,6 +146,10 @@ Korte animaties bovenop de emotie (`face_fx.cpp`). Na afloop keert hij terug naa
 | Kusje | `play kiss` | ogen dicht, getuite lippen, hartje vliegt naar voren | smak |
 | Rage | `play rage` | rode gloed, trillen, stoomwolkjes, `#@!$%` | grom + sis |
 | Ontploffen | `play explode` | opzwellen, witte flits, vonken, daarna roet, rook en duizelig/verbaasd | lont-gesis + boem |
+| Niezen | `play sneeze` | "ah-ah-": ogen knijpen dicht, hoofd achterover; "tsjoe!": schok met druppeltjes (ook spontaan) | inademen + nies |
+| Lachen | `play laugh` | "^ ^"-ogen, ritmisch stuiteren (kietelen = 3× snel aaien) | "hihihi" |
+| Ogen rollen | `play eyeroll` | blik draait in een boog over boven (2× snel heen en weer vegen) | zucht |
+| Hik | `play hiccup` | drie keer een plotse schok met grote ogen (ook spontaan) | "hik!" |
 
 Het engine-deel bevat:
 - sluiting per oog
@@ -154,6 +158,30 @@ Het engine-deel bevat:
 - tint-, flits- en roetlagen
 
 Elke actie zet *cues*, waar de App een geluid aan koppelt. Ze werken in beide skins.
+
+## Prestaties en geheugen
+
+- **Display:** eigen driver (`src/board/display.cpp`) via ESP-IDF `esp_lcd`, QSPI op 80 MHz.
+  - LVGL tekent per 20 regels in PSRAM, direct in RGB565_SWAPPED.
+  - Elk stuk wordt 90° gedraaid naar een van twee DMA-buffers (intern) en asynchroon verstuurd,
+    terwijl LVGL het volgende stuk al tekent.
+  - Maximaal 30 fps (`LV_DEF_REFR_PERIOD`).
+- **Mascotte in rust:** alleen ogen, wenkbrauwen en mond worden hertekend. Haar en bril staan
+  stil.
+- **`perf`-commando:** fps, frametijd (tekenen/draaien/versturen), belasting van de hoofdlus en vrij
+  intern RAM (ook het laagste punt). Gemeten (Wi-Fi verbonden, BLE aan):
+
+  | Skin | fps |
+  |---|---|
+  | Classic | ~30 |
+  | Mascotte in rust | ~16 |
+  | Mascotte tijdens een actie | ~12 |
+
+  Intern RAM ~58 KB vrij.
+- **Intern RAM is de schaarse bron:** de BT-controller (prebuilt) houdt ~60 KB vast. Daarom staan de
+  NimBLE-host, de LVGL-tekenbuffer en TLS (updates) in PSRAM, en zijn de DMA-buffers klein.
+- **Tijdens updates:** Matrix-animatie (alleen de oogvensters hertekend) en een pomp van maximaal ~10
+  fps, zodat de download voorrang houdt.
 
 ## Uiterlijk (skins)
 
@@ -252,6 +280,7 @@ heen en weer slepen = aaien, vegen omlaag of omhoog = info of klok.
 | M | geluid aan/uit |
 | K | skin wisselen |
 | F / N / J / R / E | fluiten / knipoog / kusje / rage / ontploffen |
+| H / G / O / U | niezen / lachen / ogen rollen / hik |
 | + / - | accu |
 | Esc | stoppen |
 
