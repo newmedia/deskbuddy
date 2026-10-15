@@ -3,6 +3,25 @@
 Elke versie hieronder wordt een release op GitHub (zie `tools/release.sh` en `docs/firmware.md`).
 De tekst onder een kop is de omschrijving van die release. Nieuwste bovenaan.
 
+## v0.3.0
+
+Bluetooth, een app voor je telefoon en een snellere, zuinigere buddy.
+
+- **Bluetooth (BLE)**: bedienen zonder Wi-Fi via de Nordic UART Service, met hetzelfde
+  commandoprotocol. Koppelen met een pincode op het scherm; alleen gekoppelde apparaten krijgen
+  toegang. Aan/uit via het info-paneel of `ble on|off|forget`.
+- **Web-app (PWA)**: de webinterface is te installeren op je telefoon en werkt via Wi-Fi of via
+  Web Bluetooth.
+- **Updates naast Bluetooth**: tijdens het controleren en installeren gaat BLE even uit, zodat er
+  genoeg geheugen is voor de beveiligde verbinding met GitHub. Een automatische controle wacht
+  als er een telefoon verbonden is.
+- **Matrix-animatie tijdens updates**: groene ogen met vallende code en een voortgangsring, ook
+  bij uploaden via de webpagina en ArduinoOTA.
+- **Sneller en zuiniger**: veel meer vrij werkgeheugen, firmware 160 KB kleiner, scherpere klok,
+  snellere schermaansturing en vlottere webinterface (geen Wi-Fi-slaapstand).
+- Nieuwe commando's: `reboot`, `perf`, `json` en `wifi scan`; `wifi join` accepteert netwerknamen
+  met spaties tussen aanhalingstekens.
+
 ## v0.2.0
 
 Eerste release die de deskbuddy zelf kan ophalen.

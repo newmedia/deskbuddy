@@ -146,13 +146,12 @@ void loop() {
   }
 }
 
+// Niet NimBLEDevice::deinit(): de BT-controller afsluiten terwijl Wi-Fi draait (gedeelde radio)
+// liet het apparaat hangen zonder Wi-Fi. Alleen adverteren stoppen en verbindingen verbreken.
 bool suspend() {
   if (!inited || suspended) return false;
-  NimBLEDevice::deinit(true);  // ook de controller; koppelingen blijven in NVS bewaard
-  inited = false;
-  server = nullptr;
-  tx = nullptr;
-  connected = 0;
+  NimBLEDevice::getAdvertising()->stop();
+  for (uint16_t h : server->getPeerDevices()) server->disconnect(h);
   passkey = 0;
   suspended = true;
   return true;
