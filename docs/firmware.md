@@ -130,8 +130,10 @@ firmware gezet (`scripts/embed_web.py`).
     daarom staat de BLE-versie op GitHub Pages.
 - BLE aan/uit: tik op de Bluetooth-rij in het info-paneel, of gebruik `ble on|off`. De instelling
   wordt bewaard.
-- Publiceren gaat via `.github/workflows/pages.yml` bij elke push naar `main` die `firmware/web/`
-  raakt. Eenmalig nodig: GitHub → Settings → Pages → Source: **GitHub Actions**.
+- Publiceren gaat **zonder GitHub Actions**: `tools/publish-pwa.sh` zet de bestanden uit
+  `firmware/web/` op de branch `gh-pages`. Draai dit script na elke wijziging aan de pagina.
+  Eenmalig nodig: GitHub → Settings → Pages → Source: **Deploy from a branch**, branch `gh-pages`,
+  map `/ (root)`.
 
 ## Acties
 
