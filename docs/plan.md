@@ -64,7 +64,7 @@ offline, maar met minder functies.
 1. ✅ **Basis-firmware** (zie `firmware.md`): het display werkt met LVGL 9 op 466×466. Het procedurele gezicht knippert,
    kijkt rond en heeft 6–8 emoties. Touch-gestures (tik, aai, lang drukken) en IMU-events
    (schudden, oppakken, kantelen) geven reacties. Plus klok via de RTC en de accu-indicator.
-2. **Wi-Fi en web**: captive-portal-setup, mDNS `deskbuddy.local`, webserver met WebSocket,
+2. ✅ **Wi-Fi en web** (QR-setup, captive portal, `deskbuddy.local`, web-UI, OTA, NTP): captive-portal-setup, mDNS `deskbuddy.local`, webserver met WebSocket,
    web-UI met de knoppen emotie, bericht, helderheid en volume, NTP-tijd en OTA.
    → *Dit is het MVP.*
 3. **BLE en PWA**: GATT-service met hetzelfde protocol, Wi-Fi-provisioning via BLE en een

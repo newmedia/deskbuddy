@@ -73,7 +73,7 @@ void InfoView::create(lv_obj_t* parent) {
   lv_obj_set_style_pad_row(root_, 14, 0);
   lv_obj_set_style_pad_left(root_, 40, 0);
 
-  row(LV_SYMBOL_WIFI, &wifi_, &wifiSub_);
+  wifiRow_ = row(LV_SYMBOL_WIFI, &wifi_, &wifiSub_);
   row(LV_SYMBOL_BLUETOOTH, &ble_, &bleSub_);
   soundRow_ = row(LV_SYMBOL_VOLUME_MAX, &sound_, &soundSub_, &soundIcon_);
   skinRow_ = row(nullptr, &skin_, &skinSub_, &skinIcon_);
@@ -153,6 +153,7 @@ InfoView::Hit InfoView::hit(int x, int y) const {
     lv_obj_get_coords(o, &a);
     return x >= a.x1 - m && x <= a.x2 + m && y >= a.y1 - m && y <= a.y2 + m;
   };
+  if (inside(wifiRow_)) return Hit::Wifi;
   if (inside(soundRow_)) return Hit::Sound;
   if (inside(skinRow_)) return Hit::Skin;
   return Hit::None;
@@ -176,7 +177,7 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
       break;
     case M::AccessPoint:
       lv_label_set_text(wifi_, in.ip);
-      lv_label_set_text_fmt(wifiSub_, "Access point: %s", in.ssid);
+      lv_label_set_text_fmt(wifiSub_, "Setup: %s (tik voor QR)", in.ssid);
       break;
     case M::Connecting:
       lv_label_set_text(wifi_, "Verbinden...");
@@ -184,7 +185,7 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
       break;
     default:
       lv_label_set_text(wifi_, "Niet verbonden");
-      lv_label_set_text(wifiSub_, "Wi-Fi uit");
+      lv_label_set_text(wifiSub_, "Tik om Wi-Fi in te stellen");
       break;
   }
 

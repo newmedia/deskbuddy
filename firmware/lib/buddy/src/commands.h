@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "behaviour.h"
 #include "face.h"
@@ -20,6 +21,11 @@ struct CommandHost {
   virtual void setVolume(uint8_t) {}
   virtual void playSound(Sound) {}
   virtual void setSkin(Skin) {}
+  // action: status | setup | off | join (dan ssid + pass)
+  virtual void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) {
+    (void)action; (void)ssid; (void)pass;
+    snprintf(reply, len, "wifi niet beschikbaar");
+  }
   virtual void status(char* out, size_t len) { (void)len; out[0] = 0; }
 };
 

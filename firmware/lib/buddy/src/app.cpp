@@ -1,6 +1,7 @@
 #include "app.h"
 
 #include <stdio.h>
+#include <string.h>
 
 namespace buddy {
 
@@ -15,6 +16,7 @@ void App::create(lv_obj_t* screen) {
   face.create(screen);
   clock.create(screen);
   info.create(screen);
+  setup.create(screen);
 
   platform_.loadSettings(settings_);
   sound.setEnabled(settings_.sound);
@@ -38,10 +40,19 @@ void App::onAccel(float ax, float ay, float az, uint32_t now) {
 
 void App::onGesture(const GestureEvent& g) {
   // Overlay open: tik of terugvegen sluit hem. In het info-paneel schakelt een tik op "Geluid".
+  if (setup.visible()) {
+    if (g.type == Gesture::Tap || g.type == Gesture::SwipeUp || g.type == Gesture::SwipeDown) setup.hide();
+    return;
+  }
   if (info.visible()) {
     InfoView::Hit h = g.type == Gesture::Tap ? info.hit((int)(g.x * kHalf + kHalf), (int)(g.y * kHalf + kHalf))
                                               : InfoView::Hit::None;
-    if (h == InfoView::Hit::Sound) {
+    if (h == InfoView::Hit::Wifi) {
+      if (dev_.wifi != DeviceInfo::WifiMode::Station) {
+        info.hide();
+        showWifiSetup();
+      }
+    } else if (h == InfoView::Hit::Sound) {
       setSound(!settings_.sound);
       info.show();  // auto-sluiten opnieuw starten
     } else if (h == InfoView::Hit::Skin) {
@@ -79,6 +90,7 @@ void App::onGesture(const GestureEvent& g) {
 
 void App::showClock() {
   info.hide();
+  setup.hide();
   clock.show();
 }
 
@@ -87,6 +99,39 @@ void App::showInfo() {
   platform_.deviceInfo(dev_);
   syncDev();
   info.show();
+}
+
+void App::showWifiSetup() {
+  if (dev_.wifi != DeviceInfo::WifiMode::AccessPoint) platform_.startWifiSetup();
+  platform_.deviceInfo(dev_);
+  syncDev();
+  if (dev_.wifi == DeviceInfo::WifiMode::AccessPoint) setup.show(dev_.ssid, dev_.ip);
+}
+
+void App::wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) {
+  if (!strcmp(action, "setup")) {
+    showWifiSetup();
+    snprintf(reply, len, "ok setup-AP %s op %s", dev_.ssid, dev_.ip);
+    return;
+  }
+  platform_.wifi(action, ssid, pass, reply, len);
+}
+
+void App::statusJson(char* out, size_t len) {
+  const char* wifi = "off";
+  switch (dev_.wifi) {
+    case DeviceInfo::WifiMode::Station: wifi = "sta"; break;
+    case DeviceInfo::WifiMode::AccessPoint: wifi = "ap"; break;
+    case DeviceInfo::WifiMode::Connecting: wifi = "connecting"; break;
+    default: break;
+  }
+  snprintf(out, len,
+           "{\"version\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
+           "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
+           "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu}",
+           dev_.version, emotionName(face.emotion()), skinName(settings_.skin), settings_.sound ? "true" : "false",
+           settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
+           dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000));
 }
 
 void App::update(uint32_t dtMs) {
@@ -115,6 +160,8 @@ void App::update(uint32_t dtMs) {
   platform_.localTime(now);
   clock.update(now, dev_.batteryPct, dev_.charging, dtMs);
   info.update(dev_, dtMs);
+  setup.update(dtMs);
+  if (setup.visible() && dev_.wifi == DeviceInfo::WifiMode::Station) setup.hide();  // gelukt!
   applyBrightness();
 
   // Instellingen pas na een korte pauze opslaan (spaart flash bij snel schuiven/tikken).

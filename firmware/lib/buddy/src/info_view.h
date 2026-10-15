@@ -36,10 +36,11 @@ class InfoView {
   void hide();
   bool visible() const { return visible_; }
   void update(const DeviceInfo& info, uint32_t dtMs);
-  enum class Hit : uint8_t { None, Sound, Skin };
+  enum class Hit : uint8_t { None, Wifi, Sound, Skin };
   Hit hit(int x, int y) const;  // schermcoördinaten
 
  private:
+  lv_obj_t* wifiRow_ = nullptr;
   lv_obj_t* row(const char* symbol, lv_obj_t** value, lv_obj_t** sub, lv_obj_t** icon = nullptr);
   static void drawSkinIcon(lv_event_t* e);  // mini-gezichtje van de actieve skin
 

@@ -15,7 +15,7 @@ Gesture gestureFromName(const char* n) {
 }  // namespace
 
 bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost& host, char* reply, size_t len) {
-  char buf[96];
+  char buf[160];
   strncpy(buf, line, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = 0;
   char* save = nullptr;
@@ -83,6 +83,19 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     }
     host.setSkin(s);
     snprintf(reply, len, "ok skin=%s", a1);
+  } else if (!strcmp(cmd, "wifi")) {
+    // wifi status | setup | off | join <ssid> <wachtwoord>   (ssid zonder spaties; wachtwoord = rest van de regel)
+    const char* action = a1 ? a1 : "status";
+    const char* pass = "";
+    if (!strcmp(action, "join")) {
+      char* rest = strtok_r(nullptr, "\r\n", &save);
+      pass = rest ? rest : "";
+      if (!a2) {
+        snprintf(reply, len, "gebruik: wifi join <ssid> <wachtwoord>");
+        return false;
+      }
+    }
+    host.wifi(action, a2 ? a2 : "", pass, reply, len);
   } else if (!strcmp(cmd, "volume") && a1) {
     int v = LV_CLAMP(0, atoi(a1), 100);
     host.setVolume((uint8_t)v);
@@ -95,7 +108,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
   } else if (!strcmp(cmd, "help")) {
     snprintf(reply, len,
              "emotion <naam> [ms] | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
-             "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | status");
+             "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | wifi status|setup|off|join <ssid> <pw> | status");
   } else {
     snprintf(reply, len, "onbekend commando (probeer 'help')");
     return false;

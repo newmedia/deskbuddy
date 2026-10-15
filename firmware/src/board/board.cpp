@@ -84,8 +84,9 @@ bool beginDisplay() {
   void* buf = heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   if (!buf) buf = heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM);
   if (!buf) return false;
-  rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-  if (!rotBuf) rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM);
+  // Rotatiebuffer in PSRAM: is alleen een kopieerdoel, en zo houdt Wi-Fi genoeg intern RAM.
+  rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM);
+  if (!rotBuf) rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   if (!rotBuf) return false;
   lv_display_set_rotation(disp, kRotation);
   lv_display_set_buffers(disp, buf, nullptr, bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);

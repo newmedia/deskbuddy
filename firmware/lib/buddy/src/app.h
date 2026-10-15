@@ -4,6 +4,7 @@
 //
 // Navigatie:  veeg omlaag = info (Wi-Fi/BLE/accu)  ·  veeg omhoog = klok  ·  tik = sluiten
 
+#include <stdio.h>
 #include <time.h>
 
 #include "behaviour.h"
@@ -12,6 +13,7 @@
 #include "face.h"
 #include "gestures.h"
 #include "info_view.h"
+#include "setup_view.h"
 #include "sound.h"
 
 namespace buddy {
@@ -30,6 +32,11 @@ struct Platform {
   virtual void localTime(struct tm& out) = 0;
   virtual void deviceInfo(DeviceInfo& out) = 0;
   virtual void setBrightness(uint8_t) {}
+  virtual void startWifiSetup() {}  // setup-AP starten (als er nog geen verbinding is)
+  virtual void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) {
+    (void)action; (void)ssid; (void)pass;
+    snprintf(reply, len, "wifi niet beschikbaar op dit platform");
+  }
 };
 
 class App : public CommandHost {
@@ -42,6 +49,9 @@ class App : public CommandHost {
   void onGesture(const GestureEvent& g);
   void update(uint32_t dtMs);
   bool command(const char* line, char* reply, size_t len);
+  // Status als JSON voor de web-API (en later BLE/MQTT).
+  void statusJson(char* out, size_t len);
+  void showWifiSetup();
 
   // CommandHost
   void setBrightness(uint8_t v) override;
@@ -52,11 +62,13 @@ class App : public CommandHost {
   void setVolume(uint8_t pct) override;
   void playSound(Sound s) override { sound.play(s); }
   void setSkin(Skin s) override;
+  void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override;
 
   Face face;
   Behaviour behaviour{face};
   ClockView clock;
   InfoView info;
+  SetupView setup;
   SoundSynth sound;
 
  private:

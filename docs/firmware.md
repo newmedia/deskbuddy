@@ -22,7 +22,41 @@ PlatformIO-project in `firmware/`: Arduino-ESP32 3.3 (pioarduino `55.03.311`) en
 | BOOT-knop | emoties doorlopen (om te testen) |
 
 Wi-Fi en BLE zijn optioneel. Zonder verbinding werkt alles hierboven gewoon, en het info-paneel
-toont dan "niet verbonden" en "uit". Wi-Fi volgt in fase 2, BLE in fase 3.
+toont dan "niet verbonden" en "uit". BLE volgt in fase 3.
+
+## Wi-Fi en webinterface (fase 2)
+
+1. Zonder bekend netwerk start hij het open setup-netwerk **`deskbuddy-XXXX`** (de laatste 4 tekens
+   van het MAC-adres). Na 10 minuten zonder bezoekers gaat het weer uit.
+2. Veeg omlaag en tik op de Wi-Fi-rij. Er verschijnt een **QR-code**: scan die met je telefoon, dan
+   opent de setup-pagina vanzelf (captive portal). Lukt dat niet, ga dan naar `http://192.168.4.1`.
+3. Kies je netwerk, vul het wachtwoord in en tik op Verbinden. Het info-paneel toont daarna het IP.
+4. Daarna is hij bereikbaar op **`http://deskbuddy.local`** (of via het IP).
+
+De webinterface biedt:
+- emoties, knipperen, stuiteren en schudden
+- skin, geluid, volume en helderheid
+- status en Wi-Fi (zoeken, verbinden, vergeten)
+- een firmware-upload
+- een commandoregel
+
+| API | Doel |
+|---|---|
+| `GET /api/status` | status als JSON |
+| `POST /api/cmd` (`c=<commando>`) | elk serial-commando, antwoord als JSON |
+| `GET /api/wifi/scan` | netwerken zoeken (asynchroon: herhaal tot `scanning:false`) |
+| `POST /api/wifi` (`ssid`, `pass`) | verbinden en opslaan |
+| `POST /update` (multipart `firmware`) | firmware bijwerken (OTA) |
+
+Firmware bijwerken zonder kabel kan via de webpagina (`firmware/.pio/build/esp32/firmware.bin`),
+of met `cd firmware && ../.venv/bin/pio run -e esp32 -t upload --upload-port deskbuddy.local`
+(ArduinoOTA). Na verbinding haalt hij de tijd via NTP op en zet die in de RTC.
+
+> Beveiliging: de webinterface en OTA hebben nog geen wachtwoord. Iedereen op je (thuis)netwerk kan
+> hem dus bedienen en bijwerken. Een pincode is gepland.
+
+De pagina staat in `firmware/web/index.html`. Bij het bouwen wordt hij gzip-gecomprimeerd in de
+firmware gezet (`scripts/embed_web.py`).
 
 ## Uiterlijk (skins)
 
@@ -60,6 +94,7 @@ brightness <0-255>
 sound on|off|<blip|happy|love|surprised|sad|angry|dizzy|yawn|wake|purr|toggle>
 volume <0-100>
 skin classic|mascot
+wifi status | setup | on | off | forget | join <ssid> <wachtwoord>
 clock | info | status | help
 ```
 

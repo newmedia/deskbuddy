@@ -163,6 +163,14 @@ int main(int argc, char** argv) {
     s.app.showInfo();
     s.step(700);
     savePpm(out + "/info_mascot.ppm");
+    s.app.info.hide();
+    d.wifi = DeviceInfo::WifiMode::AccessPoint;
+    snprintf(d.ssid, sizeof(d.ssid), "deskbuddy-A45C");
+    snprintf(d.ip, sizeof(d.ip), "192.168.4.1");
+    s.step(600);
+    s.app.showWifiSetup();
+    s.step(700);
+    savePpm(out + "/wifi_setup.ppm");
     return 0;
   }
 

@@ -3,3 +3,4 @@ backups/
 .claude/settings.local.json
 sim-out/
 firmware/.pio/
+firmware/src/net/web_index.h

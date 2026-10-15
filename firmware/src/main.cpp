@@ -4,12 +4,14 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <Wire.h>
+#include <esp_heap_caps.h>
 #include <esp_system.h>
 #include <lvgl.h>
 
 #include "app.h"
 #include "board/board.h"
 #include "board/pins.h"
+#include "net/net.h"
 
 #ifndef DESKBUDDY_VERSION
 #define DESKBUDDY_VERSION "0.1.0"
@@ -47,9 +49,14 @@ struct EspPlatform : Platform {
     d.batteryPct = board::batteryPercent();
     d.charging = board::isCharging();
     snprintf(d.version, sizeof(d.version), "%s", DESKBUDDY_VERSION);
-    // Wi-Fi en BLE volgen in fase 2/3; tot die tijd toont het info-paneel "niet verbonden".
+    net::fill(d);
+    // BLE volgt in fase 3.
   }
   void setBrightness(uint8_t v) override { board::setBrightness(v); }
+  void startWifiSetup() override { net::startSetupAp(); }
+  void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override {
+    net::action(action, ssid, pass, reply, len);
+  }
 };
 
 EspPlatform platform;
@@ -89,12 +96,15 @@ void setup() {
 
   app.create(lv_screen_active());
   bool audio = board::beginAudio(app.sound);
+  net::begin(app);
   Serial.printf("deskbuddy %s  display=%d touch=%d imu=%d pmu=%d rtc=%d audio=%d  psram=%u KB vrij\n",
                 DESKBUDDY_VERSION, disp, touch, imu, pmu, rtc, audio, (unsigned)(ESP.getFreePsram() / 1024));
   static const char* const reasons[] = {"onbekend", "aan", "extern", "software", "PANIC", "int-watchdog",
-                                        "task-watchdog", "watchdog", "deepsleep", "BROWNOUT", "sdio"};
+                                        "task-watchdog", "watchdog", "deepsleep", "BROWNOUT", "sdio", "usb",
+                                        "jtag", "efuse", "stroomdip", "cpu-lockup"};
   int rr = (int)esp_reset_reason();
-  Serial.printf("reset-reden: %s\n", rr < 11 ? reasons[rr] : "?");
+  Serial.printf("reset-reden: %s  heap vrij: %u KB (intern)\n", rr < 16 ? reasons[rr] : "?",
+                (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
   Serial.println("typ 'help' voor commando's");
 }
 
@@ -133,6 +143,7 @@ void loop() {
   }
 
   handleSerial();
+  net::loop();
   app.update(dt);
   lv_timer_handler();
   delay(2);
