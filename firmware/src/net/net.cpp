@@ -174,6 +174,18 @@ void startServices() {
   server.on("/api/wifi/scan", HTTP_GET, handleScan);
   server.on("/api/wifi", HTTP_POST, handleWifiPost);
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
+  // Controle-URL's van Android, iOS/macOS en Windows: doorsturen = "er is een portal".
+  for (const char* probe : {"/generate_204", "/gen_204", "/hotspot-detect.html", "/library/test/success.html",
+                            "/connecttest.txt", "/ncsi.txt", "/redirect", "/canonical.html", "/success.txt"}) {
+    server.on(probe, HTTP_GET, [] {
+      if (apUp) {
+        server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
+        server.send(302, "text/plain", "");
+      } else {
+        server.send(204, "text/plain", "");
+      }
+    });
+  }
   server.onNotFound([] {
     if (!captiveRedirect()) server.send(404, "text/plain", "niet gevonden");
   });
@@ -200,6 +212,10 @@ void startAp() {
   if (apUp) return;
   WiFi.mode(WIFI_AP_STA);  // STA erbij: nodig voor scannen en om het thuisnetwerk te blijven proberen
   WiFi.softAP(apName);
+  // DHCP laat telefoons onze DNS gebruiken en meldt de portal-URL (RFC 8910). Zonder dit ziet een
+  // telefoon alleen "geen internet" en opent er geen setup-pagina.
+  WiFi.AP.enableDhcpCaptivePortal();
+  dns.setErrorReplyCode(DNSReplyCode::NoError);
   dns.start(53, "*", WiFi.softAPIP());
   apUp = true;
   apLastClient = millis();
