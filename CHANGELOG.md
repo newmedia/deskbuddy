@@ -11,6 +11,8 @@ Eerste release die de deskbuddy zelf kan ophalen.
   release op GitHub staat. Standaard meldt hij dat (info-paneel en web-UI, met een knop om te
   installeren); met `update auto` installeert hij zelf. Tijdens installeren kijkt hij verrast en
   loopt er een voortgangsring rond het scherm.
+- **Acties met geluid**: fluiten (spontaan bij verveling), knipoog (dubbeltik), kusje (5x aaien)
+  en bij herhaald tikken boos, dan rage en tot slot ontploffen. Ook via `play` en de web-UI.
 - **Wi-Fi-setup in twee stappen**: QR-code voor het setup-netwerk, daarna een QR-code met de
   setup-link; captive portal op Android, iOS en Windows, en terugkoppeling tijdens het verbinden.
 - **Webinterface** op `http://deskbuddy.local`: emoties, uiterlijk, geluid, volume, helderheid,
