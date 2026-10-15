@@ -70,14 +70,16 @@ void InfoView::create(lv_obj_t* parent) {
   skinRow_ = row(LV_SYMBOL_IMAGE, &skin_, &skinSub_);
 
   footer_ = lv_label_create(root_);
-  lv_obj_set_style_text_font(footer_, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(footer_, &lv_font_montserrat_14, 0);
   lv_obj_set_style_text_color(footer_, kDim, 0);
+  lv_obj_add_flag(footer_, LV_OBJ_FLAG_IGNORE_LAYOUT);
+  lv_obj_align(footer_, LV_ALIGN_BOTTOM_MID, -20, -36);  // vlak boven de accuregel
 
   battery_ = lv_label_create(root_);
   lv_obj_set_style_text_font(battery_, &lv_font_montserrat_20, 0);
   lv_obj_set_style_text_color(battery_, kText, 0);
   lv_obj_add_flag(battery_, LV_OBJ_FLAG_IGNORE_LAYOUT);
-  lv_obj_align(battery_, LV_ALIGN_BOTTOM_MID, -20, -24);  // -20: compenseert pad_left van root
+  lv_obj_align(battery_, LV_ALIGN_BOTTOM_MID, -20, -10);  // -20: compenseert pad_left van root
 
   lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
 }
