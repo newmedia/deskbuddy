@@ -22,6 +22,7 @@ void App::create(lv_obj_t* screen) {
   sound.setEnabled(settings_.sound);
   sound.setVolume(settings_.volume);
   face.setSkin(settings_.skin);
+  applySleep();
   platform_.deviceInfo(dev_);
   syncDev();
   applyBrightness();
@@ -128,10 +129,10 @@ void App::statusJson(char* out, size_t len) {
   snprintf(out, len,
            "{\"version\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
-           "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu}",
+           "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u}",
            dev_.version, emotionName(face.emotion()), skinName(settings_.skin), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
-           dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000));
+           dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin);
 }
 
 void App::update(uint32_t dtMs) {
@@ -176,6 +177,21 @@ void App::update(uint32_t dtMs) {
 }
 
 void App::save() { saveIn_ = 1500; }
+
+void App::applySleep() {
+  if (settings_.sleepMin == 0) {
+    behaviour.setSleepAfter(UINT32_MAX, UINT32_MAX);
+  } else {
+    uint32_t asleep = settings_.sleepMin * 60000u;
+    behaviour.setSleepAfter(asleep / 2, asleep);  // halverwege eerst slaperig
+  }
+}
+
+void App::setSleep(uint8_t minutes) {
+  settings_.sleepMin = minutes;
+  applySleep();
+  save();
+}
 
 void App::syncDev() {
   dev_.sound = settings_.sound;

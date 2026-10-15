@@ -31,6 +31,7 @@ struct EspPlatform : Platform {
     s.brightness = prefs.getUChar("bright", s.brightness);
     s.skin = (Skin)prefs.getUChar("skin", (uint8_t)s.skin);
     if (s.skin >= Skin::Count) s.skin = Skin::Classic;
+    s.sleepMin = prefs.getUChar("sleep", s.sleepMin);
     prefs.end();
   }
   void saveSettings(const Settings& s) override {
@@ -39,6 +40,7 @@ struct EspPlatform : Platform {
     prefs.putUChar("volume", s.volume);
     prefs.putUChar("bright", s.brightness);
     prefs.putUChar("skin", (uint8_t)s.skin);
+    prefs.putUChar("sleep", s.sleepMin);
     prefs.end();
   }
   void localTime(struct tm& out) override {

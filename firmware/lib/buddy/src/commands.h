@@ -21,6 +21,7 @@ struct CommandHost {
   virtual void setVolume(uint8_t) {}
   virtual void playSound(Sound) {}
   virtual void setSkin(Skin) {}
+  virtual void setSleep(uint8_t) {}
   // action: status | setup | off | join (dan ssid + pass)
   virtual void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) {
     (void)action; (void)ssid; (void)pass;

@@ -23,6 +23,7 @@ struct Settings {
   uint8_t volume = 70;      // 0..100
   uint8_t brightness = 200; // 0..255
   Skin skin = Skin::Classic;
+  uint8_t sleepMin = 3;     // minuten tot in slaap; 0 = nooit
 };
 
 struct Platform {
@@ -62,6 +63,7 @@ class App : public CommandHost {
   void setVolume(uint8_t pct) override;
   void playSound(Sound s) override { sound.play(s); }
   void setSkin(Skin s) override;
+  void setSleep(uint8_t minutes) override;
   void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override;
 
   Face face;
@@ -75,6 +77,7 @@ class App : public CommandHost {
   void applyBrightness();
   void save();
   void syncDev();
+  void applySleep();
 
   Platform& platform_;
   TouchGestures touch_;
