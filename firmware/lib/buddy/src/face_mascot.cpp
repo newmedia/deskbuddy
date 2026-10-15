@@ -74,7 +74,9 @@ void Face::mascotTargets() {
 }
 
 void Face::drawMascot(lv_layer_t* layer) {
-  float bob = sinf(t_ * 2 * kPi / 4.2f) * 3.0f;
+  // Geen ademhalings-deining: dan staan haar, achtergrond en bril stil en hoeven we per frame alleen
+  // ogen, wenkbrauwen en mond te hertekenen (zie Face::invalidate). Scheelt veel CPU.
+  const float bob = 0;
   float sq = LV_CLAMP(-0.6f, squash_.x, 0.6f);
 
   fillRect(layer, 0, 0, kSize, kSize, 0, SKIN);

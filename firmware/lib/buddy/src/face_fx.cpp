@@ -15,7 +15,7 @@ namespace {
 
 constexpr float C = Face::kSize / 2.0f;
 constexpr float kPi = 3.14159265f;
-const char* const kActionNames[] = {"none", "whistle", "wink", "kiss", "rage", "explode"};
+const char* const kActionNames[] = {"none", "whistle", "wink", "kiss", "rage", "explode", "sneeze", "laugh", "eyeroll", "hiccup"};
 
 // Duur per actie in seconden
 float durationOf(Action a) {
@@ -25,6 +25,10 @@ float durationOf(Action a) {
     case Action::Kiss: return 2.6f;
     case Action::Rage: return 4.0f;
     case Action::Explode: return 6.8f;
+    case Action::Sneeze: return 2.4f;
+    case Action::Laugh: return 2.2f;
+    case Action::EyeRoll: return 1.7f;
+    case Action::Hiccup: return 3.0f;
     default: return 0;
   }
 }
@@ -51,6 +55,12 @@ void Face::play(Action a) {
     return;
   }
   if (!busy()) actPrevEmotion_ = emotion_;
+  // Schoon beginnen: effecten van een onderbroken actie (roet, gloed, opzwellen, ...) niet meenemen.
+  soot_ = tint_ = 0;
+  swell_ = 1;
+  pucker_ = false;
+  wink_[0] = wink_[1] = 0;
+  releaseLook();
   action_ = a;
   actT_ = 0;
   actNext_ = 0;
@@ -81,7 +91,7 @@ void Face::updateParticles(float dt) {
       continue;
     }
     if (p.type == PNote) p.vx = 20 + sinf(p.life * 6 + p.spin) * 45;  // zwalkend omhoog
-    if (p.type == PSpark) p.vy += 620 * dt;                          // zwaartekracht
+    if (p.type == PSpark || p.type == PDrop) p.vy += 620 * dt;      // zwaartekracht
     if (p.type == PSteam || p.type == PSmoke) {
       p.vx *= 1 - dt * 1.5f;
       p.vy *= 1 - dt * 0.8f;
@@ -221,6 +231,81 @@ void Face::updateAction(float dt) {
           setEmotion(Emotion::Surprised);
         }
         if (t > 5.2f) soot_ = LV_MAX(0.0f, 1 - (t - 5.2f) / 1.6f);
+      }
+      break;
+
+    case Action::Sneeze:
+      // "ah-ah-": ogen knijpen langzaam dicht, hoofd achterover, mond open...
+      if (actStage_ == 0) {
+        actStage_ = 1;
+        cue_ = Cue::Inhale;
+        setEmotion(Emotion::Surprised);
+      }
+      if (t < 1.0f) {
+        float k = t / 1.0f;
+        eye_.lidTop.target = 0.15f + 0.5f * k;
+        eye_.tilt.target = -10 * k;
+        lookAt(0, -0.8f * k, true);
+      } else if (actStage_ == 1) {
+        // ...TSJOE!
+        actStage_ = 2;
+        cue_ = Cue::Achoo;
+        wink_[0] = wink_[1] = 1;
+        lookAt(0, 0.7f, true);
+        bounce(-1.6f);
+        shake_ = 7;
+        for (int i = 0; i < 14; i++) {
+          float a = kPi * (0.25f + 0.5f * rnd());  // naar voren/beneden
+          float sp = 140 + rnd() * 220;
+          spawn(PDrop, mx + (rnd() - 0.5f) * 30, my, cosf(a) * sp * (rnd() < 0.5f ? -1 : 1), sinf(a) * sp * 0.6f,
+                0.6f + rnd() * 0.4f, 5 + rnd() * 5, 0x9FD8FF);
+        }
+      } else {
+        shake_ = LV_MAX(0.0f, shake_ - dt * 25);
+        if (t > 1.3f) wink_[0] = wink_[1] = LV_MAX(0.0f, wink_[0] - dt * 4);
+        if (actStage_ == 2 && t > 1.5f) {
+          actStage_ = 3;
+          setEmotion(Emotion::Dizzy);
+          releaseLook();
+        }
+      }
+      break;
+
+    case Action::Laugh:
+      if (actStage_ == 0) {
+        actStage_ = 1;
+        cue_ = Cue::Laugh;
+        setEmotion(Emotion::Happy);
+        blush_.target = 0.6f;
+      }
+      if (t >= actNext_ && t < 1.9f) {  // ritmisch stuiteren: "ha-ha-ha"
+        actNext_ = t + 0.17f;
+        bounce(0.9f);
+      }
+      break;
+
+    case Action::EyeRoll:
+      if (actStage_ == 0) {
+        actStage_ = 1;
+        cue_ = Cue::Sigh;
+        eye_.lidTop.target = 0.28f;
+      }
+      if (t < 1.1f) {
+        float a = kPi * (1.0f - t / 1.1f);  // van links, over boven, naar rechts
+        lookAt(cosf(a) * 0.9f, -sinf(a) * 0.95f, true);
+      } else {
+        lookAt(0, 0.1f, true);
+      }
+      break;
+
+    case Action::Hiccup:
+      if (t >= actNext_ && actStage_ < 3) {
+        actNext_ = t + 0.95f;
+        actStage_++;
+        cue_ = Cue::Hiccup;
+        bounce(-1.3f);  // plotse schok omhoog
+        eye_.h.v += 260;  // ogen schieten even groot open
+        eye_.w.v += 120;
       }
       break;
 
@@ -378,6 +463,9 @@ void Face::drawEffects(lv_layer_t* layer) {
         lv_draw_label(layer, &d, &a);
         break;
       }
+      case PDrop:
+        fillEllipse(layer, p.x, p.y, p.size * 0.8f, p.size, c, o);
+        break;
       case PStar: {
         float s = p.size * (0.6f + 0.4f * sinf(f * kPi));
         line(layer, p.x - s, p.y, p.x + s, p.y, 5, c, o);

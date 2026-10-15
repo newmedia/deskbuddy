@@ -244,7 +244,7 @@ void Face::update(uint32_t dtMs) {
   else if (lv_obj_get_x(obj_) != 0 || lv_obj_get_y(obj_) != 0) lv_obj_set_pos(obj_, 0, 0);
 
   squash_.target = 0;
-  hairY_.target = sinf(t_ * 2 * kPi / 4.2f) * 4.5f - squash_.x * 8;
+  hairY_.target = -squash_.x * 8;  // haar veert alleen mee bij een stuiter
 
   invalidate();
 }
@@ -262,8 +262,28 @@ void Face::invalidate() {
     }
     return;
   }
+  if (skin_ == Skin::Mascot && !fullRedraw_ && !effectsActive() && fabsf(dy_.v) < 0.5f && fabsf(hairY_.v) < 0.5f &&
+      fabsf(hairY_.x - hairY_.target) < 0.3f) {
+    // Mascotte in rust: alleen ogen (in de bril), wenkbrauwen, mond en eventueel Z'jes hertekenen.
+    float cy = 246 + dy_.x * 0.3f;
+    for (int side = -1; side <= 1; side += 2) {
+      float ex = kCenter + side * 82, bx = kCenter + side * 86, by = cy - 78 - browRaise_.x;
+      lv_area_t eye = {(int32_t)(ex - 72), (int32_t)(cy - 58), (int32_t)(ex + 72), (int32_t)(cy + 56)};
+      lv_area_t brow = {(int32_t)(bx - 64), (int32_t)(by - 40), (int32_t)(bx + 64), (int32_t)(by + 40)};
+      lv_obj_invalidate_area(obj_, &eye);
+      lv_obj_invalidate_area(obj_, &brow);
+    }
+    lv_area_t mouth = {(int32_t)(kCenter - 135), 288, (int32_t)(kCenter + 135), 448};
+    lv_obj_invalidate_area(obj_, &mouth);
+    if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep) {
+      lv_area_t zs = {(int32_t)(kCenter + 100), 30, (int32_t)(kCenter + 215), (int32_t)(kCenter - 10)};
+      lv_obj_invalidate_area(obj_, &zs);
+    }
+    prevBox_ = {0, 0, kSize - 1, kSize - 1};
+    return;
+  }
   if (skin_ == Skin::Mascot || fullRedraw_ || effectsActive()) {
-    // Mascotte beweegt over bijna het hele scherm (haar, wenkbrauwen, mond): alles opnieuw.
+    // Mascotte in beweging (stuiter, emotiewissel) of effecten: alles opnieuw.
     lv_obj_invalidate(obj_);
     fullRedraw_ = false;
     prevBox_ = {0, 0, kSize - 1, kSize - 1};

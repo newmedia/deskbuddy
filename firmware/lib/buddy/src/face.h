@@ -24,9 +24,9 @@ enum class Emotion : uint8_t {
 enum class Skin : uint8_t { Classic, Mascot, Count };
 
 // Korte animaties bovenop de emotie; na afloop terug naar de vorige emotie.
-enum class Action : uint8_t { None, Whistle, Wink, Kiss, Rage, Explode, Count };
+enum class Action : uint8_t { None, Whistle, Wink, Kiss, Rage, Explode, Sneeze, Laugh, EyeRoll, Hiccup, Count };
 // Geluidsmomenten binnen een actie (de App koppelt er een Sound aan).
-enum class Cue : uint8_t { None, Whistle, Wink, Kiss, Rage, Fuse, Boom };
+enum class Cue : uint8_t { None, Whistle, Wink, Kiss, Rage, Fuse, Boom, Inhale, Achoo, Laugh, Sigh, Hiccup };
 
 const char* actionName(Action a);
 bool actionFromName(const char* name, Action& out);
@@ -115,7 +115,7 @@ class Face {
     uint8_t type;
     uint32_t color;
   };
-  enum ParticleType : uint8_t { PNote, PHeart, PSteam, PSpark, PSymbol, PSmoke, PStar };
+  enum ParticleType : uint8_t { PNote, PHeart, PSteam, PSpark, PSymbol, PSmoke, PStar, PDrop };
   void updateAction(float dt);
   void updateParticles(float dt);
   void spawn(uint8_t type, float x, float y, float vx, float vy, float life, float size, uint32_t color);

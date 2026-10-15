@@ -45,6 +45,10 @@ class Behaviour {
   // Boos worden door herhaald tikken: boos -> rage -> ontploffen
   int taps_ = 0;
   uint32_t tapWindow_ = 0;
+  // Kietelen (snel aaien) en heen-en-weer vegen
+  int quickPets_ = 0;
+  uint32_t quickPetWindow_ = 0;
+  uint32_t swipeWindow_ = 0;
   uint32_t seed_ = 0xBEEF;
 };
 

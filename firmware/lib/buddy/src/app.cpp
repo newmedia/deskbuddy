@@ -183,6 +183,11 @@ void App::update(uint32_t dtMs) {
     case Cue::Rage: sound.play(Sound::Rage); break;
     case Cue::Fuse: sound.play(Sound::Fuse); break;
     case Cue::Boom: sound.play(Sound::Boom); break;
+    case Cue::Inhale: sound.play(Sound::Inhale); break;
+    case Cue::Achoo: sound.play(Sound::Achoo); break;
+    case Cue::Laugh: sound.play(Sound::Laugh); break;
+    case Cue::Sigh: sound.play(Sound::Sigh); break;
+    case Cue::Hiccup: sound.play(Sound::Hiccup); break;
     default: break;
   }
 

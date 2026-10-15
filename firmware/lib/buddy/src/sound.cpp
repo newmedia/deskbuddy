@@ -54,6 +54,14 @@ const Seq& seqFor(Sound s) {
   static const Seq rage = SEQ({110, 95, 900, Square, 0.3f, 0, 0, 22}, {7000, 4000, 700, Noise, 0.25f},
                               {120, 90, 800, Square, 0.3f, 0, 0, 26});
   static const Seq fuse = SEQ({2500, 7000, 1400, Noise, 0.22f});
+  static const Seq inhale = SEQ({300, 520, 420, Sine, 0.22f, 5, 0.03f}, {0, 0, 80, Sine, 0},
+                                {360, 640, 420, Sine, 0.26f, 5, 0.03f});
+  static const Seq achoo = SEQ({7000, 2000, 260, Noise, 0.85f}, {520, 210, 160, Sine, 0.4f});
+  static const Seq laugh = SEQ({900, 1300, 70, Tri, 0.5f}, {0, 0, 55, Sine, 0}, {950, 1350, 70, Tri, 0.5f},
+                               {0, 0, 55, Sine, 0}, {1000, 1420, 70, Tri, 0.5f}, {0, 0, 55, Sine, 0},
+                               {1050, 1500, 110, Tri, 0.5f});
+  static const Seq sigh = SEQ({2600, 700, 750, Noise, 0.3f});
+  static const Seq hiccup = SEQ({420, 980, 60, Sine, 0.6f});
   static const Seq boom = SEQ({4000, 1500, 220, Noise, 0.95f}, {1500, 500, 380, Noise, 0.6f},
                               {500, 120, 600, Noise, 0.32f});
   switch (s) {
@@ -74,13 +82,18 @@ const Seq& seqFor(Sound s) {
     case Sound::Rage: return rage;
     case Sound::Fuse: return fuse;
     case Sound::Boom: return boom;
+    case Sound::Inhale: return inhale;
+    case Sound::Achoo: return achoo;
+    case Sound::Laugh: return laugh;
+    case Sound::Sigh: return sigh;
+    case Sound::Hiccup: return hiccup;
     default: return none;
   }
 }
 
 const char* const kNames[] = {"none", "blip", "happy", "love", "surprised", "sad", "angry", "dizzy",
                               "yawn", "wake", "purr", "toggle", "whistle", "wink", "kiss", "rage",
-                              "fuse", "boom"};
+                              "fuse", "boom", "inhale", "achoo", "laugh", "sigh", "hiccup"};
 constexpr float kTwoPi = 6.2831853f;
 
 }  // namespace

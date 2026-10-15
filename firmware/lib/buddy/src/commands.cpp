@@ -38,7 +38,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
   } else if (!strcmp(cmd, "play") && a1) {
     Action a;
     if (!actionFromName(a1, a)) {
-      snprintf(reply, len, "gebruik: play whistle|wink|kiss|rage|explode");
+      snprintf(reply, len, "gebruik: play whistle|wink|kiss|rage|explode|sneeze|laugh|eyeroll|hiccup");
       return false;
     }
     face.play(a);
@@ -148,7 +148,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
              (unsigned long)(behaviour.idleMs() / 1000), extra);
   } else if (!strcmp(cmd, "help")) {
     snprintf(reply, len,
-             "emotion <naam> [ms] | play whistle|wink|kiss|rage|explode | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
+             "emotion <naam> [ms] | play whistle|wink|kiss|rage|explode|sneeze|laugh|eyeroll|hiccup | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
              "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | sleep <min>|off | "
              "wifi status|setup|scan|off|join \"<ssid>\" <pw> | ble on|off|forget | update check|install|auto|notify|off | perf | reboot | status");
   } else {

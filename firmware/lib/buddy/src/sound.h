@@ -29,6 +29,11 @@ enum class Sound : uint8_t {
   Rage,
   Fuse,
   Boom,
+  Inhale,
+  Achoo,
+  Laugh,
+  Sigh,
+  Hiccup,
   Count
 };
 

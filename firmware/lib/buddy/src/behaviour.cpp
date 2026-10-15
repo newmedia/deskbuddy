@@ -81,6 +81,14 @@ void Behaviour::onGesture(const GestureEvent& g) {
         wake();
         break;
       }
+      // Kietelen: 3x aaien binnen 2,5 s = lachen
+      if (quickPetWindow_ == 0) quickPets_ = 0;
+      quickPetWindow_ = 2500;
+      if (++quickPets_ >= 3) {
+        quickPets_ = 0;
+        face_.play(Action::Laugh);
+        break;
+      }
       if (petWindow_ == 0) pets_ = 0;
       petWindow_ = 6000;
       ++pets_;
@@ -95,6 +103,12 @@ void Behaviour::onGesture(const GestureEvent& g) {
       break;
     case Gesture::SwipeLeft:
     case Gesture::SwipeRight:
+      if (swipeWindow_) {  // twee keer snel heen en weer vegen = met de ogen rollen
+        swipeWindow_ = 0;
+        face_.play(Action::EyeRoll);
+        break;
+      }
+      swipeWindow_ = 1200;
       face_.lookAt(g.type == Gesture::SwipeLeft ? -1.0f : 1.0f, 0, false);
       if (sleeping) wake();
       break;
@@ -127,6 +141,8 @@ void Behaviour::onGravity(float gx, float gy, float gz) {
 void Behaviour::update(uint32_t dtMs) {
   idleMs_ += dtMs;
   if (petWindow_) petWindow_ = dtMs >= petWindow_ ? 0 : petWindow_ - dtMs;
+  if (quickPetWindow_) quickPetWindow_ = dtMs >= quickPetWindow_ ? 0 : quickPetWindow_ - dtMs;
+  if (swipeWindow_) swipeWindow_ = dtMs >= swipeWindow_ ? 0 : swipeWindow_ - dtMs;
   if (tapWindow_) {
     tapWindow_ = dtMs >= tapWindow_ ? 0 : tapWindow_ - dtMs;
     if (!tapWindow_) taps_ = 0;
@@ -156,8 +172,10 @@ void Behaviour::update(uint32_t dtMs) {
   } else if (idleMs_ >= nextIdleQuirk_) {
     // Af en toe een kleine spontane expressie, zodat hij niet als een screensaver voelt.
     float r = rnd();
-    if (r < 0.3f) face_.play(Action::Whistle);  // af en toe een deuntje
-    else react(r < 0.6f ? Emotion::Happy : (r < 0.85f ? Emotion::Surprised : Emotion::Love), 1200);
+    if (r < 0.25f) face_.play(Action::Whistle);  // af en toe een deuntje
+    else if (r < 0.33f) face_.play(Action::Sneeze);
+    else if (r < 0.40f) face_.play(Action::Hiccup);
+    else react(r < 0.65f ? Emotion::Happy : (r < 0.85f ? Emotion::Surprised : Emotion::Love), 1200);
     nextIdleQuirk_ = idleMs_ + 20000 + (uint32_t)(rnd() * 25000);
   }
   if (idleMs_ < nextIdleQuirk_ - 60000) nextIdleQuirk_ = idleMs_ + 15000;

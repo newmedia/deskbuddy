@@ -146,14 +146,16 @@ int main(int argc, char** argv) {
     const Shot shots[] = {{Action::Whistle, 1300, "whistle"}, {Action::Wink, 350, "wink"},
                           {Action::Kiss, 1300, "kiss"},       {Action::Rage, 1500, "rage"},
                           {Action::Explode, 1250, "explode1"}, {Action::Explode, 250, "explode2"},
-                          {Action::Explode, 1600, "explode3"}};
+                          {Action::Explode, 1600, "explode3"}, {Action::Sneeze, 800, "sneeze1"},
+                          {Action::Sneeze, 350, "sneeze2"},   {Action::Laugh, 600, "laugh"},
+                          {Action::EyeRoll, 550, "eyeroll"},  {Action::Hiccup, 120, "hiccup"}};
     for (Skin sk : {Skin::Classic, Skin::Mascot}) {
       s.app.setSkin(sk);
       s.behaviour.command(Emotion::Neutral);
       s.step(1200);
       for (const Shot& sh : shots) {
         // explode2/3 lopen door op de vorige (zelfde actie), de rest start opnieuw
-        if (strcmp(sh.tag, "explode2") && strcmp(sh.tag, "explode3")) {
+        if (strcmp(sh.tag, "explode2") && strcmp(sh.tag, "explode3") && strcmp(sh.tag, "sneeze2")) {
           s.step(2500);
           s.face.play(sh.a);
         }
@@ -233,7 +235,9 @@ int main(int argc, char** argv) {
       {9500, "shake"},  {15000, "long"},   {19500, "sad"},   {22000, "surprised"}, {23500, "sleepy"},
       {27000, "asleep"}, {29000, "mascot"}, {31000, "tap"},   {33500, "clock"}, {37500, "info"},
       {41000, "whistle"}, {45000, "wink"}, {46500, "kiss"}, {49500, "rage"}, {54000, "explode"},
-      {61500, "classic"}, {62500, "kiss"}, {65500, "explode"}, {73000, "end"},
+      {61500, "classic"}, {62500, "kiss"}, {65500, "explode"}, {73000, "sneeze"}, {76000, "laugh"},
+      {79000, "eyeroll"}, {81500, "hiccup"}, {85000, "mascot"}, {85500, "sneeze"}, {88500, "laugh"},
+      {91500, "eyeroll"}, {94000, "end"},
   };
   size_t next = 0;
   int frame = 0;
