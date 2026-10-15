@@ -4,3 +4,4 @@ backups/
 sim-out/
 firmware/.pio/
 firmware/src/net/web_index.h
+__pycache__/
