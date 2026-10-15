@@ -125,9 +125,11 @@ void setup() {
   bool audio = board::beginAudio(app.sound);
   net::updater::begin(DESKBUDDY_VERSION);
   // Tijdens een update-installatie staat loop() stil; dan houdt dit het gezicht en de ring in beweging.
+  // Max ~10 fps tijdens een (blokkerende) update: de download/upload krijgt voorrang op tekenen.
   static void (*const pump)() = [] {
     static uint32_t last = millis();
     uint32_t now = millis();
+    if (now - last < 100) return;
     app.update(LV_MIN(now - last, 100u));
     last = now;
     lv_timer_handler();
