@@ -41,6 +41,7 @@ class InfoView {
 
  private:
   lv_obj_t* row(const char* symbol, lv_obj_t** value, lv_obj_t** sub, lv_obj_t** icon = nullptr);
+  static void drawSkinIcon(lv_event_t* e);  // mini-gezichtje van de actieve skin
 
   lv_obj_t* root_ = nullptr;
   lv_obj_t* wifi_ = nullptr;
@@ -52,6 +53,7 @@ class InfoView {
   lv_obj_t* sound_ = nullptr;
   lv_obj_t* soundSub_ = nullptr;
   lv_obj_t* skinRow_ = nullptr;
+  lv_obj_t* skinIcon_ = nullptr;
   lv_obj_t* skin_ = nullptr;
   lv_obj_t* skinSub_ = nullptr;
   lv_obj_t* footer_ = nullptr;   // naam + versie

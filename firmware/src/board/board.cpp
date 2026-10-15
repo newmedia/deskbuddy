@@ -97,7 +97,7 @@ bool beginTouch() {
 bool readTouch(int& x, int& y) {
   if (!touchOk) return false;
   const TouchPoints& p = touch.getTouchPoints();
-  if (!p.hasPoints()) return false;
+  if (p.getPointCount() == 0) return false;  // hasPoints() kan true zijn zonder geldig punt
   x = p.getPoint(0).x;
   y = p.getPoint(0).y;
   return true;

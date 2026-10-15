@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "draw_util.h"
+
 namespace buddy {
 
 namespace {
@@ -25,11 +27,18 @@ lv_obj_t* InfoView::row(const char* symbol, lv_obj_t** value, lv_obj_t** sub, lv
   lv_obj_set_flex_align(r, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_set_style_pad_column(r, 16, 0);
 
-  lv_obj_t* icon = lv_label_create(r);
-  lv_label_set_text(icon, symbol);
-  lv_obj_set_style_text_font(icon, &lv_font_montserrat_28, 0);
-  lv_obj_set_style_text_color(icon, kAccent, 0);
-  lv_obj_set_width(icon, 36);
+  lv_obj_t* icon;
+  if (symbol) {
+    icon = lv_label_create(r);
+    lv_label_set_text(icon, symbol);
+    lv_obj_set_style_text_font(icon, &lv_font_montserrat_28, 0);
+    lv_obj_set_style_text_color(icon, kAccent, 0);
+    lv_obj_set_width(icon, 36);
+  } else {
+    icon = lv_obj_create(r);  // leeg vlak; wordt zelf getekend
+    lv_obj_remove_style_all(icon);
+    lv_obj_set_size(icon, 36, 36);
+  }
   if (iconOut) *iconOut = icon;
 
   lv_obj_t* col = lv_obj_create(r);
@@ -67,7 +76,8 @@ void InfoView::create(lv_obj_t* parent) {
   row(LV_SYMBOL_WIFI, &wifi_, &wifiSub_);
   row(LV_SYMBOL_BLUETOOTH, &ble_, &bleSub_);
   soundRow_ = row(LV_SYMBOL_VOLUME_MAX, &sound_, &soundSub_, &soundIcon_);
-  skinRow_ = row(LV_SYMBOL_IMAGE, &skin_, &skinSub_);
+  skinRow_ = row(nullptr, &skin_, &skinSub_, &skinIcon_);
+  lv_obj_add_event_cb(skinIcon_, drawSkinIcon, LV_EVENT_DRAW_MAIN, this);
 
   footer_ = lv_label_create(root_);
   lv_obj_set_style_text_font(footer_, &lv_font_montserrat_14, 0);
@@ -96,6 +106,43 @@ void InfoView::hide() {
   if (!visible_) return;
   visible_ = false;
   lv_obj_fade_out(root_, 250, 0);
+}
+
+void InfoView::drawSkinIcon(lv_event_t* e) {
+  using namespace draw;
+  auto* self = static_cast<InfoView*>(lv_event_get_user_data(e));
+  lv_layer_t* layer = lv_event_get_layer(e);
+  lv_area_t a;
+  lv_obj_get_coords(self->skinIcon_, &a);
+  float cx = (a.x1 + a.x2 + 1) / 2.0f, cy = (a.y1 + a.y2 + 1) / 2.0f;
+
+  if (self->last_.mascot) {
+    // Huidkleurig kopje met blauw haar, brilletje en lach
+    fillEllipse(layer, cx, cy, 36, 36, lv_color_hex(0xF5C99B));
+    lv_area_t saved = layer->_clip_area;
+    lv_area_t top = saved;
+    top.y2 = LV_MIN(top.y2, ri(cy - 5));
+    layer->_clip_area = top;
+    fillEllipse(layer, cx, cy, 36, 36, lv_color_hex(0x0B2290));
+    layer->_clip_area = saved;
+    fillTri(layer, cx - 12, cy - 7, cx - 4, cy - 7, cx - 11, cy - 1, lv_color_hex(0x0B2290));
+    fillTri(layer, cx, cy - 7, cx + 8, cy - 7, cx + 2, cy - 1, lv_color_hex(0x0B2290));
+    frame(layer, cx - 13, cy - 2, cx - 2, cy + 6, 2, 2, lv_color_hex(0x15171C), lv_color_white(), LV_OPA_COVER);
+    frame(layer, cx + 2, cy - 2, cx + 13, cy + 6, 2, 2, lv_color_hex(0x15171C), lv_color_white(), LV_OPA_COVER);
+    fillEllipse(layer, cx - 7.5f, cy + 2, 4, 4, lv_color_hex(0x22378F));
+    fillEllipse(layer, cx + 7.5f, cy + 2, 4, 4, lv_color_hex(0x22378F));
+    lv_area_t bottom = saved;
+    bottom.y1 = LV_MAX(bottom.y1, ri(cy + 9));
+    layer->_clip_area = bottom;
+    fillEllipse(layer, cx, cy + 9, 14, 12, lv_color_hex(0x5A0F1C));
+    layer->_clip_area = saved;
+  } else {
+    // Zwart rondje met rand en twee cyaan robotoogjes
+    fillEllipse(layer, cx, cy, 36, 36, kAccent);
+    fillEllipse(layer, cx, cy, 31, 31, lv_color_black());
+    fillRect(layer, cx - 10, cy - 7, cx - 3, cy + 5, 3, kAccent);
+    fillRect(layer, cx + 3, cy - 7, cx + 10, cy + 5, 3, kAccent);
+  }
 }
 
 InfoView::Hit InfoView::hit(int x, int y) const {
@@ -153,6 +200,7 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
   lv_label_set_text(sound_, in.sound ? "Geluid aan" : "Geluid uit");
   lv_label_set_text(soundSub_, "Tik om te wisselen");
   lv_label_set_text(skin_, in.mascot ? "Mascotte" : "Robot");
+  lv_obj_invalidate(skinIcon_);
   lv_label_set_text(skinSub_, "Tik voor ander uiterlijk");
 
   lv_label_set_text_fmt(footer_, "deskbuddy %s", in.version);

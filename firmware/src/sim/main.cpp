@@ -159,6 +159,10 @@ int main(int argc, char** argv) {
     d.charging = true;
     s.step(700);
     savePpm(out + "/info_online.ppm");
+    s.app.setSkin(Skin::Mascot);
+    s.app.showInfo();
+    s.step(700);
+    savePpm(out + "/info_mascot.ppm");
     return 0;
   }
 

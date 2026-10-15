@@ -22,7 +22,7 @@ Preferences prefs;
 
 struct EspPlatform : Platform {
   void loadSettings(Settings& s) override {
-    prefs.begin("deskbuddy", true);
+    prefs.begin("deskbuddy", false);  // rw: maakt de namespace aan bij de eerste start
     s.sound = prefs.getBool("sound", s.sound);
     s.volume = prefs.getUChar("volume", s.volume);
     s.brightness = prefs.getUChar("bright", s.brightness);
@@ -77,7 +77,7 @@ void handleSerial() {
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin(I2C_SDA, I2C_SCL);
+  Wire.begin(I2C_SDA, I2C_SCL, 400000);  // fast mode: touch/IMU-polling kost minder tijd
 
   bool pmu = board::beginPmu();
   bool disp = board::beginDisplay();
