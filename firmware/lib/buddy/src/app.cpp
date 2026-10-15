@@ -144,10 +144,22 @@ void App::update(uint32_t dtMs) {
   if (e != lastEmotion_) {
     bool woke = (lastEmotion_ == Emotion::Asleep || lastEmotion_ == Emotion::Sleepy) && e != Emotion::Asleep &&
                 e != Emotion::Sleepy;
-    if (muteNextEmotion_) muteNextEmotion_ = false;
+    if (face.busy()) {
+      // tijdens een actie bepaalt de actie zelf het geluid (via cues)
+    } else if (muteNextEmotion_) muteNextEmotion_ = false;
     else if (woke) sound.play(Sound::Wake);
     else if (Sound s = soundForEmotion(e); s != Sound::None) sound.play(s);
     lastEmotion_ = e;
+  }
+
+  switch (face.takeCue()) {
+    case Cue::Whistle: sound.play(Sound::Whistle); break;
+    case Cue::Wink: sound.play(Sound::Wink); break;
+    case Cue::Kiss: sound.play(Sound::Kiss); break;
+    case Cue::Rage: sound.play(Sound::Rage); break;
+    case Cue::Fuse: sound.play(Sound::Fuse); break;
+    case Cue::Boom: sound.play(Sound::Boom); break;
+    default: break;
   }
 
   // Netwerk-/accustatus ~2x per seconde verversen (goedkoop, en het info-paneel blijft actueel).

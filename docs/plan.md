@@ -90,7 +90,7 @@ offline, maar met minder functies.
 - Voor flashen is toestemming nodig (zie `CLAUDE.md`). De eerste keer flashen overschrijft de
   originele firmware; de backup staat klaar.
 
-## Animaties (backlog, na fase 2)
+## Animaties (✅ fluiten, knipoog, kusje, rage en ontploffen gebouwd; de rest staat nog open)
 
 Speciale animaties zijn *acties*: een korte tijdlijn bovenop de gewone emotie. Ze krijgen een eigen
 geluid en gaan daarna terug naar de vorige emotie. Ze werken in beide skins en zijn te starten via

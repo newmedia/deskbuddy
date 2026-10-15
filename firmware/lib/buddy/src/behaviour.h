@@ -42,6 +42,9 @@ class Behaviour {
   uint32_t petWindow_ = 0;
   int pets_ = 0;
   bool tiltLook_ = false;
+  // Boos worden door herhaald tikken: boos -> rage -> ontploffen
+  int taps_ = 0;
+  uint32_t tapWindow_ = 0;
   uint32_t seed_ = 0xBEEF;
 };
 

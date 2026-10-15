@@ -35,6 +35,14 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     }
     behaviour.command(e, a2 ? (uint32_t)atoi(a2) : 0);
     snprintf(reply, len, "ok emotion=%s", emotionName(e));
+  } else if (!strcmp(cmd, "play") && a1) {
+    Action a;
+    if (!actionFromName(a1, a)) {
+      snprintf(reply, len, "gebruik: play whistle|wink|kiss|rage|explode");
+      return false;
+    }
+    face.play(a);
+    snprintf(reply, len, "ok play=%s", a1);
   } else if (!strcmp(cmd, "look") && a1) {
     if (!strcmp(a1, "off")) face.releaseLook();
     else face.lookAt((float)atof(a1), a2 ? (float)atof(a2) : 0.f, true);
@@ -112,7 +120,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
              (unsigned long)(behaviour.idleMs() / 1000), extra);
   } else if (!strcmp(cmd, "help")) {
     snprintf(reply, len,
-             "emotion <naam> [ms] | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
+             "emotion <naam> [ms] | play whistle|wink|kiss|rage|explode | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
              "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | sleep <min>|off | wifi status|setup|off|join <ssid> <pw> | status");
   } else {
     snprintf(reply, len, "onbekend commando (probeer 'help')");

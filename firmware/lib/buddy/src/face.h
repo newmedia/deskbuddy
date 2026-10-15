@@ -23,6 +23,14 @@ enum class Emotion : uint8_t {
 // Uiterlijk. Classic = cyaan robotogen op zwart; Mascot = cartoongezicht met haar, bril en lach.
 enum class Skin : uint8_t { Classic, Mascot, Count };
 
+// Korte animaties bovenop de emotie; na afloop terug naar de vorige emotie.
+enum class Action : uint8_t { None, Whistle, Wink, Kiss, Rage, Explode, Count };
+// Geluidsmomenten binnen een actie (de App koppelt er een Sound aan).
+enum class Cue : uint8_t { None, Whistle, Wink, Kiss, Rage, Fuse, Boom };
+
+const char* actionName(Action a);
+bool actionFromName(const char* name, Action& out);
+
 const char* skinName(Skin s);
 bool skinFromName(const char* name, Skin& out);
 
@@ -58,6 +66,14 @@ class Face {
   void bounce(float amount = 1.0f);  // squash & stretch-impuls
   void setAutoBlink(bool on) { autoBlink_ = on; }
   void setSkin(Skin s);
+  void play(Action a);
+  Action action() const { return action_; }
+  bool busy() const { return action_ != Action::None; }
+  Cue takeCue() {
+    Cue c = cue_;
+    cue_ = Cue::None;
+    return c;
+  }
   Skin skin() const { return skin_; }
 
   lv_obj_t* obj() const { return obj_; }
@@ -90,6 +106,20 @@ class Face {
   void drawMascotMouth(lv_layer_t* layer, float cx, float cy);
   void drawHair(lv_layer_t* layer, float dy);
   void mascotTargets();
+  // Acties en effecten (face_fx.cpp)
+  struct Particle {
+    float x, y, vx, vy, life, maxLife, size, spin;
+    uint8_t type;
+    uint32_t color;
+  };
+  enum ParticleType : uint8_t { PNote, PHeart, PSteam, PSpark, PSymbol, PSmoke, PStar };
+  void updateAction(float dt);
+  void updateParticles(float dt);
+  void spawn(uint8_t type, float x, float y, float vx, float vy, float life, float size, uint32_t color);
+  void drawEffects(lv_layer_t* layer);
+  void drawPucker(lv_layer_t* layer, float cx, float cy, lv_color_t col, bool mascot);
+  bool effectsActive() const;
+  float eyeClosure(int side) const;  // knipper + knipoog/kus voor één oog
   void drawMouth(lv_layer_t* layer, float cx, float cy);
   void applyPose(const Pose& p);
   void invalidate();
@@ -98,6 +128,22 @@ class Face {
   float rnd();
 
   lv_obj_t* obj_ = nullptr;
+  // Actie-status
+  Action action_ = Action::None;
+  Cue cue_ = Cue::None;
+  float actT_ = 0, actNext_ = 0;
+  Emotion actPrevEmotion_ = Emotion::Neutral;
+  int actStage_ = 0;
+  float wink_[2] = {0, 0};   // per oog extra sluiting (0 = links, 1 = rechts)
+  bool pucker_ = false;      // getuite mond (fluiten, kusje)
+  float swell_ = 1;          // opzwellen (ontploffen)
+  float shake_ = 0;          // trilamplitude in px
+  float tint_ = 0;           // rode gloed 0..1
+  float flash_ = 0;          // witte flits 0..1
+  float soot_ = 0;           // roetvlekken 0..1
+  static constexpr int kMaxParticles = 40;
+  Particle particles_[kMaxParticles];
+  int particleCount_ = 0;
   Skin skin_ = Skin::Classic;
   bool fullRedraw_ = true;
   // Mascotte-specifiek

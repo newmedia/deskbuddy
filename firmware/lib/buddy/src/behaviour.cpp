@@ -38,6 +38,31 @@ void Behaviour::onGesture(const GestureEvent& g) {
   bool sleeping = face_.emotion() == Emotion::Asleep || face_.emotion() == Emotion::Sleepy;
   idleMs_ = 0;
 
+  // Tikken telt op (venster van 1,2 s tussen tikken): 5x = boos, 9x = rage, nog 4x tijdens rage = boem.
+  if (g.type == Gesture::Tap || g.type == Gesture::DoubleTap) {
+    taps_ += g.type == Gesture::DoubleTap ? 2 : 1;
+    tapWindow_ = 1200;
+  }
+  if (face_.busy()) {
+    if (face_.action() == Action::Rage && (g.type == Gesture::Tap || g.type == Gesture::DoubleTap) && taps_ >= 13) {
+      taps_ = 0;
+      face_.play(Action::Explode);
+    }
+    return;  // tijdens een actie verder niets
+  }
+  if (taps_ >= 9 && face_.emotion() == Emotion::Angry) {
+    face_.play(Action::Rage);
+    return;
+  }
+  if (taps_ >= 5 && (g.type == Gesture::Tap || g.type == Gesture::DoubleTap)) {
+    react(Emotion::Angry, 2500);
+    return;
+  }
+  if (g.type == Gesture::Shake && face_.emotion() == Emotion::Angry) {
+    face_.play(Action::Rage);
+    return;
+  }
+
   switch (g.type) {
     case Gesture::Tap:
       face_.lookAt(g.x, g.y, false);
@@ -46,8 +71,7 @@ void Behaviour::onGesture(const GestureEvent& g) {
       else if (!manual_) react(rnd() < 0.5f ? Emotion::Happy : Emotion::Surprised, 1100);
       break;
     case Gesture::DoubleTap:
-      face_.bounce(1.0f);
-      react(Emotion::Happy, 2200);
+      face_.play(Action::Wink);
       break;
     case Gesture::LongPress:
       react(Emotion::Love, 3500);
@@ -59,8 +83,15 @@ void Behaviour::onGesture(const GestureEvent& g) {
       }
       if (petWindow_ == 0) pets_ = 0;
       petWindow_ = 6000;
-      if (++pets_ >= 3) react(Emotion::Love, 4000);
-      else react(Emotion::Happy, 2500);
+      ++pets_;
+      if (pets_ >= 5) {
+        pets_ = 0;
+        face_.play(Action::Kiss);
+      } else if (pets_ >= 3) {
+        react(Emotion::Love, 4000);
+      } else {
+        react(Emotion::Happy, 2500);
+      }
       break;
     case Gesture::SwipeLeft:
     case Gesture::SwipeRight:
@@ -96,6 +127,11 @@ void Behaviour::onGravity(float gx, float gy, float gz) {
 void Behaviour::update(uint32_t dtMs) {
   idleMs_ += dtMs;
   if (petWindow_) petWindow_ = dtMs >= petWindow_ ? 0 : petWindow_ - dtMs;
+  if (tapWindow_) {
+    tapWindow_ = dtMs >= tapWindow_ ? 0 : tapWindow_ - dtMs;
+    if (!tapWindow_) taps_ = 0;
+  }
+  if (face_.busy()) return;  // acties regelen zelf hun emotie en tijd
 
   if (holding_) {
     if (dtMs >= holdLeft_) {
@@ -120,7 +156,8 @@ void Behaviour::update(uint32_t dtMs) {
   } else if (idleMs_ >= nextIdleQuirk_) {
     // Af en toe een kleine spontane expressie, zodat hij niet als een screensaver voelt.
     float r = rnd();
-    react(r < 0.5f ? Emotion::Happy : (r < 0.8f ? Emotion::Surprised : Emotion::Love), 1200);
+    if (r < 0.3f) face_.play(Action::Whistle);  // af en toe een deuntje
+    else react(r < 0.6f ? Emotion::Happy : (r < 0.85f ? Emotion::Surprised : Emotion::Love), 1200);
     nextIdleQuirk_ = idleMs_ + 20000 + (uint32_t)(rnd() * 25000);
   }
   if (idleMs_ < nextIdleQuirk_ - 60000) nextIdleQuirk_ = idleMs_ + 15000;

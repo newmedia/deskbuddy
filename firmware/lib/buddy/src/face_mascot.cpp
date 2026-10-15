@@ -62,12 +62,6 @@ float ellipseHalfWidth(float halfW, float halfH, float dy) {
   return r >= 1 || r <= -1 ? 0 : halfW * sqrtf(1 - r * r);
 }
 
-void heart(lv_layer_t* layer, float cx, float cy, float s, lv_color_t c) {
-  float r = s * 0.27f;
-  fillEllipse(layer, cx - s * 0.23f, cy - s * 0.12f, 2 * r, 2 * r, c);
-  fillEllipse(layer, cx + s * 0.23f, cy - s * 0.12f, 2 * r, 2 * r, c);
-  fillTri(layer, cx - s * 0.49f, cy - s * 0.06f, cx + s * 0.49f, cy - s * 0.06f, cx, cy + s * 0.44f, c);
-}
 
 }  // namespace
 
@@ -121,8 +115,8 @@ void Face::drawMascot(lv_layer_t* layer) {
 }
 
 void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
-  float sw = LV_CLAMP(60.f, eye_.w.x * 0.92f, 112.f);
-  float sh = LV_CLAMP(44.f, eye_.h.x * 0.60f, 92.f);
+  float sw = LV_CLAMP(60.f, eye_.w.x * 0.92f, 112.f) * swell_;
+  float sh = LV_CLAMP(44.f, eye_.h.x * 0.60f, 92.f) * swell_;
   float hw = sw / 2, hh = sh / 2;
 
   fillEllipse(layer, cx, cy, sw + 7, sh + 7, OUTLINE);
@@ -151,7 +145,7 @@ void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
   }
 
   // Bovenooglid in huidkleur (emotie-lid of knipper, wat het verst dicht is) met een wimperlijn.
-  float c = blinkT_ < 0 ? 0 : sinf(blinkT_ * kPi);
+  float c = eyeClosure(side);
   float lid = LV_MAX(LV_CLAMP(0.f, eye_.lidTop.x, 1.f), c);
   float tilt = eye_.tilt.x * 0.8f;
   if (lid > 0.01f || fabsf(tilt) > 0.5f) {
@@ -186,6 +180,10 @@ void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
 }
 
 void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
+  if (pucker_) {
+    drawPucker(layer, cx, my + 12, OUTLINE, true);
+    return;
+  }
   float o = LV_CLAMP(0.f, mouthOpen_.x, 1.2f);
   float mw = mouthWidth_.x;
 

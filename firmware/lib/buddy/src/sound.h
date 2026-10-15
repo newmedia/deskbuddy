@@ -23,6 +23,12 @@ enum class Sound : uint8_t {
   Wake,
   Purr,
   Toggle,
+  Whistle,
+  Wink,
+  Kiss,
+  Rage,
+  Fuse,
+  Boom,
   Count
 };
 
@@ -53,6 +59,8 @@ class SoundSynth {
   uint8_t note_ = 0;
   uint32_t pos_ = 0;   // sample binnen huidige noot
   float phase_ = 0, lfo_ = 0;
+  uint32_t noise_ = 0xACE1u;  // LFSR voor ruis
+  float lp_ = 0;              // laagdoorlaat voor gekleurde ruis
 };
 
 }  // namespace buddy

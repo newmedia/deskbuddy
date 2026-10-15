@@ -227,6 +227,12 @@ void Face::update(uint32_t dtMs) {
                     &mouthOpen_, &mouthWidth_, &hairY_}) {
     s->step(dt);
   }
+  updateAction(dt);
+  updateParticles(dt);
+  // Trillen: het hele gezichtsobject heen en weer zetten (goedkoop, geen hertekenen per pixel nodig)
+  if (shake_ > 0.2f) lv_obj_set_pos(obj_, (int32_t)((rnd() * 2 - 1) * shake_), (int32_t)((rnd() * 2 - 1) * shake_));
+  else if (lv_obj_get_x(obj_) != 0 || lv_obj_get_y(obj_) != 0) lv_obj_set_pos(obj_, 0, 0);
+
   squash_.target = 0;
   hairY_.target = sinf(t_ * 2 * kPi / 4.2f) * 4.5f - squash_.x * 8;
 
@@ -237,7 +243,7 @@ static float closure(float blinkT) { return blinkT < 0 ? 0 : sinf(blinkT * kPi);
 
 void Face::invalidate() {
   if (!obj_) return;
-  if (skin_ == Skin::Mascot || fullRedraw_) {
+  if (skin_ == Skin::Mascot || fullRedraw_ || effectsActive()) {
     // Mascotte beweegt over bijna het hele scherm (haar, wenkbrauwen, mond): alles opnieuw.
     lv_obj_invalidate(obj_);
     fullRedraw_ = false;
@@ -275,6 +281,7 @@ void Face::drawCb(lv_event_t* e) {
 void Face::draw(lv_layer_t* layer) {
   if (skin_ == Skin::Mascot) {
     drawMascot(layer);
+    drawEffects(layer);
     return;
   }
   float bob = sinf(t_ * 2 * kPi / 4.2f) * 3.0f;
@@ -291,9 +298,14 @@ void Face::draw(lv_layer_t* layer) {
     }
     drawEye(layer, side, cx, cy, persp);
   }
-  if (mouthShown_ != MouthNone && mouthAlpha_ > 0.01f) drawMouth(layer, kCenter + lookX_.x * 0.4f, kCenter + bob);
+  if (pucker_)
+    drawPucker(layer, kCenter + lookX_.x * 0.4f, kCenter + bob + 112,
+               lv_color_make((uint8_t)colR_.x, (uint8_t)colG_.x, (uint8_t)colB_.x), false);
+  else if (mouthShown_ != MouthNone && mouthAlpha_ > 0.01f)
+    drawMouth(layer, kCenter + lookX_.x * 0.4f, kCenter + bob);
   if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep)
     drawZs(layer, lv_color_make((uint8_t)colR_.x, (uint8_t)colG_.x, (uint8_t)colB_.x));
+  drawEffects(layer);
 }
 
 void Face::drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale) {
@@ -302,9 +314,9 @@ void Face::drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale)
                                  (uint8_t)LV_CLAMP(0.f, colB_.x, 255.f));
   float sq = LV_CLAMP(-0.6f, squash_.x, 0.6f) * 0.25f;
   float pulse = (emotion_ == Emotion::Love) ? 1.0f + 0.06f * sinf(t_ * 9.0f) : 1.0f;
-  float w = eye_.w.x * scale * (1 + sq) * pulse;
-  float h = eye_.h.x * scale * (1 - sq) * pulse;
-  float c = closure(blinkT_);
+  float w = eye_.w.x * scale * (1 + sq) * pulse * swell_;
+  float h = eye_.h.x * scale * (1 - sq) * pulse * swell_;
+  float c = eyeClosure(side);
   float hv = LV_MAX(h * (1 - c * 0.94f), 8.0f);
   float vs = hv / h;  // verticale schaal door knipperen
 

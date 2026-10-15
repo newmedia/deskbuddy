@@ -7,7 +7,7 @@ namespace buddy {
 
 namespace {
 
-enum Wave : uint8_t { Sine, Tri, Square };
+enum Wave : uint8_t { Sine, Tri, Square, Noise };  // Noise: f0->f1 = kantelfrequentie van het filter
 
 struct Note {
   float f0, f1;      // begin- en eindfrequentie (exponentiële glijding); 0 = stilte
@@ -44,6 +44,18 @@ const Seq& seqFor(Sound s) {
   static const Seq wake = SEQ({300, 900, 180, Sine, 0.55f}, {900, 1250, 80, Sine, 0.5f});
   static const Seq purr = SEQ({130, 145, 700, Tri, 0.65f, 0, 0, 14});
   static const Seq toggle = SEQ({1200, 1200, 35, Square, 0.22f});
+  // Fluitmelodie (vrolijk deuntje, sinus met vibrato)
+  static const Seq whistle = SEQ({1568, 1568, 220, Sine, 0.45f, 6, 0.012f}, {1319, 1319, 220, Sine, 0.45f, 6, 0.012f},
+                                 {1568, 1760, 180, Sine, 0.45f, 6, 0.012f}, {2093, 2093, 380, Sine, 0.45f, 6, 0.018f},
+                                 {0, 0, 120, Sine, 0}, {1760, 1760, 200, Sine, 0.42f, 6, 0.012f},
+                                 {1568, 1568, 200, Sine, 0.42f, 6, 0.012f}, {1319, 1175, 450, Sine, 0.4f, 6, 0.02f});
+  static const Seq wink = SEQ({2000, 2600, 45, Tri, 0.4f}, {2600, 2600, 140, Sine, 0.35f});
+  static const Seq kiss = SEQ({6000, 2500, 35, Noise, 0.5f}, {700, 260, 110, Sine, 0.55f});
+  static const Seq rage = SEQ({110, 95, 900, Square, 0.3f, 0, 0, 22}, {7000, 4000, 700, Noise, 0.25f},
+                              {120, 90, 800, Square, 0.3f, 0, 0, 26});
+  static const Seq fuse = SEQ({2500, 7000, 1400, Noise, 0.22f});
+  static const Seq boom = SEQ({4000, 1500, 220, Noise, 0.95f}, {1500, 500, 380, Noise, 0.6f},
+                              {500, 120, 600, Noise, 0.32f});
   switch (s) {
     case Sound::Blip: return blip;
     case Sound::Happy: return happy;
@@ -56,12 +68,19 @@ const Seq& seqFor(Sound s) {
     case Sound::Wake: return wake;
     case Sound::Purr: return purr;
     case Sound::Toggle: return toggle;
+    case Sound::Whistle: return whistle;
+    case Sound::Wink: return wink;
+    case Sound::Kiss: return kiss;
+    case Sound::Rage: return rage;
+    case Sound::Fuse: return fuse;
+    case Sound::Boom: return boom;
     default: return none;
   }
 }
 
-const char* const kNames[] = {"none", "blip", "happy", "love", "surprised", "sad",
-                              "angry", "dizzy", "yawn", "wake", "purr", "toggle"};
+const char* const kNames[] = {"none", "blip", "happy", "love", "surprised", "sad", "angry", "dizzy",
+                              "yawn", "wake", "purr", "toggle", "whistle", "wink", "kiss", "rage",
+                              "fuse", "boom"};
 constexpr float kTwoPi = 6.2831853f;
 
 }  // namespace
@@ -130,6 +149,15 @@ bool SoundSynth::fill(int16_t* out, size_t n) {
       phase_ += f / kRate;
       phase_ -= floorf(phase_);
       switch (nt.wave) {
+        case Noise: {
+          // 16-bit Galois-LFSR -> witte ruis, door een eenpolig filter met kantelfrequentie f
+          noise_ = (noise_ >> 1) ^ (-(int32_t)(noise_ & 1u) & 0xB400u);
+          float white = (noise_ & 0xFFFF) / 32768.0f - 1.0f;
+          float k = LV_MIN(1.0f, 6.2831853f * f / kRate);
+          lp_ += (white - lp_) * k;
+          s = lp_ * LV_MIN(3.0f, 1.0f / sqrtf(k + 0.02f));  // lage kantelfreq. compenseren
+          break;
+        }
         case Tri: s = 4.0f * fabsf(phase_ - 0.5f) - 1.0f; break;
         case Square: s = phase_ < 0.5f ? 0.8f : -0.8f; break;
         default: s = sinf(kTwoPi * phase_); break;

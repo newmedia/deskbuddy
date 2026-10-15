@@ -65,5 +65,12 @@ inline void frame(lv_layer_t* layer, float x1, float y1, float x2, float y2, flo
   lv_draw_rect(layer, &d, &a);
 }
 
+inline void heart(lv_layer_t* layer, float cx, float cy, float s, lv_color_t c) {
+  float r = s * 0.27f;
+  fillEllipse(layer, cx - s * 0.23f, cy - s * 0.12f, 2 * r, 2 * r, c);
+  fillEllipse(layer, cx + s * 0.23f, cy - s * 0.12f, 2 * r, 2 * r, c);
+  fillTri(layer, cx - s * 0.49f, cy - s * 0.06f, cx + s * 0.49f, cy - s * 0.06f, cx, cy + s * 0.44f, c);
+}
+
 }  // namespace draw
 }  // namespace buddy

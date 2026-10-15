@@ -3,7 +3,7 @@
 // Muis = vinger: klik = tik, vasthouden = lang drukken, heen en weer slepen = aaien, vegen = swipe.
 // Toetsen: 1-9 emoties · S schudden · P oppakken · pijltjes kantelen · B knipperen
 //          C klok · I info · W Wi-Fi-status wisselen · L BLE aan/uit · M geluid aan/uit · K skin
-//          +/- accu · Esc stoppen
+//          F fluiten · N knipoog · J kusje · R rage · E ontploffen · +/- accu · Esc stoppen
 
 #include <SDL.h>
 #include <lvgl.h>
@@ -165,6 +165,11 @@ int main(int, char**) {
           else if (k == SDLK_w) cycleWifi(platform.dev);
           else if (k == SDLK_l) platform.dev.bleEnabled = !platform.dev.bleEnabled;
           else if (k == SDLK_m) app.setSound(!app.sound.enabled());
+          else if (k == SDLK_f) app.face.play(Action::Whistle);
+          else if (k == SDLK_n) app.face.play(Action::Wink);
+          else if (k == SDLK_j) app.face.play(Action::Kiss);
+          else if (k == SDLK_r) app.face.play(Action::Rage);
+          else if (k == SDLK_e) app.face.play(Action::Explode);
           else if (k == SDLK_k) app.setSkin(app.face.skin() == Skin::Mascot ? Skin::Classic : Skin::Mascot);
           else if (k == SDLK_PLUS || k == SDLK_EQUALS || k == SDLK_KP_PLUS)
             platform.dev.batteryPct = platform.dev.batteryPct < 0 ? 5 : LV_MIN(100, platform.dev.batteryPct + 5);

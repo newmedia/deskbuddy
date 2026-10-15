@@ -7,14 +7,15 @@ PlatformIO-project in `firmware/`: Arduino-ESP32 3.3 (pioarduino `55.03.311`) en
 | Actie | Reactie |
 |---|---|
 | Tik | kijkt naar je vinger, blij of verrast; maakt hem wakker |
-| Dubbeltik | heel blij + stuiter |
+| Dubbeltik | knipoog |
 | Lang indrukken | verliefd (hartjesogen) |
-| Aaien (heen en weer vegen) | blij, na 3× verliefd |
+| Aaien (heen en weer vegen) | blij, na 3× verliefd, na 5× een kusje |
+| Snel blijven tikken | 5× boos, 9× rage, en doortikken tijdens rage laat hem ontploffen |
 | Veeg links/rechts | kijkt die kant op |
 | **Veeg omlaag** | **info-paneel**: Wi-Fi (IP/SSID of access point), BLE, geluid en uiterlijk (tik om te wisselen), accu en versie |
 | **Veeg omhoog** | **klok** met datum en accuring |
 | Tik of terugvegen in een paneel | paneel sluiten (sluit ook vanzelf) |
-| Schudden | duizelig, daarna even boos |
+| Schudden | duizelig, daarna even boos (schudden terwijl hij boos is: rage) |
 | Oppakken | verrast |
 | Kantelen | ogen kijken "bergafwaarts" |
 | Niets doen | na 90 s slaperig en na 3 min in slaap (scherm dimt) |
@@ -66,6 +67,26 @@ of met `cd firmware && ../.venv/bin/pio run -e esp32 -t upload --upload-port des
 De pagina staat in `firmware/web/index.html`. Bij het bouwen wordt hij gzip-gecomprimeerd in de
 firmware gezet (`scripts/embed_web.py`).
 
+## Acties
+
+Korte animaties bovenop de emotie (`face_fx.cpp`). Na afloop keert hij terug naar de vorige emotie.
+
+| Actie | Commando | Beeld | Geluid |
+|---|---|---|---|
+| Fluiten | `play whistle` | getuite mond, muzieknootjes, halfdichte ogen (ook spontaan bij verveling) | melodietje |
+| Knipoog | `play wink` | één oog dicht, sterretje | "ting" |
+| Kusje | `play kiss` | ogen dicht, getuite lippen, hartje vliegt naar voren | smak |
+| Rage | `play rage` | rode gloed, trillen, stoomwolkjes, `#@!$%` | grom + sis |
+| Ontploffen | `play explode` | opzwellen, witte flits, vonken, daarna roet, rook en duizelig/verbaasd | lont-gesis + boem |
+
+Het engine-deel bevat:
+- sluiting per oog
+- een deeltjessysteem (noten, harten, stoom, rook, vonken, symbolen, sterren)
+- trillen (het hele gezichtsobject verschuift)
+- tint-, flits- en roetlagen
+
+Elke actie zet *cues*, waar de App een geluid aan koppelt. Ze werken in beide skins.
+
 ## Uiterlijk (skins)
 
 | Skin | Beschrijving |
@@ -95,6 +116,7 @@ Hetzelfde commandoprotocol wordt later via WebSocket, BLE en MQTT gebruikt.
 
 ```
 emotion <neutral|happy|sad|angry|surprised|sleepy|love|dizzy|asleep> [ms]
+play <whistle|wink|kiss|rage|explode>
 look <x> <y> | look off      # -1..1
 blink | bounce
 gesture <tap|double_tap|long_press|pet|swipe_left|...|shake|pick_up>
@@ -110,7 +132,7 @@ clock | info | status | help
 
 | Pad | Inhoud |
 |---|---|
-| `lib/buddy/` | Hardware-onafhankelijk (alleen LVGL): `face` en `face_mascot` (procedureel gezicht, twee skins), `sound` (synth), `behaviour` (emoties en verveling), `gestures` (touch en IMU), `clock_view`, `info_view`, `commands`, `app` (koppelt alles en regelt de navigatie) |
+| `lib/buddy/` | Hardware-onafhankelijk (alleen LVGL): `face` en `face_mascot` (procedureel gezicht, twee skins), `face_fx` (acties en effecten), `sound` (synth), `behaviour` (emoties en verveling), `gestures` (touch en IMU), `clock_view`, `info_view`, `commands`, `app` (koppelt alles en regelt de navigatie) |
 | `src/board/` | Hardware: CO5300-display via QSPI, CST9217-touch, QMI8658-IMU, AXP2101-PMU en PCF85063-RTC |
 | `src/main.cpp` | Apparaat: polling-loop, serial-commando's, knoppen |
 | `src/sim/` | Headless PC-simulator die dezelfde `App` draait (PNG's, GIF en MP4 met geluid) |
@@ -158,6 +180,7 @@ heen en weer slepen = aaien, vegen omlaag of omhoog = info of klok.
 | L | BLE aan/uit |
 | M | geluid aan/uit |
 | K | skin wisselen |
+| F / N / J / R / E | fluiten / knipoog / kusje / rage / ontploffen |
 | + / - | accu |
 | Esc | stoppen |
 
