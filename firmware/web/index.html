@@ -34,6 +34,11 @@ select,input[type=text],input[type=password]{width:100%;background:#0e1418;color
 #log{font:12px ui-monospace,monospace;color:var(--dim);white-space:pre-wrap;margin-top:8px;max-height:120px;overflow:auto}
 progress{width:100%;height:8px;accent-color:var(--accent)}
 .muted{color:var(--dim);font-size:13px}
+label.check{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px;margin-top:10px}
+label.check input{width:20px;height:20px;accent-color:var(--accent)}
+.status{margin:10px 0 0;padding:10px;border-radius:10px;background:#0e1418;border:1px solid var(--line)}
+.status.ok{border-color:var(--ok);color:var(--ok)}
+.status.bad{border-color:var(--bad);color:var(--bad)}
 </style>
 </head>
 <body>
@@ -88,10 +93,12 @@ progress{width:100%;height:8px;accent-color:var(--accent)}
     <input type="text" id="ssid" autocomplete="off" autocapitalize="none">
     <label for="pass">Wachtwoord</label>
     <input type="password" id="pass" autocomplete="off">
+    <label class="check"><input type="checkbox" id="showpass"> Wachtwoord tonen</label>
     <div class="row" style="margin-top:10px">
       <button id="join" class="on">Verbinden</button>
       <button data-cmd="wifi forget">Vergeten</button>
     </div>
+    <p id="join-status" class="status" hidden></p>
   </section>
 
   <section>
@@ -183,12 +190,37 @@ $("#scan").onclick = async () => {
   }
   $("#scan").textContent = "Netwerken zoeken";
 };
+$("#showpass").onchange = e => $("#pass").type = e.target.checked ? "text" : "password";
+
+function joinStatus(text, cls) {
+  const s = $("#join-status");
+  s.hidden = false; s.textContent = text; s.className = "status " + (cls || "");
+}
 $("#join").onclick = async () => {
   const ssid = $("#ssid").value.trim(), pass = $("#pass").value;
-  if (!ssid) return;
-  const r = await fetch("/api/wifi", {method: "POST", body: new URLSearchParams({ssid, pass})});
-  const j = await r.json();
-  log(`wifi: ${j.reply}. Het info-scherm (veeg omlaag) toont straks het IP; daarna werkt ook http://deskbuddy.local`);
+  if (!ssid) { joinStatus("Kies of typ eerst een netwerk.", "bad"); return; }
+  $("#join").disabled = true;
+  joinStatus(`Verbinden met ${ssid}…`);
+  try {
+    await fetch("/api/wifi", {method: "POST", body: new URLSearchParams({ssid, pass})});
+  } catch {}
+  for (let i = 0; i < 32; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    let j;
+    try { j = await (await fetch("/api/wifi/state")).json(); } catch { continue; }
+    if (j.sta === "connected") {
+      joinStatus(`Verbonden met ${j.ssid}! IP-adres: ${j.ip}. Over ${Math.max(j.switchIn, 0)} s schakelt de deskbuddy over; ` +
+        `verbind je telefoon dan weer met je thuisnetwerk en open http://${j.ip} (of http://deskbuddy.local).`, "ok");
+      if (j.switchIn <= 1) break;
+      continue;
+    }
+    if (j.sta === "failed" && (j.reason.includes("wachtwoord") || i > 25)) {
+      joinStatus(`Niet gelukt: ${j.reason || "onbekende fout"}. Controleer het wachtwoord en probeer opnieuw.`, "bad");
+      break;
+    }
+    joinStatus(`Verbinden met ${ssid}… (${i + 1} s)`);
+  }
+  $("#join").disabled = false;
 };
 
 $("#fw").onchange = () => {

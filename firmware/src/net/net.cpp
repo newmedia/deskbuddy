@@ -36,6 +36,20 @@ char ssid[33] = "", pass[65] = "";
 char apName[24] = "";
 uint32_t modeSince = 0, apLastClient = 0;
 bool servicesUp = false, apUp = false, timeSynced = false, otaBusy = false;
+// Verbindingspoging (voor terugkoppeling in de setup-pagina)
+bool joining = false;
+uint32_t joinStart = 0, staSince = 0;
+int lastReason = 0;
+
+const char* reasonText(int r) {
+  switch (r) {
+    case 2: case 15: case 202: case 204: return "wachtwoord klopt niet";
+    case 201: return "netwerk niet gevonden (alleen 2.4 GHz wordt ondersteund)";
+    case 205: return "verbinding mislukt";
+    case 0: return "";
+    default: return "verbinding verbroken";
+  }
+}
 
 void loadCreds() {
   prefs.begin("wifi", false);
@@ -97,12 +111,6 @@ void sendCaptiveJson() {
 
 void handleIndex() {
   logReq("index");
-  // Android haalt de portal-API (DHCP-optie 114) op met een Dalvik-UA en verwacht JSON (RFC 8908).
-  if (apUp && (server.header("User-Agent").startsWith("Dalvik") ||
-               server.header("Accept").indexOf("application/captive+json") >= 0)) {
-    sendCaptiveJson();
-    return;
-  }
   if (captiveRedirect()) return;
   server.sendHeader("Content-Encoding", "gzip");
   server.sendHeader("Cache-Control", "no-cache");
@@ -161,6 +169,21 @@ void handleWifiPost() {
   join(s.c_str(), p.c_str());
 }
 
+void handleWifiState() {
+  const char* st = "idle";
+  bool connected = WiFi.status() == WL_CONNECTED;
+  if (connected) st = "connected";
+  else if (joining && (millis() - joinStart > 25000 || (lastReason && lastReason != 8))) st = "failed";
+  else if (joining) st = "connecting";
+  String body = String("{\"sta\":\"") + st + "\",\"ssid\":\"";
+  jsonEscape(body, ssid);
+  body += "\",\"ip\":\"" + (connected ? WiFi.localIP().toString() : String("")) + "\",\"reason\":\"";
+  jsonEscape(body, connected ? "" : (millis() - joinStart > 25000 && !lastReason ? "geen antwoord van het netwerk"
+                                                                                    : reasonText(lastReason)));
+  body += "\",\"switchIn\":" + String(connected && apUp && staSince ? (30 - (int)((millis() - staSince) / 1000)) : 0) + "}";
+  sendJson(200, body);
+}
+
 void handleUpdateDone() {
   bool ok = !Update.hasError();
   sendJson(ok ? 200 : 500, ok ? "{\"ok\":true,\"reply\":\"bijgewerkt, herstarten...\"}"
@@ -202,6 +225,7 @@ void startServices() {
   server.on("/api/cmd", HTTP_POST, handleCmd);
   server.on("/api/wifi/scan", HTTP_GET, handleScan);
   server.on("/api/wifi", HTTP_POST, handleWifiPost);
+  server.on("/api/wifi/state", HTTP_GET, handleWifiState);
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
   // Controle-URL's van Android, iOS/macOS en Windows: doorsturen = "er is een portal".
   for (const char* probe : {"/generate_204", "/gen_204", "/hotspot-detect.html", "/library/test/success.html",
@@ -247,17 +271,9 @@ void startAp() {
   // telefoon de controle-URL's niet opzoeken en denkt hij alleen "geen internet".
   const IPAddress apIp(192, 168, 4, 1);
   WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0), IPAddress(192, 168, 4, 2), apIp);
-  // DHCP-optie 114 (RFC 8910) wijst naar onze captive-portal-API (RFC 8908). Android vraagt die
-  // direct na verbinden op en verwacht JSON. Met HTML terug (zoals WiFi.AP.enableDhcpCaptivePortal()
-  // doet, die naar "/" wijst) negeert Android de portal en komt er geen "Inloggen op netwerk"-melding.
-  {
-    static char uri[40];
-    snprintf(uri, sizeof(uri), "http://%s/captive", WiFi.softAPIP().toString().c_str());
-    esp_netif_t* nif = WiFi.AP.netif();
-    esp_netif_dhcps_stop(nif);
-    esp_netif_dhcps_option(nif, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, uri, strlen(uri));
-    esp_netif_dhcps_start(nif);
-  }
+  // Bewust GEEN DHCP-optie 114 (RFC 8910): Android behandelt die als capport-API (RFC 8908, moet https
+  // zijn) en slaat dan soms zijn gewone HTTP-probe over. Zonder optie 114 doet Android de klassieke
+  // probe (generate_204) via onze DNS, en die sturen we door naar de setup-pagina.
   dns.setErrorReplyCode(DNSReplyCode::NoError);
   dns.start(53, "*", WiFi.softAPIP());
   apUp = true;
@@ -289,6 +305,14 @@ void begin(buddy::App& a) {
   WiFi.onEvent([](arduino_event_id_t e, arduino_event_info_t info) {
     if (e == ARDUINO_EVENT_WIFI_AP_STACONNECTED) Serial.println("[ap] apparaat verbonden");
     if (e == ARDUINO_EVENT_WIFI_AP_STADISCONNECTED) Serial.println("[ap] apparaat weg");
+    if (e == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+      lastReason = info.wifi_sta_disconnected.reason;
+      Serial.printf("[sta] verbinding mislukt/verbroken, reden %d (%s)\n", lastReason, reasonText(lastReason));
+    }
+    if (e == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
+      lastReason = 0;
+      Serial.printf("[sta] verbonden, IP %s\n", IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str());
+    }
     if (e == ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED)
       Serial.printf("[ap] IP uitgedeeld: %s\n", IPAddress(info.wifi_ap_staipassigned.ip.addr).toString().c_str());
   });
@@ -314,6 +338,7 @@ void loop() {
   switch (mode) {
     case Mode::Connecting:
       if (connected) {
+        joining = false;
         setMode(Mode::Station);
         startStationServices();
       } else if (now - modeSince > kConnectTimeout && !apUp) {
@@ -322,9 +347,13 @@ void loop() {
       break;
     case Mode::AccessPoint:
       if (WiFi.softAPgetStationNum() > 0) apLastClient = now;
+      if (!connected) staSince = 0;
       if (connected) {
-        // Verbonden met het thuisnetwerk: AP nog even laten staan zodat de telefoon het succes ziet.
-        if (now - modeSince > 1000 && now - apLastClient > 15000) {
+        // Verbonden met het thuisnetwerk: AP nog 30 s laten staan zodat de telefoon het succes ziet.
+        if (!staSince) staSince = now;
+        if (now - staSince > 30000) {
+          staSince = 0;
+          joining = false;
           stopAp();
           WiFi.mode(WIFI_STA);
           setMode(Mode::Station);
@@ -388,6 +417,10 @@ void off() {
 }
 
 void join(const char* s, const char* p) {
+  joining = true;
+  joinStart = millis();
+  lastReason = 0;
+  staSince = 0;
   snprintf(ssid, sizeof(ssid), "%s", s);
   snprintf(pass, sizeof(pass), "%s", p);
   saveCreds();
