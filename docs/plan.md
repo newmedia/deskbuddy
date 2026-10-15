@@ -89,3 +89,25 @@ offline, maar met minder functies.
   van Bluedroid.
 - Voor flashen is toestemming nodig (zie `CLAUDE.md`). De eerste keer flashen overschrijft de
   originele firmware; de backup staat klaar.
+
+## Animaties (backlog, na fase 2)
+
+Speciale animaties zijn *acties*: een korte tijdlijn bovenop de gewone emotie. Ze krijgen een eigen
+geluid en gaan daarna terug naar de vorige emotie. Ze werken in beide skins en zijn te starten via
+een commando (`play <naam>`), de webinterface, BLE en HA, en sommige ook via gebaren.
+
+| Actie | Beeld | Geluid | Trigger |
+|---|---|---|---|
+| Fluiten | getuite mond, muzieknootjes zweven omhoog, ogen half dicht | melodietje (synth) | spontaan bij verveling |
+| Knipoog | één oog dicht (los ooglid per oog), lichte kanteling van het hoofd | "ting" | dubbeltik op één oog |
+| Kusje | getuite lippen, hartje vliegt naar voren en groeit | smakje | lang aaien |
+| Boos | rode tint, wenkbrauwen/oogleden schuin, korte trilling | brom | herhaald tikken |
+| Rage | dieprood, scherm trilt, stoomwolkjes uit de zijkanten, "#@!"-symbooltjes | grommen + sissen | nog vaker tikken of schudden als hij al boos is |
+| Ontploffen | opzwellen, witte flits, deeltjes vliegen weg, daarna verkoold en verbaasd (zwarte vegen, rookpluim) | "boem" (ruis-burst) | rage die blijft doorgaan |
+| Niezen | ogen dicht, opbouw "ah-ah-", nies-schok | "hatsjoe" | spontaan |
+| Lachen | ogen "^ ^", hele gezicht schudt ritmisch | "hihihi"-chirps | kietelen (snel aaien) |
+| Rollende ogen | ogen draaien een rondje omhoog | zucht | veeg heen en weer |
+
+Benodigdheden in de engine: per-oog-overrides (knipoog), een deeltjessysteem (noten, hartjes,
+stoom, explosie), schermtrilling (offset op alles) en tint/flits-overlays, plus een `Action`-tijdlijn
+met keyframes per parameter. De synth krijgt ruis (explosie, sissen) en melodieën (fluiten).
