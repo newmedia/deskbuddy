@@ -12,6 +12,8 @@ namespace board {
 
 bool beginDisplay();               // CO5300 + LVGL-display
 void setBrightness(uint8_t value);
+// Sinds vorige aanroep: frames, totale frametijd, waarvan draaien en versturen (QSPI)
+void takeFrameStats(uint32_t& frames, uint64_t& renderUs, uint64_t& rotateUs, uint64_t& sendUs);
 
 bool beginTouch();
 bool readTouch(int& x, int& y);    // true = ingedrukt

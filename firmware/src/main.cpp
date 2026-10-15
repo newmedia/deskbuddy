@@ -25,6 +25,13 @@ namespace {
 
 Preferences prefs;
 
+// Prestatiemeting, elke seconde bijgewerkt in loop()
+struct {
+  float fps = 0, renderMs = 0, load = 0, rotateMs = 0, sendMs = 0;
+  uint64_t busyUs = 0;
+  uint32_t windowStart = 0;
+} perf;
+
 struct EspPlatform : Platform {
   void loadSettings(Settings& s) override {
     prefs.begin("deskbuddy", false);  // rw: maakt de namespace aan bij de eerste start
@@ -57,6 +64,14 @@ struct EspPlatform : Platform {
     snprintf(d.version, sizeof(d.version), "%s", DESKBUDDY_VERSION);
     net::fill(d);
     ble::fill(d);
+    d.heapFree = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    d.heapMin = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+    d.psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    d.fps = perf.fps;
+    d.renderMs = perf.renderMs;
+    d.load = perf.load;
+    d.rotateMs = perf.rotateMs;
+    d.sendMs = perf.sendMs;
   }
   void setBrightness(uint8_t v) override { board::setBrightness(v); }
   void startWifiSetup() override { net::startSetupAp(); }
@@ -106,6 +121,7 @@ void setup() {
   pinMode(BOOT_BUTTON, INPUT_PULLUP);
 
   app.create(lv_screen_active());
+  Serial.printf("[mem] na display/sensoren: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
   bool audio = board::beginAudio(app.sound);
   net::updater::begin(DESKBUDDY_VERSION);
   net::begin(app);
@@ -113,7 +129,9 @@ void setup() {
     uint64_t mac = ESP.getEfuseMac();
     char name[24];
     snprintf(name, sizeof(name), "deskbuddy-%02X%02X", (unsigned)((mac >> 32) & 0xff), (unsigned)((mac >> 40) & 0xff));
+    Serial.printf("[mem] na Wi-Fi: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
     ble::begin(app, app.settings().ble, name);
+    Serial.printf("[mem] na BLE: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
   }
   Serial.printf("deskbuddy %s  display=%d touch=%d imu=%d pmu=%d rtc=%d audio=%d  psram=%u KB vrij\n",
                 DESKBUDDY_VERSION, disp, touch, imu, pmu, rtc, audio, (unsigned)(ESP.getFreePsram() / 1024));
@@ -131,6 +149,7 @@ void loop() {
   static bool bootWas = false;
   static uint8_t bootEmotion = 0;
   uint32_t now = millis();
+  uint32_t loopStartUs = micros();
   uint32_t dt = now - last;
   last = now;
 
@@ -165,5 +184,21 @@ void loop() {
   ble::loop();
   app.update(dt);
   lv_timer_handler();
+
+  // Belasting: tijd dat deze lus bezig was (alles behalve de delay hieronder)
+  perf.busyUs += (uint64_t)(micros() - loopStartUs);
+  if (now - perf.windowStart >= 1000) {
+    uint32_t frames;
+    uint64_t renderUs, rotUs, txUs;
+    board::takeFrameStats(frames, renderUs, rotUs, txUs);
+    perf.rotateMs = frames ? rotUs / 1000.0f / frames : 0;
+    perf.sendMs = frames ? txUs / 1000.0f / frames : 0;
+    float win = (now - perf.windowStart) / 1000.0f;
+    perf.fps = frames / win;
+    perf.renderMs = frames ? renderUs / 1000.0f / frames : 0;
+    perf.load = LV_MIN(100.0f, perf.busyUs / 10.0f / (now - perf.windowStart));
+    perf.busyUs = 0;
+    perf.windowStart = now;
+  }
   delay(2);
 }

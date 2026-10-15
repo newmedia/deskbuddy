@@ -308,7 +308,7 @@ void Face::drawEffects(lv_layer_t* layer) {
         lv_draw_label_dsc_init(&d);
         d.color = c;
         d.opa = o;
-        d.font = &lv_font_montserrat_48;
+        d.font = &buddy_48;
         d.text = sym[(int)(p.spin) % 6];
         lv_area_t a = {ri(p.x), ri(p.y), ri(p.x) + 50, ri(p.y) + 60};
         lv_draw_label(layer, &d, &a);

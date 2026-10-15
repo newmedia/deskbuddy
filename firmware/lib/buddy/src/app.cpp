@@ -149,12 +149,14 @@ void App::statusJson(char* out, size_t len) {
            "{\"version\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
            "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u,\"updates\":\"%s\",\"update\":\"%s\","
-           "\"latest\":\"%s\",\"progress\":%u,\"ble\":%s,\"bleConnected\":%s}",
+           "\"latest\":\"%s\",\"progress\":%u,\"ble\":%s,\"bleConnected\":%s,\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
            dev_.version, emotionName(face.emotion()), skinName(settings_.skin), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
            dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin,
            updateModeName(dev_.updateMode), updateStateName(dev_.updateState), dev_.updateVersion,
-           (unsigned)dev_.updateProgress, settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false");
+           (unsigned)dev_.updateProgress, settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false",
+           (unsigned long)dev_.heapFree, (unsigned long)dev_.heapMin, (unsigned long)dev_.psramFree, dev_.fps,
+           dev_.renderMs, dev_.load);
 }
 
 void App::update(uint32_t dtMs) {
@@ -322,6 +324,15 @@ void App::status(char* out, size_t len) {
 }
 
 bool App::command(const char* line, char* reply, size_t len) {
+  if (!strcmp(line, "perf")) {
+    snprintf(reply, len,
+             "fps=%.1f frame=%.1f ms (tekenen %.1f, draaien %.1f, versturen %.1f) lus-belasting=%.0f%% "
+             "intern-vrij=%lu KB (laagste %lu KB) psram-vrij=%lu KB",
+             dev_.fps, dev_.renderMs, dev_.renderMs - dev_.rotateMs - dev_.sendMs, dev_.rotateMs, dev_.sendMs, dev_.load,
+             (unsigned long)(dev_.heapFree / 1024),
+             (unsigned long)(dev_.heapMin / 1024), (unsigned long)(dev_.psramFree / 1024));
+    return true;
+  }
   if (!strcmp(line, "json")) {  // status als JSON (voor BLE-clients; web gebruikt /api/status)
     statusJson(reply, len);
     return true;

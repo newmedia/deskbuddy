@@ -424,7 +424,7 @@ void Face::drawZs(lv_layer_t* layer, lv_color_t color) {
     float p = fmodf(t_ * 0.33f + i / 3.0f, 1.0f);
     float x = kCenter + 110 + p * 50 + sinf(p * 6) * 6;
     float y = kCenter - 70 - p * 120;
-    d.font = (p < 0.33f) ? &lv_font_montserrat_20 : (p < 0.66f ? &lv_font_montserrat_28 : &lv_font_montserrat_48);
+    d.font = (p < 0.33f) ? &lv_font_montserrat_20 : (p < 0.66f ? &lv_font_montserrat_28 : &buddy_48);
     d.opa = (lv_opa_t)(sinf(p * kPi) * 230);
     lv_area_t a = {ri(x), ri(y), ri(x) + 50, ri(y) + 60};
     lv_draw_label(layer, &d, &a);

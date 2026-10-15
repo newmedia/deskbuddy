@@ -26,6 +26,13 @@ struct DeviceInfo {
   bool sound = true;
   bool mascot = false;     // skin
 
+  uint32_t heapFree = 0;     // intern RAM vrij (bytes)
+  uint32_t heapMin = 0;      // laagste stand sinds opstarten
+  uint32_t psramFree = 0;
+  float fps = 0;             // getekende frames per seconde
+  float renderMs = 0;        // gemiddelde frametijd (tekenen + draaien + versturen)
+  float rotateMs = 0, sendMs = 0;
+  float load = 0;            // 0..100: deel van de tijd dat de hoofdlus bezig is
   int batteryPct = -1;     // -1 = geen accu
   bool charging = false;
   char version[16] = "0.1.0";

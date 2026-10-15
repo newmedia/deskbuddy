@@ -30,11 +30,8 @@ void ClockView::create(lv_obj_t* parent) {
   lv_obj_set_style_arc_color(batt_, lv_color_hex(0x1A2A2E), LV_PART_MAIN);
 
   time_ = lv_label_create(root_);
-  lv_obj_set_style_text_font(time_, &lv_font_montserrat_48, 0);
+  lv_obj_set_style_text_font(time_, &buddy_clock_88, 0);  // eigen font met alleen cijfers: scherp en klein
   lv_obj_set_style_text_color(time_, lv_color_hex(0x6EE7F7), 0);
-  lv_obj_set_style_transform_scale(time_, 512, 0);  // 2x: groot leesbaar op 466px
-  lv_obj_set_style_transform_pivot_x(time_, LV_PCT(50), 0);
-  lv_obj_set_style_transform_pivot_y(time_, LV_PCT(50), 0);
   lv_obj_align(time_, LV_ALIGN_CENTER, 0, -20);
 
   date_ = lv_label_create(root_);

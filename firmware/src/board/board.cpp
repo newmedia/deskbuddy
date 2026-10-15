@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <esp_heap_caps.h>
 #include <lvgl.h>
+#include <esp_timer.h>
 #include <sys/time.h>
 
 #define XPOWERS_CHIP_AXP2101
@@ -29,15 +30,30 @@ XPowersPMU pmu;
 SensorPCF85063 rtc;
 bool touchOk = false, imuOk = false, pmuOk = false, rtcOk = false;
 
-constexpr int kBufLines = 80;
+#ifndef DESKBUDDY_QSPI_HZ
+#define DESKBUDDY_QSPI_HZ 80000000  // CO5300 QSPI; terug naar 40000000 als het beeld niet goed is
+#endif
+constexpr int kBufLines = 40;  // 466x40x2 = 37 KB intern; groter kost te veel RAM naast Wi-Fi+BLE
 // Het bord zit 90° gedraaid in de behuizing: de fysieke bovenkant van het panel wijst naar links.
 // ROTATION_270 legt de logische bovenkant op de fysieke rechterkant, zodat het beeld rechtop staat.
 constexpr lv_display_rotation_t kRotation = LV_DISPLAY_ROTATION_270;
 uint8_t* rotBuf = nullptr;
 
+// Prestaties: frames per seconde en tekentijd per frame (gemeten via LVGL-refresh-events)
+volatile uint32_t frames = 0;
+volatile uint64_t renderUs = 0;
+volatile uint64_t rotateUs = 0, sendUs = 0;  // binnen renderUs: draaien en via QSPI versturen
+int64_t refrStart = 0;
+void refrStartCb(lv_event_t*) { refrStart = esp_timer_get_time(); }
+void refrReadyCb(lv_event_t*) {
+  frames++;
+  renderUs += (uint64_t)(esp_timer_get_time() - refrStart);
+}
+
 uint32_t tickCb() { return millis(); }
 
 void flushCb(lv_display_t* disp, const lv_area_t* area, uint8_t* px) {
+  int64_t t0 = esp_timer_get_time();
   lv_area_t a = *area;
   if (kRotation != LV_DISPLAY_ROTATION_0) {
     const lv_color_format_t cf = LV_COLOR_FORMAT_RGB565;
@@ -47,7 +63,11 @@ void flushCb(lv_display_t* disp, const lv_area_t* area, uint8_t* px) {
                       lv_draw_buf_width_to_stride(lv_area_get_width(&a), cf), kRotation, cf);
     px = rotBuf;
   }
+  int64_t t1 = esp_timer_get_time();
   gfx->draw16bitRGBBitmap(a.x1, a.y1, (uint16_t*)px, a.x2 - a.x1 + 1, a.y2 - a.y1 + 1);
+  int64_t t2 = esp_timer_get_time();
+  rotateUs += (uint64_t)(t1 - t0);
+  sendUs += (uint64_t)(t2 - t1);
   lv_display_flush_ready(disp);
 }
 
@@ -73,7 +93,7 @@ int64_t daysFromCivil(int y, unsigned m, unsigned d) {
 }  // namespace
 
 bool beginDisplay() {
-  if (!gfx->begin()) return false;
+  if (!gfx->begin(DESKBUDDY_QSPI_HZ)) return false;
   gfx->fillScreen(RGB565_BLACK);
   gfx->setBrightness(200);
 
@@ -84,18 +104,29 @@ bool beginDisplay() {
   void* buf = heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   if (!buf) buf = heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM);
   if (!buf) return false;
-  // Rotatiebuffer in PSRAM: is alleen een kopieerdoel, en zo houdt Wi-Fi genoeg intern RAM.
-  rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM);
-  if (!rotBuf) rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  // Rotatiebuffer intern: draaien en daarna via QSPI versturen gaat merkbaar sneller dan vanuit PSRAM.
+  rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  if (!rotBuf) rotBuf = (uint8_t*)heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM);
   if (!rotBuf) return false;
   lv_display_set_rotation(disp, kRotation);
   lv_display_set_buffers(disp, buf, nullptr, bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(disp, flushCb);
   lv_display_add_event_cb(disp, rounderCb, LV_EVENT_INVALIDATE_AREA, nullptr);
+  lv_display_add_event_cb(disp, refrStartCb, LV_EVENT_REFR_START, nullptr);
+  lv_display_add_event_cb(disp, refrReadyCb, LV_EVENT_REFR_READY, nullptr);
   return true;
 }
 
 void setBrightness(uint8_t v) { gfx->setBrightness(v); }
+
+void takeFrameStats(uint32_t& n, uint64_t& us, uint64_t& rotUs, uint64_t& txUs) {
+  n = frames;
+  us = renderUs;
+  rotUs = rotateUs;
+  txUs = sendUs;
+  frames = 0;
+  renderUs = rotateUs = sendUs = 0;
+}
 
 bool beginTouch() {
   pinMode(TP_RESET, OUTPUT);
@@ -186,13 +217,18 @@ bool beginRtc() {
   }
   if (t < 1700000000) {
     // RTC leeg of ongeldig: begin bij de bouwtijd (lokale tijd van de build-PC).
+    // __DATE__ = "Oct 15 2026", __TIME__ = "23:52:01" (zonder sscanf: dat trekt ~16 KB scanf-code mee)
     struct tm b = {};
-    char mon[4];
     static const char months[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
-    sscanf(__DATE__, "%3s %d %d", mon, &b.tm_mday, &b.tm_year);
-    sscanf(__TIME__, "%d:%d:%d", &b.tm_hour, &b.tm_min, &b.tm_sec);
+    const char* d = __DATE__;
+    const char* tm = __TIME__;
+    char mon[4] = {d[0], d[1], d[2], 0};
     b.tm_mon = (int)((strstr(months, mon) - months) / 3);
-    b.tm_year -= 1900;
+    b.tm_mday = atoi(d + 4);
+    b.tm_year = atoi(d + 7) - 1900;
+    b.tm_hour = atoi(tm);
+    b.tm_min = atoi(tm + 3);
+    b.tm_sec = atoi(tm + 6);
     b.tm_isdst = -1;
     t = mktime(&b);
     if (rtcOk) rtcWrite(t);

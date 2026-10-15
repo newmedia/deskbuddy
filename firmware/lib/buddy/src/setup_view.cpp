@@ -90,7 +90,7 @@ void PairView::create(lv_obj_t* parent) {
 
   lv_obj_t* icon = lv_label_create(root_);
   lv_label_set_text(icon, LV_SYMBOL_BLUETOOTH);
-  lv_obj_set_style_text_font(icon, &lv_font_montserrat_48, 0);
+  lv_obj_set_style_text_font(icon, &buddy_48, 0);
   lv_obj_set_style_text_color(icon, lv_color_hex(0x6EE7F7), 0);
   lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 70);
 
@@ -101,7 +101,7 @@ void PairView::create(lv_obj_t* parent) {
   lv_obj_align(title, LV_ALIGN_CENTER, 0, -55);
 
   code_ = lv_label_create(root_);
-  lv_obj_set_style_text_font(code_, &lv_font_montserrat_48, 0);
+  lv_obj_set_style_text_font(code_, &buddy_48, 0);
   lv_obj_set_style_text_color(code_, lv_color_hex(0x6EE7F7), 0);
   lv_obj_set_style_text_letter_space(code_, 6, 0);
   lv_obj_align(code_, LV_ALIGN_CENTER, 0, 10);
