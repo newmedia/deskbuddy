@@ -16,5 +16,10 @@ void loop();
 void setEnabled(bool on);
 void forgetBonds();
 void fill(buddy::DeviceInfo& d);
+// Tijdelijk helemaal uit (NimBLE en controller vrijgeven: ~64 KB intern RAM), bijv. tijdens een
+// firmware-update; TLS past anders niet. Geeft false als BLE niet draaide.
+bool suspend();
+void resume();
+bool isConnected();
 
 }  // namespace ble
