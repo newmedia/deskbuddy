@@ -306,6 +306,56 @@ def t_audio():
     check("/emu/audio geeft PCM na play whistle", st == 200 and n > 4000 and peak > 500, f"{n} samples, piek {peak}")
 
 
+def t_mic():
+    """Nagebootste microfoon: elke testscène moet de juiste reactie geven (en praten geen)."""
+    st, js = cmd("mic")
+    check("mic-status", st == 200 and js["reply"].startswith("mic=aan"), f"{st} {js}")
+    check("mic in /api/status", status().get("mic") is True)
+    cmd("sound off")  # eigen geluid zou de microfoon even doof maken
+
+    def scene(name, secs):
+        cmd("emotion neutral")
+        time.sleep(1.2)
+        http(f"/emu/input?t=sound&v={name}", method="POST")
+        seen, dance, end = [], False, time.time() + secs
+        listened.clear()
+        while time.time() < end:
+            s = state()
+            if not seen or seen[-1] != s["emotion"]:
+                seen.append(s["emotion"])
+            dance |= s.get("dancing", False)
+            if s.get("listening"):
+                listened.append(True)
+            time.sleep(0.08)
+        return seen, dance
+
+    listened = []
+    seen, dance = scene("speech", 9)
+    check("praten: luisteren (oor), geen emotie of dansen", seen == ["neutral"] and not dance and listened,
+          f"{seen} luisteren={bool(listened)}")
+    ok = wait_for(lambda: not state().get("listening"), 6)
+    check("na het praten stopt het luisteren", ok)
+    seen, _ = scene("clap", 2)
+    check("klap: schrikken (en niet luisteren)", "surprised" in seen and not listened, str(seen))
+    seen, _ = scene("double", 2.5)
+    check("dubbele klap: blij (zonder eerst te schrikken)", "happy" in seen and "surprised" not in seen, str(seen))
+    seen, _ = scene("loud", 4)
+    check("lawaai: ogen dichtknijpen (pijn)", "pain" in seen, str(seen))
+    seen, dance = scene("music", 8)
+    check("muziek: dansen", dance and "happy" in seen and "pain" not in seen, f"{seen} dansen={dance}")
+    ok = wait_for(lambda: not state().get("dancing"), 10)
+    check("na de muziek stopt het dansen", ok)
+    # mic uit tijdens het luisteren: luisteren moet stoppen
+    http("/emu/input?t=sound&v=speech", method="POST")
+    wait_for(lambda: state().get("listening"), 6)
+    cmd("mic off")
+    check("mic uit beëindigt het luisteren", wait_for(lambda: not state().get("listening"), 2))
+    seen, _ = scene("clap", 2)
+    check("mic uit: geen reactie op een klap", seen == ["neutral"], str(seen))
+    check("mic off in /api/status", status().get("mic") is False)
+    cmd("mic on")
+
+
 TESTS = [
     ("start", t_start),
     ("emoties", t_emotions),
@@ -315,6 +365,7 @@ TESTS = [
     ("ble", t_ble),
     ("vegen", t_swipe),
     ("geluid", t_audio),
+    ("microfoon", t_mic),
     ("updates", t_update),
 ]
 

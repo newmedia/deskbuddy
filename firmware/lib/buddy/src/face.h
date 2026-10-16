@@ -80,6 +80,9 @@ class Face {
   void blink();
   void bounce(float amount = 1.0f);  // squash & stretch-impuls
   void hop(float height = 48);       // sprongetje: omhoog in een boog, landen met een veer
+  // Luisteren: om en om links en rechts een oor met geluidsgolfjes, de ogen kijken mee.
+  void setListening(bool on);
+  bool listening() const { return listening_; }
   void setAutoBlink(bool on) { autoBlink_ = on; }
   void setSkin(Skin s);
   // Matrix-gezicht tijdens firmware-updates: groene ogen met vallende code (alleen de ogen hertekenen).
@@ -129,6 +132,7 @@ class Face {
   void drawZs(lv_layer_t* layer, lv_color_t color);
   void drawTears(lv_layer_t* layer, float cx, float y0, int side);  // y0 = onderkant van het oog
   void drawSweat(lv_layer_t* layer, float x, float y);
+  void drawEar(lv_layer_t* layer, bool mascot);  // luister-oor (zie setListening)
   void drawRobot(lv_layer_t* layer);  // face_robot.cpp
   void drawRobotBrows(lv_layer_t* layer, float cy);
   void drawRobotGlasses(lv_layer_t* layer, float cy);
@@ -153,6 +157,7 @@ class Face {
   void drawPucker(lv_layer_t* layer, float cx, float cy, lv_color_t col, bool mascot);
   bool effectsActive() const;
   bool settled();  // niets beweegt: dan hoeft er niets hertekend te worden (scheelt veel CPU)
+  bool stillExceptEar();
   float eyeClosure(int side) const;  // knipper + knipoog/kus voor één oog
   void drawMouth(lv_layer_t* layer, float cx, float cy);
   void applyPose(const Pose& p);
@@ -208,6 +213,10 @@ class Face {
   float nextTwinge_ = 0;  // pijn: volgende steek
   int16_t offX_ = 0, offY_ = 0;  // verschuiving van de tekening (stuiteren, trillen)
   float hopT_ = -1, hopH_ = 0;
+  bool listening_ = false;
+  float listenT_ = 0;   // seconden sinds het begin van het luisteren
+  float earPop_ = 0;    // 0..1: hoe ver het oor uitsteekt
+  int earSide_ = 1;
   lv_draw_buf_t* hopSnap_ = nullptr;  // momentopname van het gezicht tijdens een sprongetje (PSRAM)  // sprongetje: voortgang 0..1 (-1 = geen) en hoogte in px
   bool lookHeld_ = false;
   bool autoBlink_ = true;

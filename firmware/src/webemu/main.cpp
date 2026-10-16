@@ -110,12 +110,35 @@ struct EmuPlatform : Platform {
   }
 
   // Instellingen en blobs: één bestand per sleutel (zoals NVS)
+  // Elke instelling als eigen sleutel in een tekstbestand, net als NVS op het apparaat: een nieuwe
+  // instelling krijgt dan gewoon zijn standaardwaarde (een binaire struct-dump zou verschuiven).
   void loadSettings(Settings& s) override {
     std::string d;
-    if (readFile(gState + "/settings.bin", d) && d.size() == sizeof(Settings)) memcpy(&s, d.data(), sizeof(Settings));
+    if (readFile(gState + "/settings.txt", d)) {
+      auto val = [&](const char* k, int def) {
+        size_t i = d.find(std::string("\n") + k + "=");
+        if (i == std::string::npos && d.compare(0, strlen(k) + 1, std::string(k) + "=") == 0) i = (size_t)-1;
+        else if (i == std::string::npos) return def;
+        return atoi(d.c_str() + i + 1 + strlen(k) + 1);
+      };
+      s.sound = val("sound", s.sound);
+      s.volume = (uint8_t)val("volume", s.volume);
+      s.brightness = (uint8_t)val("bright", s.brightness);
+      s.sleepMin = (uint8_t)val("sleep", s.sleepMin);
+      s.ble = val("ble", s.ble);
+      s.mic = val("mic", s.mic);
+    }
+    std::string l;
+    if (readFile(gState + "/look.bin", l) && l.size() == sizeof(Look)) memcpy(&s.look, l.data(), sizeof(Look));
     dev.bleEnabled = s.ble;
   }
-  void saveSettings(const Settings& s) override { writeFile(gState + "/settings.bin", &s, sizeof(s)); }
+  void saveSettings(const Settings& s) override {
+    char t[160];
+    int n = snprintf(t, sizeof(t), "\nsound=%d\nvolume=%u\nbright=%u\nsleep=%u\nble=%d\nmic=%d\n", s.sound, s.volume,
+                     s.brightness, s.sleepMin, s.ble, s.mic);
+    writeFile(gState + "/settings.txt", t, (size_t)n);
+    writeFile(gState + "/look.bin", &s.look, sizeof(Look));
+  }
   size_t loadBlob(const char* key, void* buf, size_t max) override {
     std::string d;
     if (!readFile(gState + "/" + key + ".bin", d)) return 0;
@@ -390,6 +413,73 @@ std::string jsonEscape(const char* s) {
   return o;
 }
 
+// ---------- Nagebootste microfoon: achtergrondruis plus testgeluiden (klap, muziek, ...) ----------
+
+struct MicScene {
+  uint32_t seed = 12345;
+  uint64_t t = 0;  // samples
+  uint64_t until = 0;
+  enum Kind { Quiet, Clap, Double, Loud, Music, Speech } kind = Quiet;
+  uint64_t start = 0;
+  uint64_t nextToggle = 0;  // spraak: lettergreep aan/uit
+  bool voiced = false;
+  float room = 0;
+  float rnd() {
+    seed = seed * 1664525u + 1013904223u;
+    return (seed >> 8) / 16777216.0f * 2 - 1;  // -1..1
+  }
+  void play(const std::string& v) {
+    start = t;
+    kind = v == "clap" ? Clap : v == "double" ? Double : v == "loud" ? Loud : v == "music" ? Music
+         : v == "speech" ? Speech : Quiet;
+    const uint64_t s = MicListener::kRate;
+    until = t + (kind == Clap ? s / 2 : kind == Double ? s : kind == Loud ? 3 * s : kind == Music ? 12 * s
+                 : kind == Speech ? 8 * s : 0);
+    nextToggle = t;
+  }
+  const char* name() const {
+    static const char* const n[] = {"stil", "klap", "dubbele klap", "lawaai", "muziek", "spraak"};
+    return t < until ? n[kind] : n[0];
+  }
+  int16_t next() {
+    const uint64_t s = MicListener::kRate;
+    // Kamerruis die (zoals echt) schommelt: ~ -65 tot -50 dBFS, langzaam op en neer
+    room += (rnd() * 0.002f);
+    room = LV_CLAMP(-1.f, room, 1.f);
+    float v = rnd() * 60 * (1.6f + room + 0.6f * sinf((float)t / MicListener::kRate * 2.3f));
+    if (t < until) {
+      uint64_t dt = t - start;
+      auto burst = [&](uint64_t at, uint64_t len, float amp) {
+        if (dt >= at && dt < at + len) v += rnd() * amp * (1.0f - (float)(dt - at) / len);
+      };
+      switch (kind) {
+        case Clap: burst(0, s / 40, 18000); break;  // 25 ms
+        case Double: burst(0, s / 40, 18000); burst(s * 3 / 10, s / 40, 18000); break;
+        case Loud: v += rnd() * 9000; break;
+        case Music: {
+          uint64_t beat = s / 2;  // 120 bpm
+          burst((dt / beat) * beat, s / 16, 14000);                            // kick
+          v += 2500 * sinf(2 * 3.14159f * 110 * (float)dt / s) + rnd() * 600;  // bas + ruis, continu
+          break;
+        }
+        case Speech:
+          if (t >= nextToggle) {
+            voiced = !voiced;
+            // lettergrepen 80-250 ms, pauzes 40-300 ms, af en toe een adempauze van ~0,8 s
+            float r = (rnd() + 1) / 2;
+            nextToggle = t + (uint64_t)(voiced ? (0.08f + 0.17f * r) * s : (r > 0.85f ? 0.8f : 0.04f + 0.26f * r) * s);
+          }
+          if (voiced) v += rnd() * 2600;
+          break;
+        default: break;
+      }
+    }
+    t++;
+    return (int16_t)LV_CLAMP(-32767.f, v, 32767.f);
+  }
+};
+MicScene micScene;
+
 // ---------- Geluid: wat de synth maakt, gaat in een ringbuffer die de browser ophaalt ----------
 
 constexpr size_t kAudioRing = SoundSynth::kRate * 4;
@@ -545,12 +635,13 @@ int main(int argc, char** argv) {
             snprintf(reply, sizeof(reply),
                      "{\"wifi\":%d,\"battery\":%d,\"charging\":%s,\"ble\":%s,\"bleConnected\":%s,\"blePaired\":%s,"
                      "\"pairCode\":%u,\"offered\":\"%s\",\"version\":\"%s\",\"emotion\":\"%s\",\"brightness\":%u,"
-                     "\"sound\":%s,\"view\":\"%s\",\"emotions\":[",
+                     "\"sound\":%s,\"view\":\"%s\",\"micScene\":\"%s\",\"dancing\":%s,\"listening\":%s,\"emotions\":[",
                      (int)d.wifi, d.batteryPct, d.charging ? "true" : "false", d.bleEnabled ? "true" : "false",
                      d.bleConnected ? "true" : "false", platform.blePaired ? "true" : "false", pairCode,
                      platform.offered.c_str(), d.version, emotionName(app.face.emotion()), platform.brightness,
                      app.sound.enabled() ? "true" : "false",
-                     app.setup.visible() ? "setup" : app.info.visible() ? "info" : app.clock.visible() ? "clock" : "face");
+                     app.setup.visible() ? "setup" : app.info.visible() ? "info" : app.clock.visible() ? "clock" : "face",
+                     micScene.name(), app.behaviour.dancing() ? "true" : "false", app.face.listening() ? "true" : "false");
             // Alle emoties en acties, zodat de regressietest (tools/webemu-test.sh) nieuwe vanzelf meeneemt
             std::string js = reply;
             for (int i = 0; i < (int)Emotion::Count; i++)
@@ -584,6 +675,8 @@ int main(int argc, char** argv) {
               else if (m == "ap") platform.setAp();
               else if (m == "sta") platform.setStation();
               else if (m == "rssi") platform.dev.rssi = atoi(arg(r, "n").c_str());
+            } else if (t == "sound") {
+              micScene.play(arg(r, "v"));
             } else if (t == "offer") {
               platform.offered = arg(r, "v");
             }
@@ -654,8 +747,11 @@ int main(int argc, char** argv) {
     while (n) {
       int16_t chunk[512];
       size_t k = LV_MIN(n, sizeof(chunk) / 2);
-      app.sound.fill(chunk, k);
+      if (app.sound.fill(chunk, k)) app.mic.hold(300);  // eigen geluid niet horen, net als op het apparaat
       for (size_t i = 0; i < k; i++) audioRing[(audioTotal + i) % kAudioRing] = chunk[i];
+      int16_t in[512];
+      for (size_t i = 0; i < k; i++) in[i] = micScene.next();
+      app.mic.feed(in, k);
       audioTotal += k;
       n -= k;
     }

@@ -6,6 +6,7 @@
 
 namespace buddy {
 class SoundSynth;
+class MicListener;
 }
 
 namespace board {
@@ -31,6 +32,6 @@ bool pwrKeyPressed();              // korte druk op PWR sinds vorige aanroep
 bool beginRtc();                   // zet ook de systeemtijd vanuit de RTC
 void rtcWrite(time_t t);
 
-bool beginAudio(buddy::SoundSynth& synth);  // ES8311 + I2S, start een audio-task
+bool beginAudio(buddy::SoundSynth& synth, buddy::MicListener& mic);  // ES8311 + I2S, start een audio-task
 
 }  // namespace board

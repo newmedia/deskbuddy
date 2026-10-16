@@ -14,6 +14,7 @@
 #include "gestures.h"
 #include "info_view.h"
 #include "setup_view.h"
+#include "mic.h"
 #include "sound.h"
 #include "update.h"
 
@@ -26,6 +27,7 @@ struct Settings {
   Look look = preset(0);   // uiterlijk (basis, onderdelen, kleuren)
   uint8_t sleepMin = 3;     // minuten tot in slaap; 0 = nooit
   bool ble = true;          // Bluetooth aan
+  bool mic = true;          // luisteren naar geluid (alleen het niveau; er wordt niets opgenomen)
 };
 
 struct Platform {
@@ -90,6 +92,7 @@ class App : public CommandHost {
   SetupView setup;
   PairView pair;
   SoundSynth sound;
+  MicListener mic;
   UpdateView updating;
 
  private:

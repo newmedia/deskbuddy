@@ -124,6 +124,58 @@ void Behaviour::onGesture(const GestureEvent& g) {
   }
 }
 
+void Behaviour::onSound(SoundEvent e) {
+  if (e == SoundEvent::None) return;
+  bool sleeping = face_.emotion() == Emotion::Asleep || face_.emotion() == Emotion::Sleepy;
+  switch (e) {
+    case SoundEvent::Clap:  // schrikken, of wakker worden
+      idleMs_ = 0;
+      if (face_.busy() || dancing_) break;
+      react(Emotion::Surprised, 1000, sleeping ? Emotion::Neutral : Emotion::Happy);
+      face_.bounce(0.9f);
+      break;
+    case SoundEvent::DoubleClap:  // blij sprongetje
+      idleMs_ = 0;
+      if (face_.busy()) break;
+      react(Emotion::Happy, 1500);
+      face_.hop(36);
+      break;
+    case SoundEvent::Loud:  // veel lawaai: ogen dichtknijpen
+      idleMs_ = 0;
+      if (face_.busy() || dancing_) break;
+      react(Emotion::Pain, 2200, Emotion::Neutral);
+      break;
+    case SoundEvent::SpeechStart:  // iemand praat: oren spitsen (om en om links en rechts)
+      if (!sleeping && !dancing_) face_.setListening(true);
+      break;
+    case SoundEvent::SpeechStop:
+      face_.setListening(false);
+      break;
+    case SoundEvent::MusicStart:
+      face_.setListening(false);
+      idleMs_ = 0;
+      dancing_ = true;
+      if (!face_.busy()) react(Emotion::Happy, 0);
+      break;
+    case SoundEvent::MusicStop:
+      if (!dancing_) break;
+      dancing_ = false;
+      face_.releaseLook();
+      if (!face_.busy()) react(Emotion::Happy, 1500);
+      break;
+    case SoundEvent::Beat:  // op de maat: hupje en om en om opzij kijken
+      idleMs_ = 0;
+      if (!dancing_ || face_.busy()) break;
+      if (face_.emotion() != Emotion::Happy && face_.emotion() != Emotion::Love) react(Emotion::Happy, 0);
+      face_.hop(12 + rnd() * 10);
+      beatSide_ = -beatSide_;
+      face_.lookAt(0.55f * beatSide_, -0.2f, true);
+      break;
+    default:
+      break;
+  }
+}
+
 void Behaviour::onGravity(float gx, float gy, float gz) {
   (void)gz;
   float tx = gx * tiltSignX, ty = gy * tiltSignY;

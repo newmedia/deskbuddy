@@ -29,6 +29,7 @@ void App::create(lv_obj_t* screen) {
       if (unpackLook(buf + i, profiles_[profileCount_])) profileCount_++;
   }
   sound.setEnabled(settings_.sound);
+  mic.setEnabled(settings_.mic);
   sound.setVolume(settings_.volume);
   face.setLook(settings_.look);
   applySleep();
@@ -161,19 +162,21 @@ void App::statusJson(char* out, size_t len) {
            "{\"version\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
            "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u,\"updates\":\"%s\",\"update\":\"%s\","
-           "\"latest\":\"%s\",\"progress\":%u,\"ble\":%s,\"bleConnected\":%s,\"look\":\"%s\",\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
+           "\"latest\":\"%s\",\"progress\":%u,\"mic\":%s,\"ble\":%s,\"bleConnected\":%s,\"look\":\"%s\",\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
            dev_.version, emotionName(face.emotion()), skinName(face.skin()), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
            dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin,
            updateModeName(dev_.updateMode), updateStateName(dev_.updateState), dev_.updateVersion,
-           (unsigned)dev_.updateProgress, settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false", settings_.look.name,
+           (unsigned)dev_.updateProgress, settings_.mic ? "true" : "false", settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false", settings_.look.name,
            (unsigned long)dev_.heapFree, (unsigned long)dev_.heapMin, (unsigned long)dev_.psramFree, dev_.fps,
            dev_.renderMs, dev_.load);
 }
 
 void App::update(uint32_t dtMs) {
   behaviour.update(dtMs);
-  face.setSoundLevel(sound.level());
+  // Microfoon: gebeurtenissen naar het gedrag; tijdens het dansen beweegt de equalizer-mond mee
+  for (SoundEvent se; (se = mic.poll()) != SoundEvent::None;) behaviour.onSound(se);
+  face.setSoundLevel(behaviour.dancing() ? LV_MAX(sound.level(), mic.level()) : sound.level());
   face.update(dtMs);
 
   // Geluid bij een nieuwe emotie; wakker worden krijgt een eigen geluidje.
@@ -511,6 +514,26 @@ bool App::command(const char* line, char* reply, size_t len) {
              dev_.fps, dev_.renderMs, dev_.renderMs - dev_.rotateMs - dev_.sendMs, dev_.rotateMs, dev_.sendMs, dev_.load,
              (unsigned long)(dev_.heapFree / 1024),
              (unsigned long)(dev_.heapMin / 1024), (unsigned long)(dev_.psramFree / 1024));
+    return true;
+  }
+  if (!strncmp(line, "mic", 3) && (line[3] == 0 || line[3] == ' ')) {
+    const char* a = line[3] ? line + 4 : "";
+    if (!strcmp(a, "trace")) {
+      mic.trace(reply, len);
+    } else if (!strcmp(a, "on") || !strcmp(a, "off")) {
+      settings_.mic = !strcmp(a, "on");
+      mic.setEnabled(settings_.mic);
+      if (!settings_.mic) {  // niet blijven luisteren of dansen
+        behaviour.onSound(SoundEvent::SpeechStop);
+        behaviour.onSound(SoundEvent::MusicStop);
+      }
+      save();
+      snprintf(reply, len, "ok mic %s", a);
+    } else {
+      snprintf(reply, len, "mic=%s niveau=%.0f dB achtergrond=%.0f dB praten=%s muziek=%s dansen=%s",
+               settings_.mic ? "aan" : "uit", mic.db(), mic.floorDb(), mic.speech() ? "ja" : "nee", mic.music() ? "ja" : "nee",
+               behaviour.dancing() ? "ja" : "nee");
+    }
     return true;
   }
   if (!strcmp(line, "json")) {  // status als JSON (voor BLE-clients; web gebruikt /api/status)

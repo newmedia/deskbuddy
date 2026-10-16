@@ -134,7 +134,7 @@ void handleIndex() {
 }
 
 void handleStatus() {
-  char buf[512];
+  char buf[640];
   app->statusJson(buf, sizeof(buf));
   sendJson(200, buf);
 }

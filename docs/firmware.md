@@ -249,6 +249,32 @@ dus er zijn geen plaatjes nodig, en een look is maar een paar bytes in NVS.
   - met het commando `look`.
 - AMOLED-tip: een zwarte achtergrond (robot) is het zuinigst; elke verlichte pixel kost stroom.
 
+## Microfoon (luisteren)
+
+De twee microfoons (ES7210, op dezelfde I2S-bus als de speaker) worden in de audio-task gelezen.
+`lib/buddy/mic.*` maakt van het geluidsniveau gebeurtenissen. Er wordt niets opgenomen of
+verstuurd: alleen het niveau per 10 ms telt.
+
+| Geluid | Herkenning | Reactie |
+|---|---|---|
+| Klap | korte, scherpe piek (≤ 70 ms), duidelijk harder dan alles van de laatste seconden | schrikken, of wakker worden |
+| Dubbele klap | twee klappen binnen 0,12–0,7 s | blij sprongetje (de enkele klap wordt dan niet gemeld) |
+| Praten | een groot deel van de tijd stem-achtig geluid boven de achtergrond, met pauzes en zonder vaste beat | luisteren: om en om links en rechts een oor, golfjes komen van buiten naar het oor, de ogen kijken mee |
+| Muziek | minstens 8 regelmatige beats (60–180 bpm) in 5 s, bijna continu geluid | dansen: hupje en om en om opzij kijken op de maat, de equalizer-mond beweegt mee |
+| Hard lawaai | ~1,5 s aanhoudend ver boven de achtergrond, zonder beats | ogen dichtknijpen (pijn) |
+
+- **Achtergrond** = de mediaan van het geluid (~3 dB/s aanpassing). Een ventilator of pc die continu
+  ruist, telt zo niet als stem.
+- **Eigen geluid:** zolang de buddy zelf geluid maakt (en 0,3 s daarna) luistert hij niet.
+- **Aan/uit:** `mic on|off` of de knop in de web-app (Instellingen). Uitzetten beëindigt ook luisteren
+  en dansen.
+- **Diagnose:** `mic` (niveau, achtergrond, praten/muziek/dansen) en `mic trace` (laatste 1,5 s in
+  dBFS).
+- **Testen zonder lawaai:** de web-emulator heeft knoppen voor klap, dubbele klap, lawaai, muziek en
+  praten. De regressietest controleert alle reacties, en ook dat praten geen emotie geeft.
+- **Kosten:** geen extra intern RAM. Tijdens het luisteren ververst het scherm op ~15 fps, en alleen
+  rond het oor.
+
 ## Geluid
 
 Korte robotgeluidjes worden live berekend (`lib/buddy/sound.*`, 16 kHz). Er zijn dus geen

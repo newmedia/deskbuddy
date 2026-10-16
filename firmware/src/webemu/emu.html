@@ -70,6 +70,19 @@ a{color:var(--accent)}
     </section>
 
     <section>
+      <h2>Microfoon</h2>
+      <p class="hint">Testgeluiden voor de nagebootste microfoon (er klinkt niets).</p>
+      <div class="row" style="margin-top:8px">
+        <button data-sound="clap">Klap</button>
+        <button data-sound="double">Dubbele klap</button>
+        <button data-sound="loud">Lawaai</button>
+        <button data-sound="music">Muziek</button>
+        <button data-sound="speech">Praten</button>
+      </div>
+      <div class="row"><span class="hint" id="mic-state"></span></div>
+    </section>
+
+    <section>
       <h2>Stroom</h2>
       <div class="row">
         <select id="power"><option value="usb">USB-stroom (geen accu)</option><option value="bat">Accu</option></select>
@@ -173,6 +186,7 @@ const keys = {ArrowLeft: [-0.5, 0], ArrowRight: [0.5, 0], ArrowUp: [0, -0.5], Ar
 addEventListener("keydown", e => { if (keys[e.key] && !e.repeat && e.target === document.body) { tilt(...keys[e.key]); e.preventDefault(); } });
 addEventListener("keyup", e => { if (keys[e.key]) tilt(0, 0); });
 document.querySelectorAll("[data-gesture]").forEach(b => b.onclick = () => input({t: "gesture", g: b.dataset.gesture}));
+document.querySelectorAll("[data-sound]").forEach(b => b.onclick = () => input({t: "sound", v: b.dataset.sound}));
 
 // ---------- Stroom ----------
 function power() {
@@ -201,6 +215,7 @@ async function pullState() {
     const s = await (await fetch("/emu/state")).json();
     $("#status").textContent = `emotie: ${s.emotion} · helderheid ${s.brightness} · geluid ${s.sound ? "aan" : "uit"}`;
     $("#version").textContent = `firmware ${s.version}`;
+    $("#mic-state").textContent = `nu: ${s.micScene}${s.dancing ? " · hij danst" : ""}${s.listening ? " · hij luistert" : ""}`;
     const ble = !s.ble ? '<span class="dot"></span>Bluetooth uit'
       : s.bleConnected ? '<span class="dot ok"></span>Bluetooth verbonden'
       : s.pairCode ? `<span class="dot warn"></span>koppelcode op het scherm: <b>${s.pairCode}</b>`

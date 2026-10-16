@@ -48,6 +48,7 @@ struct EspPlatform : Platform {
     }
     s.sleepMin = prefs.getUChar("sleep", s.sleepMin);
     s.ble = prefs.getBool("ble", s.ble);
+    s.mic = prefs.getBool("mic", s.mic);
     prefs.end();
   }
   size_t loadBlob(const char* key, void* buf, size_t max) override {
@@ -69,6 +70,7 @@ struct EspPlatform : Platform {
     prefs.putBytes("look", &s.look, sizeof(Look));
     prefs.putUChar("sleep", s.sleepMin);
     prefs.putBool("ble", s.ble);
+    prefs.putBool("mic", s.mic);
     prefs.end();
   }
   void localTime(struct tm& out) override {
@@ -143,7 +145,7 @@ void setup() {
 
   app.create(lv_screen_active());
   Serial.printf("[mem] na display/sensoren: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
-  bool audio = board::beginAudio(app.sound);
+  bool audio = board::beginAudio(app.sound, app.mic);
   net::updater::begin(DESKBUDDY_VERSION);
   // Tijdens een update-installatie staat loop() stil; dan houdt dit het gezicht en de ring in beweging.
   // Max ~10 fps tijdens een (blokkerende) update: de download/upload krijgt voorrang op tekenen.
@@ -228,7 +230,9 @@ void loop() {
   app.update(dt);
   // Slaperig of slapend: alleen trage animaties (Z'jes, oogleden), dus ~8-10 fps; wakker: 30 fps.
   Emotion e = app.face.emotion();
-  board::setRefreshPeriod(e == Emotion::Asleep ? 125 : (e == Emotion::Sleepy && !app.face.busy() ? 100 : 33));
+  // Rustige animaties hoeven geen 30 fps: slapen ~8, slaperig ~10, luisteren (golfjes) ~15
+  const bool calm = !app.face.busy() && !app.behaviour.dancing();
+  board::setRefreshPeriod(e == Emotion::Asleep ? 125 : e == Emotion::Sleepy && calm ? 100 : app.face.listening() && calm ? 66 : 33);
   uint32_t idleMs = lv_timer_handler();
 
   // Belasting: tijd dat deze lus bezig was (alles behalve de delay hieronder)

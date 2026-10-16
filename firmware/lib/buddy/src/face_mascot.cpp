@@ -150,6 +150,8 @@ void Face::drawMascot(lv_layer_t* layer) {
 
   drawHair(layer, hairY_.x);
 
+  if (earPop_ > 0.01f) drawEar(layer, true);  // luisteren: oor steekt uit (oorbel hangt eraan)
+
   // Oorbellen (onder het haar zichtbaar bij de oren)
   const EarringStyle er = (EarringStyle)look_.earrings;
   if (er != EarringStyle::None) {

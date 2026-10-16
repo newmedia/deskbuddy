@@ -3,6 +3,7 @@
 
 #include "face.h"
 #include "gestures.h"
+#include "mic.h"
 
 namespace buddy {
 
@@ -12,6 +13,8 @@ class Behaviour {
 
   void onGesture(const GestureEvent& g);
   void onGravity(float gx, float gy, float gz);
+  void onSound(SoundEvent e);  // uit de microfoon (zie mic.h)
+  bool dancing() const { return dancing_; }
   // Emotie van buitenaf (serial, later web/BLE). holdMs = 0 -> blijft tot de volgende interactie.
   void command(Emotion e, uint32_t holdMs = 0);
   void update(uint32_t dtMs);
@@ -50,6 +53,9 @@ class Behaviour {
   uint32_t quickPetWindow_ = 0;
   uint32_t swipeWindow_ = 0;
   uint32_t seed_ = 0xBEEF;
+  // Dansen op muziek
+  bool dancing_ = false;
+  int beatSide_ = 1;
 };
 
 }  // namespace buddy

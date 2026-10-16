@@ -149,6 +149,11 @@ a{color:var(--accent)}
       <button id="sound-btn">Geluid</button>
       <button data-cmd="sound happy">Test geluid</button>
     </div>
+    <div class="row" style="margin-top:8px">
+      <button id="mic-btn">Microfoon</button>
+    </div>
+    <p class="muted" style="margin:6px 0 0">Hij reageert op klappen, hard lawaai en muziek (dan danst hij mee). Alleen het
+      geluidsniveau wordt gemeten; er wordt niets opgenomen of verstuurd.</p>
     <label for="volume">Volume <span id="volume-v"></span></label>
     <input type="range" id="volume" min="0" max="100">
     <label for="brightness">Helderheid <span id="brightness-v"></span></label>
@@ -344,6 +349,7 @@ for (const [k, n] of EMO) {
 }
 document.addEventListener("click", e => { const c = e.target.closest("[data-cmd]"); if (c) cmd(c.dataset.cmd); });
 $("#sound-btn").onclick = () => cmd(`sound ${st.sound ? "off" : "on"}`);
+$("#mic-btn").onclick = () => cmd(`mic ${st.mic ? "off" : "on"}`);
 for (const id of ["volume", "brightness"]) {
   const el = $("#" + id);
   el.oninput = () => $(`#${id}-v`).textContent = el.value;
@@ -385,6 +391,7 @@ async function refresh() {
   pw.className = "conn" + (st.battery >= 0 && st.battery <= 15 && !st.charging ? " off" : "");
   document.querySelectorAll("[data-emo]").forEach(b => b.classList.toggle("on", b.dataset.emo === st.emotion));
   const sb = $("#sound-btn"); sb.classList.toggle("on", st.sound); sb.textContent = st.sound ? "Geluid aan" : "Geluid uit";
+  const mb = $("#mic-btn"); mb.classList.toggle("on", !!st.mic); mb.textContent = st.mic ? "Microfoon aan" : "Microfoon uit";
   for (const id of ["volume", "brightness"]) {
     const el = $("#" + id);
     if (document.activeElement !== el) { el.value = st[id]; $(`#${id}-v`).textContent = st[id]; }

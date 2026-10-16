@@ -197,6 +197,17 @@ void Face::blink() {
 
 void Face::bounce(float amount) { squash_.v += 9.0f * amount; }
 
+void Face::setListening(bool on) {
+  if (on == listening_) return;
+  listening_ = on;
+  listenT_ = 0;
+  earSide_ = 1;
+  earPop_ = 0;
+  if (on) lookAt(0.35f, -0.1f, true);
+  else releaseLook();
+  fullRedraw_ = true;
+}
+
 void Face::hop(float height) {
   if (hopT_ >= 0) return;
   hopT_ = 0;
@@ -268,6 +279,22 @@ void Face::update(uint32_t dtMs) {
       lookY_.target = (rnd() * 2 - 1) * 0.55f * kLookY;
     }
     scheduleNextSaccade();
+  }
+
+  // Luisteren: om de 1,6 s wisselt het oor van kant, de ogen kijken mee
+  if (listening_) {
+    listenT_ += dt;
+    int side = ((int)(listenT_ / 1.6f) % 2) ? -1 : 1;
+    if (side != earSide_) {
+      earSide_ = side;
+      earPop_ = 0;
+      fullRedraw_ = true;  // het oude oor moet weg
+      lookAt(0.35f * side, -0.1f, true);
+    }
+    earPop_ = LV_MIN(1.0f, earPop_ + dt * 5);
+  } else if (earPop_ > 0) {
+    earPop_ = LV_MAX(0.0f, earPop_ - dt * 6);
+    if (earPop_ == 0) fullRedraw_ = true;
   }
 
   // Druk: af en toe een sprongetje. Pijn: om de paar seconden een steek (trillen, ogen knijpen).
@@ -343,8 +370,12 @@ void Face::setCovered(bool c) {
   if (!c) fullRedraw_ = true;  // weer zichtbaar: één keer alles tekenen
 }
 
-bool Face::settled() {
+bool Face::settled() { return stillExceptEar() && !listening_ && earPop_ <= 0; }
+
+// Alles staat stil behalve (eventueel) het luister-oor met zijn golfjes.
+bool Face::stillExceptEar() {
   if (matrix_ || fullRedraw_ || effectsActive() || blinkT_ >= 0 || pendingHeart_ || hopT_ >= 0) return false;
+  if (listening_ && earPop_ < 1) return false;  // oor schuift nog in
   if (bobPx_ != drawnBobPx_) return false;
   if (look_.mouth == (uint8_t)MouthStyle::Equalizer && soundLevel_ > 0.02f) return false;
   // Emoties met een doorlopende animatie (hartslag, wiebelen, zwevende Z'jes, pulserende o-mond)
@@ -366,9 +397,24 @@ void Face::invalidate() {
   // Stilstaand gezicht: het laatste frame klopt nog, dus niets hertekenen. Het eerste "stille" frame
   // tekenen we nog wel, zodat de exact vastgeklikte eindwaarden op het scherm staan.
   if (covered_) return;
-  bool s = settled();
+  bool still = stillExceptEar();
+  bool s = still && !listening_ && earPop_ <= 0;
   if (s && wasSettled_) return;
   wasSettled_ = s;
+  if (still && !s && skin_ == Skin::Mascot) {
+    // Alleen de golfjes bewegen: alleen het gebied rond het oor hertekenen (niet ogen en mond)
+    lv_area_t ear = earSide_ > 0 ? lv_area_t{(int32_t)(kCenter + 136), (int32_t)(kCenter - 70), kSize - 1, (int32_t)(kCenter + 116)}
+                                 : lv_area_t{0, (int32_t)(kCenter - 70), (int32_t)(kCenter - 136), (int32_t)(kCenter + 116)};
+    lv_obj_invalidate_area(obj_, &ear);
+    prevBox_ = {0, 0, kSize - 1, kSize - 1};
+    return;
+  }
+  if (still && !s) {
+    lv_area_t ear = earSide_ > 0 ? lv_area_t{(int32_t)(kCenter + 150), (int32_t)(kCenter - 110), kSize - 1, (int32_t)(kCenter + 75)}
+                                 : lv_area_t{0, (int32_t)(kCenter - 110), (int32_t)(kCenter - 150), (int32_t)(kCenter + 75)};
+    lv_obj_invalidate_area(obj_, &ear);
+    return;
+  }
   if (matrix_ && !fullRedraw_) {
     // Alleen de twee oogvensters veranderen: dat houdt de update-download snel.
     for (int side = -1; side <= 1; side += 2) {
@@ -391,6 +437,11 @@ void Face::invalidate() {
     }
     lv_area_t mouth = {(int32_t)(kCenter - 135), 288, (int32_t)(kCenter + 135), 448};
     lv_obj_invalidate_area(obj_, &mouth);
+    if (listening_ || earPop_ > 0) {  // luister-oor aan de zijkant
+      lv_area_t ear = earSide_ > 0 ? lv_area_t{(int32_t)(kCenter + 136), (int32_t)(kCenter - 70), kSize - 1, (int32_t)(kCenter + 116)}
+                                   : lv_area_t{0, (int32_t)(kCenter - 70), (int32_t)(kCenter - 136), (int32_t)(kCenter + 116)};
+      lv_obj_invalidate_area(obj_, &ear);
+    }
     if (emotion_ == Emotion::Cry) {  // tranen over de wangen
       for (int side = -1; side <= 1; side += 2) {
         float ex = kCenter + side * 82;
@@ -426,6 +477,10 @@ void Face::invalidate() {
   if (look_.mouth != (uint8_t)MouthStyle::Auto) growBox(box, kCenter - 75, kCenter + 60, kCenter + 75, kCenter + 175);
   if (mouthShown_ != MouthNone || mouthAlpha_ > 0)
     growBox(box, kCenter - 60, kCenter + 60, kCenter + 60, kCenter + 160);
+  if (listening_ || earPop_ > 0) {
+    if (earSide_ > 0) growBox(box, kCenter + 150, kCenter - 110, kSize - 1, kCenter + 75);
+    else growBox(box, 0, kCenter - 110, kCenter - 150, kCenter + 75);
+  }
   if (emotion_ == Emotion::Cry)
     for (int side = -1; side <= 1; side += 2) {
       float cx = kCenter + side * kEyeSpacing + lx, cy = kCenter + kEyeY + dy_.x + ly;
@@ -515,6 +570,67 @@ void Face::drawSweat(lv_layer_t* layer, float x, float y) {
   fillTri(layer, x - 12, y - 4, x + 12, y - 4, x, y - 34, c);
   fillEllipse(layer, x, y + 4, 26, 28, c);
   fillEllipse(layer, x - 5, y, 8, 10, lv_color_white(), 200);
+}
+
+// Luister-oor: schuift vanaf de rand van het scherm naar binnen; geluidsgolfjes komen van buiten
+// (de rand) naar het oor toe.
+void Face::drawEar(lv_layer_t* layer, bool mascot) {
+  const float k = 1 - (1 - earPop_) * (1 - earPop_);  // inglijden met een zachte rem
+  const int side = earSide_;
+  const lv_color_t outline = lv_color_hex(0x111522);
+  float x, y, w, h;
+  if (mascot) {
+    w = 44, h = 64;
+    x = kCenter + side * (232 - 64 * k);  // eindpunt ~168 px uit het midden, net naast de ogen
+    y = kCenter + 22;
+    const lv_color_t skin = lv_color_hex(look_.face);
+    const lv_color_t inner = lv_color_mix(lv_color_black(), skin, 50);  // iets donkerder
+    fillEllipse(layer, x, y, w + 8, h + 8, outline);
+    fillEllipse(layer, x, y, w, h, skin);
+    fillEllipse(layer, x - side * 4, y + 4, w * 0.5f, h * 0.58f, inner);  // oorschelp
+    // rand van de oorschelp: een boogje aan de buitenkant
+    lv_draw_arc_dsc_t a;
+    lv_draw_arc_dsc_init(&a);
+    a.center = {ri(x - side * 2 + draw::ox), ri(y + 2 + draw::oy)};
+    a.radius = 15;
+    a.width = 4;
+    a.rounded = 1;
+    a.color = outline;
+    a.opa = 150;
+    a.start_angle = side > 0 ? 290 : 110;
+    a.end_angle = side > 0 ? 430 : 250;
+    lv_draw_arc(layer, &a);
+  } else {
+    const lv_color_t col = lv_color_make((uint8_t)LV_CLAMP(0.f, colR_.x, 255.f), (uint8_t)LV_CLAMP(0.f, colG_.x, 255.f),
+                                         (uint8_t)LV_CLAMP(0.f, colB_.x, 255.f));
+    w = 34, h = 58;
+    x = kCenter + side * (236 - 46 * k);
+    y = kCenter + kEyeY + dy_.x;
+    frame(layer, x - w / 2, y - h / 2, x + w / 2, y + h / 2, LV_RADIUS_CIRCLE, 6, col, col, 50);
+    fillEllipse(layer, x - side * 2, y, 10, 24, col);
+  }
+  // Golfjes: beginnen buiten (bij de rand), lopen naar het oor en vervagen vlak ervoor
+  lv_draw_arc_dsc_t wv;
+  lv_draw_arc_dsc_init(&wv);
+  wv.rounded = 1;
+  wv.center = {ri(x + draw::ox), ri(y + draw::oy)};
+  wv.start_angle = side > 0 ? 325 : 145;  // alleen de kant van de schermrand
+  wv.end_angle = side > 0 ? 395 : 215;
+  for (int i = 0; i < 3; i++) {
+    float p = fmodf(listenT_ * 0.9f + i / 3.0f, 1.0f);  // 0 = ver weg, 1 = bij het oor
+    lv_opa_t o = (lv_opa_t)(k * 230 * sinf(p * kPi));
+    if (o < 10) continue;
+    wv.radius = (uint16_t)(w / 2 + 12 + (1 - p) * 46);
+    wv.width = 8;  // donkere rand, dan licht: zichtbaar op elk haar en elke achtergrond
+    wv.color = outline;
+    wv.opa = (lv_opa_t)(o / 2);
+    lv_draw_arc(layer, &wv);
+    wv.width = 4;
+    wv.radius -= 2;
+    wv.color = mascot ? lv_color_white() : lv_color_mix(lv_color_white(), lv_color_hex(look_.primary), 120);
+    wv.opa = o;
+    lv_draw_arc(layer, &wv);
+  }
 }
 
 }  // namespace buddy

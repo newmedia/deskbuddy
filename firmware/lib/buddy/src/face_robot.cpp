@@ -108,6 +108,7 @@ void Face::drawRobot(lv_layer_t* layer) {
     drawPucker(layer, mx, my + 112, col, false);
   else if ((MouthStyle)look_.mouth != MouthStyle::Auto || (mouthShown_ != MouthNone && mouthAlpha_ > 0.01f))
     drawMouth(layer, mx, my);
+  if (earPop_ > 0.01f) drawEar(layer, false);
   if (emotion_ == Emotion::Pain) drawSweat(layer, C + 150, baseY - 96);
   if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep) drawZs(layer, col);
 }
