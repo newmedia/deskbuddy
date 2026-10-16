@@ -353,6 +353,7 @@ regelcommando's, bonded), vegen naar info en klok (`view` in `/emu/state`), gelu
 `play whistle`) en updates (check, install, herstart met nieuwe versie en bewaarde instellingen,
 upload via `POST /update`). Duurt ongeveer 30 s. Eindigt met een overzicht per groep; exitcode 0
 betekent alles goed, anders 1 plus het einde van het emulator-log. Draai hem vóór een release.
+Handleiding (uitkomst lezen, controles toevoegen, problemen): [regressietest.md](regressietest.md).
 
 Niet nagebootst: echte radio's (Wi-Fi/BLE-bereik), TLS naar GitHub, flash schrijven, en de
 snelheid van het echte scherm. Meet prestaties daarom altijd op het apparaat (`perf`).

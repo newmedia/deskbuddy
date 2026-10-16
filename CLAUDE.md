@@ -14,6 +14,8 @@ Taal van docs en commits: Nederlands.
 - `firmware/`: PlatformIO, met env `esp32` (apparaat), `sim` (headless PC-simulator), `emu`
   (interactieve SDL-emulator, `tools/emu.sh`) en `webemu` (web-emulator met webinterface en PWA,
   `tools/webemu.sh` -> http://localhost:8765/emu). Uitleg in `docs/firmware.md`.
+- Draai `tools/webemu-test.sh` (regressietest, `docs/regressietest.md`) na wijzigingen in de
+  firmware-logica of web-app, en altijd vóór een release of flashverzoek.
 - Test functionaliteit en web-app/PWA eerst in de web-emulator (bijv. via de ingebouwde browser,
   config `webemu` in `.claude/launch.json`); prestaties meet je op het apparaat.
 - Hardware-onafhankelijke logica hoort in `firmware/lib/buddy/` (alleen LVGL), zodat de simulator
