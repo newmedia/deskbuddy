@@ -311,6 +311,7 @@ tools/setup.sh        # venv met esptool, pyserial en PlatformIO
 tools/sim.sh          # simulator -> sim-out/emotions.png, mascot.png, demo.gif, demo.mp4 (met geluid)
 tools/sim.sh check    # per personage één overzicht van alle emoties en acties -> sim-out/check_NN.png
 tools/emu.sh          # interactieve emulator (eenmalig: sudo apt install libsdl2-dev)
+tools/webemu.sh       # web-emulator met webinterface en PWA -> http://localhost:8765/emu
 cd firmware && ../.venv/bin/pio run -e esp32   # alleen bouwen
 tools/flash.sh        # bouwen + flashen (vraagt bevestiging, eist een backup)
 tools/monitor.sh      # serial log en commando's
@@ -318,6 +319,31 @@ tools/monitor.sh      # serial log en commando's
 
 Terug naar de originele firmware gaat met
 `esptool --chip esp32s3 write-flash 0 backups/original-firmware-*.bin`.
+
+## Web-emulator (alles testen zonder apparaat)
+
+`tools/webemu.sh` start de firmware-logica op de PC, dus dezelfde `App`, hetzelfde gezicht en
+dezelfde commando's. Hij biedt dezelfde web-API als het apparaat. Open
+**http://localhost:8765/emu** (andere poort: `tools/webemu.sh 9000` of `PORT=9000`). Alleen
+bereikbaar vanaf deze computer.
+
+| Onderdeel | Hoe |
+|---|---|
+| Scherm | live in de browser; muis = vinger (tik, lang drukken, aaien, omlaag/omhoog vegen) |
+| Sensoren | kantelen (pijltjes), schudden, oppakken |
+| Stroom | USB of accu (schuif), laden |
+| Wi-Fi | verbonden, setup-netwerk of uit, signaalsterkte. Wi-Fi-setup werkt met nep-netwerken; netwerk **Weg** = niet gevonden, wachtwoord **fout** = verkeerd wachtwoord |
+| Webinterface | rechts in een telefoonkader: `firmware/web/index.html` rechtstreeks van schijf, dus wijzigen en herladen |
+| PWA (Bluetooth) | tabblad "PWA": dezelfde pagina met `?pwa`, met een nagebootste Web Bluetooth (zelfde NUS-regelprotocol, antwoorden in stukjes van 20 bytes). Koppelen werkt als echt: de code verschijnt op het scherm. Met `?pwa&auto` gaat dat zonder vragen (voor tests) |
+| Updates | "aangeboden release" bepaalt wat de nagebootste GitHub aanbiedt (leeg = geen). `update check/install` en uploaden via de webinterface tonen het installatiescherm en herstarten |
+| Geluid | knop "Geluid in de browser aan": de synth wordt live gestreamd |
+| Herstarten | de emulator start echt opnieuw, met de bewaarde instellingen |
+
+Instellingen, eigen profielen, de Bluetooth-koppeling en de "geïnstalleerde" versie blijven bewaard
+in `firmware/.pio/webemu-state/` (net als NVS). `tools/webemu.sh --reset` begint schoon.
+
+Niet nagebootst: echte radio's (Wi-Fi/BLE-bereik), TLS naar GitHub, flash schrijven, en de
+snelheid van het echte scherm. Meet prestaties daarom altijd op het apparaat (`perf`).
 
 ## Emulator-bediening
 

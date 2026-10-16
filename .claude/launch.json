@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "webemu",
+      "runtimeExecutable": "tools/webemu.sh",
+      "runtimeArgs": [],
+      "port": 8765
+    }
+  ]
+}

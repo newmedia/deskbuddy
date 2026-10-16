@@ -11,9 +11,11 @@ Taal van docs en commits: Nederlands.
 - Gebruik de scripts in `tools/` (esptool v5 in `.venv/`, commando's met streepjes, zoals `read-flash`)
 
 ## Code
-- `firmware/`: PlatformIO, met env `esp32` (apparaat), `sim` (headless PC-simulator) en `emu`
-  (interactieve SDL-emulator, `tools/emu.sh`). Uitleg in
-  `docs/firmware.md`.
+- `firmware/`: PlatformIO, met env `esp32` (apparaat), `sim` (headless PC-simulator), `emu`
+  (interactieve SDL-emulator, `tools/emu.sh`) en `webemu` (web-emulator met webinterface en PWA,
+  `tools/webemu.sh` -> http://localhost:8765/emu). Uitleg in `docs/firmware.md`.
+- Test functionaliteit en web-app/PWA eerst in de web-emulator (bijv. via de ingebouwde browser,
+  config `webemu` in `.claude/launch.json`); prestaties meet je op het apparaat.
 - Hardware-onafhankelijke logica hoort in `firmware/lib/buddy/` (alleen LVGL), zodat de simulator
   hem ook draait. Hardware hoort in `firmware/src/board/`.
 - Controleer UI-wijzigingen met `tools/sim.sh` en bekijk de PNG's in `sim-out/` voordat je om

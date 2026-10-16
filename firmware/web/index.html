@@ -247,7 +247,8 @@ const EMO = [["neutral","Neutraal"],["happy","Blij"],["sad","Verdrietig"],["angr
 let st = {};
 
 // ---------- Transport: HTTP (pagina komt van de deskbuddy zelf) of Web Bluetooth (PWA via https) ----------
-const ON_DEVICE = location.protocol === "http:";
+// ?pwa: Bluetooth-modus forceren (de web-emulator biedt dan een nagebootste Bluetooth-koppeling aan)
+const ON_DEVICE = location.protocol === "http:" && !new URLSearchParams(location.search).has("pwa");
 const NUS = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
@@ -682,7 +683,7 @@ showLookTab("pick");
 let lookLoaded = false;
 setInterval(() => { if (api.ready && !lookLoaded) { lookLoaded = true; loadPresets(); } }, 500);
 
-if (!ON_DEVICE && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+if (location.protocol === "https:" && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 ui();
 setInterval(refresh, 2500);
 </script>
