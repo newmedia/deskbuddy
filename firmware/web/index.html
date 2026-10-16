@@ -91,6 +91,7 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
 .status{margin:10px 0 0;padding:10px;border-radius:10px;background:#0e1418;border:1px solid var(--line)}
 .status.ok{border-color:var(--ok);color:var(--ok)}
 .status.bad{border-color:var(--bad);color:var(--bad)}
+a{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -197,7 +198,7 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
       <option value="off">Niet controleren</option>
     </select>
     <progress id="upd-p" value="0" max="100" hidden></progress>
-    <p class="muted" style="margin-top:14px">Of handmatig: kies <code>firmware.bin</code> (uit <code>firmware/.pio/build/esp32/</code>).</p>
+    <p class="muted" style="margin-top:14px">Of handmatig: download <code>firmware.bin</code> van de <a href="https://github.com/newmedia/deskbuddy/releases/latest" target="_blank" rel="noopener">nieuwste release op GitHub</a> (of een <a href="https://github.com/newmedia/deskbuddy/releases" target="_blank" rel="noopener">oudere versie</a>) en kies dat bestand hieronder.</p>
     <input type="file" id="fw" accept=".bin">
     <progress id="fw-p" value="0" max="100" hidden></progress>
   </section>
