@@ -36,6 +36,25 @@ select,input[type=text],input[type=password]{width:100%;background:#0e1418;color
 #log{font:12px ui-monospace,monospace;color:var(--dim);white-space:pre-wrap;margin-top:8px;max-height:120px;overflow:auto}
 progress{width:100%;height:8px;accent-color:var(--accent)}
 .muted{color:var(--dim);font-size:13px}
+.chips{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:0 0 auto}
+.conn{display:flex;align-items:center;gap:6px;flex:0 0 auto;font-size:12px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:5px 10px;white-space:nowrap}
+.conn .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.conn.off .dot{background:var(--bad)}
+.conn.warn .dot{background:var(--warn)}
+.conn .bars{display:inline-flex;align-items:flex-end;gap:1px;height:10px}
+.conn .bars i{width:3px;background:var(--dim);border-radius:1px}
+.conn .bars i.on{background:var(--text)}
+button.icon{flex:0 0 44px;width:44px;height:44px;padding:0;display:grid;place-items:center;border-radius:50%}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:2;background:var(--bg);padding:4px 0}
+.tabs button{flex:1 1 0;min-width:0;min-height:40px;border-radius:999px;padding:8px 6px;white-space:nowrap;font-size:14px}
+.tabs button.on{background:var(--accent);color:#04151a;border-color:var(--accent);font-weight:600}
+section.tab-off{display:none}
+.sheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.sheet-body{width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 28px}
+@media (min-width:700px){.sheet{align-items:center}.sheet-body{border-radius:18px}}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sheet-head h2{margin:0}
 main.off section:not(#ble-info){opacity:.45;pointer-events:none}
 #ble-connect{flex:0 0 auto;background:var(--accent);color:#04151a;font-weight:600;border:0}
 .parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:10px}
@@ -52,15 +71,31 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
 <main class="off">
   <header>
     <div class="logo"><i></i><i></i></div>
-    <div style="flex:1"><h1>deskbuddy</h1><div id="sub">verbinden…</div></div>
+    <div style="flex:1;min-width:0"><h1>deskbuddy</h1><div id="sub">verbinden…</div></div>
+    <div class="chips">
+      <div id="conn" class="conn off" title="Verbinding"><span class="dot"></span><span id="conn-t">Geen verbinding</span></div>
+      <div id="power" class="conn" title="Stroom" hidden><span id="power-t"></span></div>
+    </div>
     <button id="ble-connect" hidden>Verbind via Bluetooth</button>
+    <button id="look-open" class="icon" aria-label="Uiterlijk aanpassen" title="Uiterlijk">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.5-1.1.2-2.2 1.4-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z"/>
+        <circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7.2" r="1.2"/><circle cx="15" cy="7.4" r="1.2"/><circle cx="17.4" cy="11" r="1.2"/>
+      </svg>
+    </button>
   </header>
+  <nav class="tabs" role="tablist" aria-label="Onderdelen">
+    <button role="tab" data-tab="control">Bediening</button>
+    <button role="tab" data-tab="settings">Instellingen</button>
+    <button role="tab" data-tab="wifi">Wi-Fi</button>
+    <button role="tab" data-tab="system">Systeem</button>
+  </nav>
   <section id="ble-info" hidden>
     <p class="muted" id="ble-msg">Deze app praat via Bluetooth met je deskbuddy. Tik op <b>Verbind via Bluetooth</b>; bij de
       eerste keer vraagt je telefoon om de koppelcode die op het scherm van de deskbuddy verschijnt.</p>
   </section>
 
-  <section>
+  <section data-tab="control">
     <h2>Emotie</h2>
     <div class="grid" id="emotions"></div>
     <h2 style="margin-top:14px">Acties</h2>
@@ -82,20 +117,8 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
     </div>
   </section>
 
-  <section id="look-section">
-    <h2>Uiterlijk</h2>
-    <div class="grid" id="presets"></div>
-    <div class="row" style="margin-top:8px">
-      <button id="look-random">Verras me</button>
-      <select id="look-base" aria-label="Basis"><option value="robot">Robot</option><option value="cartoon">Cartoon</option></select>
-    </div>
-    <div class="parts" id="parts"></div>
-    <div class="parts" id="colors"></div>
-    <label class="check"><input type="checkbox" id="look-emo"> Emotiekleuren (boos = rood, verliefd = roze, ...)</label>
-    <p class="muted" id="look-name"></p>
-  </section>
 
-  <section>
+  <section data-tab="settings">
     <h2>Geluid &amp; scherm</h2>
     <div class="row" style="margin-top:8px">
       <button id="sound-btn">Geluid</button>
@@ -112,14 +135,14 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
     </select>
   </section>
 
-  <section>
+  <section data-tab="system">
     <h2>Status</h2>
     <div class="stat" id="stat"></div>
     <p class="muted" id="pwa-hint" hidden>Bediening via Bluetooth (ook zonder Wi-Fi):
       <a href="https://newmedia.github.io/deskbuddy/" style="color:var(--accent)">newmedia.github.io/deskbuddy</a></p>
   </section>
 
-  <section>
+  <section data-tab="wifi">
     <h2>Wi-Fi</h2>
     <p class="muted" id="wifi-now"></p>
     <button id="scan">Netwerken zoeken</button>
@@ -136,7 +159,7 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
     <p id="join-status" class="status" hidden></p>
   </section>
 
-  <section id="fw-section">
+  <section id="fw-section" data-tab="system">
     <h2>Firmware bijwerken</h2>
     <p id="upd-now" class="status" hidden></p>
     <div class="row" style="margin-top:8px">
@@ -155,12 +178,37 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
     <progress id="fw-p" value="0" max="100" hidden></progress>
   </section>
 
-  <section>
+  <section data-tab="system">
     <h2>Commando</h2>
     <div class="row"><input type="text" id="cmd" placeholder="help" autocapitalize="none"><button id="send" style="flex:0 0 90px">Stuur</button></div>
     <div id="log"></div>
   </section>
 </main>
+  <div id="look-panel" class="sheet" hidden>
+  <section class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="look-title">
+    <div class="sheet-head"><h2 id="look-title">Uiterlijk</h2>
+      <button id="look-close" class="icon" aria-label="Sluiten">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="grid" id="presets"></div>
+    <label>Eigen profielen</label>
+    <div class="grid" id="profiles"></div>
+    <div class="row" style="margin-top:8px">
+      <input type="text" id="profile-name" maxlength="12" placeholder="Naam voor dit profiel" aria-label="Profielnaam">
+      <button id="profile-save" style="flex:0 0 110px">Opslaan</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="look-random">Verras me</button>
+      <select id="look-base" aria-label="Basis"><option value="robot">Robot</option><option value="cartoon">Cartoon</option></select>
+    </div>
+    <div class="parts" id="parts"></div>
+    <div class="parts" id="colors"></div>
+    <label class="check"><input type="checkbox" id="look-emo"> Emotiekleuren (boos = rood, verliefd = roze, ...)</label>
+    <p class="muted" id="look-name"></p>
+  </section>
+  </div>
+
 <script>
 const $ = s => document.querySelector(s);
 const EMO = [["neutral","Neutraal"],["happy","Blij"],["sad","Verdrietig"],["angry","Boos"],["surprised","Verrast"],["sleepy","Slaperig"],["love","Verliefd"],["dizzy","Duizelig"],["asleep","Slapen"]];
@@ -231,6 +279,7 @@ const api = ON_DEVICE ? http : ble;
 function ui() {
   $("main").classList.toggle("off", !api.ready);
   $("#ble-connect").hidden = ON_DEVICE || ble.ready;
+  $("#look-open").hidden = !api.ready;
   $("#ble-info").hidden = ON_DEVICE || ble.ready;
   $("#fw-section").hidden = !ON_DEVICE;
   $("#pwa-hint").hidden = !ON_DEVICE;
@@ -273,13 +322,33 @@ $("#send").onclick = () => { const c = $("#cmd").value.trim(); if (c) cmd(c); };
 $("#cmd").onkeydown = e => { if (e.key === "Enter") $("#send").click(); };
 
 let busy = false;
+// Verbindingslabel in de bovenbalk: hoe praat deze pagina nu met de buddy?
+function setConn(state, text, rssi) {
+  const c = $("#conn");
+  c.className = "conn" + (state === "off" ? " off" : state === "warn" ? " warn" : "");
+  let bars = "";
+  if (rssi) {
+    const n = rssi > -60 ? 4 : rssi > -70 ? 3 : rssi > -80 ? 2 : 1;
+    bars = ` <span class="bars" aria-label="signaal ${n} van 4">${[4, 6, 8, 10].map((h, i) => `<i class="${i < n ? "on" : ""}" style="height:${h}px"></i>`).join("")}</span>`;
+  }
+  $("#conn-t").innerHTML = esc(text) + bars;
+}
 async function refresh() {
-  if (!api.ready || busy) return;
+  if (!api.ready || busy) { if (!api.ready) setConn("off", ON_DEVICE ? "Geen verbinding" : "Niet verbonden"); return; }
   busy = true;
-  try { st = await api.status(); } catch { $("#sub").textContent = "geen verbinding"; busy = false; return; }
+  try { st = await api.status(); } catch { $("#sub").textContent = "geen verbinding"; setConn("off", "Geen verbinding"); busy = false; return; }
   busy = false;
+  if (!ON_DEVICE) setConn("on", "Bluetooth");
+  else if (st.wifi === "ap") setConn("warn", "Setup-netwerk");
+  else setConn("on", "Wi-Fi", st.rssi);
   const wifi = {sta: `verbonden met ${st.ssid}`, ap: `setup-netwerk ${st.ssid}`, connecting: `verbinden met ${st.ssid}…`, off: "uit"}[st.wifi];
-  $("#sub").textContent = `${st.emotion} · v${st.version}${ON_DEVICE ? "" : " · Bluetooth"}`;
+  $("#sub").textContent = `${st.look || "-"} · ${st.emotion} · v${st.version}`;
+  // Stroom: USB (geen accu) of accuniveau, eventueel aan het laden
+  const pw = $("#power");
+  pw.hidden = false;
+  if (st.battery < 0) $("#power-t").textContent = "USB-stroom";
+  else $("#power-t").textContent = `Accu ${st.battery}%${st.charging ? " · laden" : ""}`;
+  pw.className = "conn" + (st.battery >= 0 && st.battery <= 15 && !st.charging ? " off" : "");
   document.querySelectorAll("[data-emo]").forEach(b => b.classList.toggle("on", b.dataset.emo === st.emotion));
   const sb = $("#sound-btn"); sb.classList.toggle("on", st.sound); sb.textContent = st.sound ? "Geluid aan" : "Geluid uit";
   for (const id of ["volume", "brightness"]) {
@@ -372,6 +441,31 @@ $("#fw").onchange = () => {
   x.open("POST", "/update"); x.send(fd);
 };
 
+// ---------- Tabbladen + Uiterlijk-paneel ----------
+function showTab(name) {
+  document.querySelectorAll(".tabs button").forEach(b => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", on);
+  });
+  document.querySelectorAll("main section[data-tab]").forEach(s => s.classList.toggle("tab-off", s.dataset.tab !== name));
+  try { localStorage.setItem("deskbuddy-tab", name); } catch {}
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+let startTab = "control";
+try { startTab = localStorage.getItem("deskbuddy-tab") || startTab; } catch {}
+showTab(startTab);
+
+function openLook(open) {
+  $("#look-panel").hidden = !open;
+  document.body.style.overflow = open ? "hidden" : "";
+  if (open) lookCmd("look");
+}
+$("#look-open").onclick = () => openLook(true);
+$("#look-close").onclick = () => openLook(false);
+$("#look-panel").onclick = e => { if (e.target.id === "look-panel") openLook(false); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") openLook(false); });
+
 // ---------- Uiterlijk (look) ----------
 const PARTS = {
   robot: {
@@ -382,18 +476,24 @@ const PARTS = {
     glasses: [["none", "Geen"], ["square", "Vierkant"], ["round", "Rond"], ["shades", "Zonnebril"], ["monocle", "Monocle"]],
   },
   cartoon: {
-    hair: [["spiky", "Stekels"], ["neat", "Netjes"], ["curly", "Krullen"], ["mohawk", "Hanenkam"], ["bald", "Kaal"], ["cap", "Petje"]],
+    hair: [["spiky", "Stekels"], ["neat", "Netjes"], ["curly", "Krullen"], ["mohawk", "Hanenkam"], ["bald", "Kaal"], ["cap", "Petje"],
+      ["long", "Lang"], ["longcurly", "Lange krullen"], ["ponytail", "Paardenstaart"], ["bun", "Knotje"], ["bob", "Bob"], ["pigtails", "Staartjes"]],
     eyes: [["block", "Normaal"], ["round", "Stipjes"]],
     brows: [["thick", "Dik"], ["bar", "Recht"], ["thin", "Dun"], ["none", "Geen"]],
     mouth: [["auto", "Per emotie"], ["line", "Gesloten glimlach"]],
     cheeks: [["blush", "Blosjes"], ["freckles", "Sproeten"], ["none", "Geen"]],
     glasses: [["square", "Vierkant"], ["round", "Rond"], ["shades", "Zonnebril"], ["monocle", "Monocle"], ["none", "Geen"]],
+    lashes: [["none", "Geen"], ["lashes", "Wimpers"], ["liner", "Eyeliner"]],
+    lips: [["none", "Geen"], ["lipstick", "Lippenstift"]],
+    earrings: [["none", "Geen"], ["studs", "Knopjes"], ["hoops", "Ringen"]],
+    accessory: [["none", "Geen"], ["bow", "Strik"], ["headband", "Haarband"], ["flower", "Bloem"]],
   },
 };
-const PART_LABEL = {eyes: "Ogen", brows: "Wenkbrauwen", mouth: "Mond", cheeks: "Wangen", glasses: "Bril", hair: "Haar"};
+const PART_LABEL = {eyes: "Ogen", brows: "Wenkbrauwen", mouth: "Mond", cheeks: "Wangen", glasses: "Bril", hair: "Haar",
+  lashes: "Wimpers", lips: "Lippen", earrings: "Oorbellen", accessory: "In het haar"};
 const COLOR_LABEL = {
   robot: {primary: "Ogen en mond", accent: "Wenkbrauwen", face: "Achtergrond", frame: "Bril"},
-  cartoon: {primary: "Iris", accent: "Haar (of petje)", face: "Huid", frame: "Bril"},
+  cartoon: {primary: "Iris", accent: "Haar (of petje)", face: "Huid", frame: "Bril", lip: "Lippenstift", extra: "Sieraden en accessoires"},
 };
 let look = null;
 
@@ -410,7 +510,7 @@ function renderLook() {
   $("#look-base").value = look.base;
   $("#look-emo").checked = look.emotionColors;
   $("#look-name").textContent = `Huidig: ${look.name}`;
-  document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("on", b.textContent === look.name));
+  document.querySelectorAll("#presets button, #profiles button").forEach(b => b.classList.toggle("on", b.textContent === look.name));
   const parts = $("#parts");
   parts.innerHTML = "";
   for (const [part, opts] of Object.entries(PARTS[look.base])) {
@@ -438,18 +538,37 @@ function renderLook() {
 async function loadPresets() {
   try {
     const j = await api.cmd("look presets");
-    const names = JSON.parse(j.reply);
-    const g = $("#presets");
-    g.innerHTML = "";
-    for (const n of names) {
-      const b = document.createElement("button");
-      b.textContent = n;
-      b.onclick = () => lookCmd(`look preset ${n}`);
-      g.append(b);
-    }
+    const list = JSON.parse(j.reply);
+    const fill = (id, names, own) => {
+      const g = $(id);
+      g.innerHTML = "";
+      for (const n of names) {
+        const b = document.createElement("button");
+        b.textContent = n;
+        b.onclick = () => lookCmd(`look preset ${n}`);
+        g.append(b);
+        if (own) {
+          const d = document.createElement("button");
+          d.textContent = "Verwijder";
+          d.className = "muted";
+          d.onclick = async () => { await api.cmd(`look delete ${n}`); loadPresets(); };
+          g.append(d);
+        }
+      }
+      if (own && !names.length) g.innerHTML = '<p class="muted">Nog geen eigen profielen. Stel hieronder iets samen en sla het op.</p>';
+    };
+    fill("#presets", list.presets, false);
+    fill("#profiles", list.profiles, true);
   } catch {}
   lookCmd("look");
 }
+$("#profile-save").onclick = async () => {
+  const n = $("#profile-name").value.trim();
+  if (!n) { $("#profile-name").focus(); return; }
+  await lookCmd(`look save ${n}`);
+  $("#profile-name").value = "";
+  loadPresets();
+};
 $("#look-random").onclick = () => lookCmd("look random");
 $("#look-base").onchange = e => lookCmd(`look base ${e.target.value}`);
 $("#look-emo").onchange = e => lookCmd(`look emotioncolors ${e.target.checked ? "on" : "off"}`);
