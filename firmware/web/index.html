@@ -36,7 +36,8 @@ select,input[type=text],input[type=password]{width:100%;background:#0e1418;color
 #log{font:12px ui-monospace,monospace;color:var(--dim);white-space:pre-wrap;margin-top:8px;max-height:120px;overflow:auto}
 progress{width:100%;height:8px;accent-color:var(--accent)}
 .muted{color:var(--dim);font-size:13px}
-.chips{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:0 0 auto}
+.chips{display:flex;flex-direction:column;align-items:stretch;flex:0 0 auto;border:1px solid var(--line);border-radius:12px;padding:3px 9px}
+.chips .conn{border:0;padding:1px 0;border-radius:0;justify-content:flex-end}
 .conn{display:flex;align-items:center;gap:6px;flex:0 0 auto;font-size:12px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:5px 10px;white-space:nowrap}
 .conn .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
 .conn.off .dot{background:var(--bad)}
@@ -57,9 +58,35 @@ section.tab-off{display:none}
 .sheet-head h2{margin:0}
 main.off section:not(#ble-info){opacity:.45;pointer-events:none}
 #ble-connect{flex:0 0 auto;background:var(--accent);color:#04151a;font-weight:600;border:0}
-.parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:10px}
-.parts label{margin:0 0 4px}
-input[type=color]{width:100%;height:40px;border:1px solid var(--line);border-radius:10px;background:#0e1418;padding:2px}
+.look-now{font-size:16px;font-weight:600;margin-top:2px}
+.seg{display:flex;gap:4px;padding:4px;background:#0e1418;border:1px solid var(--line);border-radius:999px;margin:10px 0 4px}
+.seg button{flex:1;border:0;background:none;border-radius:999px;min-height:38px}
+.seg button.on{background:var(--accent);color:#04151a;font-weight:600}
+.seg.small{max-width:260px}
+.hint{margin:4px 0 6px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button{min-height:38px;padding:7px 12px;border-radius:999px;font-size:14px}
+.opts .prof{display:inline-flex;align-items:center;gap:8px;padding-right:6px}
+.opts .prof .x{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#0e1418;color:var(--dim);font-size:14px;line-height:1}
+.opts .prof.on .x{background:rgba(0,0,0,.18);color:#04151a}
+button.wide{width:100%;margin-top:14px}
+details.grp{border:1px solid var(--line);border-radius:12px;margin-top:8px;background:#11181d}
+details.grp summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;align-items:center;gap:10px;font-weight:600}
+details.grp summary::-webkit-details-marker{display:none}
+details.grp summary .sum{flex:1;min-width:0;color:var(--dim);font-weight:400;font-size:13px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.grp summary::after{content:"›";color:var(--dim);font-size:20px;transition:transform .15s}
+details.grp[open] summary::after{transform:rotate(90deg)}
+.grp-body{padding:0 14px 14px}
+.grp-body label{margin:10px 0 6px}
+.grp-body label:first-child{margin-top:0}
+.sw{display:flex;flex-wrap:wrap;gap:7px}
+.sw button,.sw .custom{width:32px;height:32px;min-height:0;padding:0;border-radius:50%;border:2px solid var(--line)}
+.sw button.on{border-color:var(--text);box-shadow:0 0 0 2px var(--bg) inset}
+.sw .custom{position:relative;overflow:hidden;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)}
+.sw .custom.on{border-color:var(--text)}
+.sw .custom input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.row.save{margin-top:14px}
+.row.save button{flex:0 0 96px}
 label.check{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px;margin-top:10px}
 label.check input{width:20px;height:20px;accent-color:var(--accent)}
 .status{margin:10px 0 0;padding:10px;border-radius:10px;background:#0e1418;border:1px solid var(--line)}
@@ -186,26 +213,38 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
 </main>
   <div id="look-panel" class="sheet" hidden>
   <section class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="look-title">
-    <div class="sheet-head"><h2 id="look-title">Uiterlijk</h2>
+    <div class="sheet-head">
+      <div><h2 id="look-title">Uiterlijk</h2><div class="look-now" id="look-name"></div></div>
       <button id="look-close" class="icon" aria-label="Sluiten">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
-    <div class="grid" id="presets"></div>
-    <label>Eigen profielen</label>
-    <div class="grid" id="profiles"></div>
-    <div class="row" style="margin-top:8px">
-      <input type="text" id="profile-name" maxlength="12" placeholder="Naam voor dit profiel" aria-label="Profielnaam">
-      <button id="profile-save" style="flex:0 0 110px">Opslaan</button>
+    <div class="seg" role="tablist" id="look-tabs">
+      <button role="tab" data-ltab="pick">Kiezen</button>
+      <button role="tab" data-ltab="make">Zelf maken</button>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button id="look-random">Verras me</button>
-      <select id="look-base" aria-label="Basis"><option value="robot">Robot</option><option value="cartoon">Cartoon</option></select>
+
+    <div data-lpane="pick">
+      <label>Personages</label>
+      <div class="opts" id="presets"></div>
+      <label>Mijn profielen</label>
+      <div class="opts" id="profiles"></div>
+      <button id="look-random" class="wide">🎲 Verras me</button>
     </div>
-    <div class="parts" id="parts"></div>
-    <div class="parts" id="colors"></div>
-    <label class="check"><input type="checkbox" id="look-emo"> Emotiekleuren (boos = rood, verliefd = roze, ...)</label>
-    <p class="muted" id="look-name"></p>
+
+    <div data-lpane="make" hidden>
+      <div class="seg small" id="look-base">
+        <button data-base="robot">Robot</button>
+        <button data-base="cartoon">Cartoon</button>
+      </div>
+      <p class="muted hint">Elke keuze zie je meteen op je deskbuddy.</p>
+      <div id="groups"></div>
+      <label class="check"><input type="checkbox" id="look-emo"> Kleuren veranderen mee met de emotie (boos = rood, verliefd = roze)</label>
+      <div class="row save">
+        <input type="text" id="profile-name" maxlength="12" placeholder="Naam, bijv. Mijn buddy" aria-label="Profielnaam">
+        <button id="profile-save">Bewaar</button>
+      </div>
+    </div>
   </section>
   </div>
 
@@ -491,11 +530,36 @@ const PARTS = {
 };
 const PART_LABEL = {eyes: "Ogen", brows: "Wenkbrauwen", mouth: "Mond", cheeks: "Wangen", glasses: "Bril", hair: "Haar",
   lashes: "Wimpers", lips: "Lippen", earrings: "Oorbellen", accessory: "In het haar"};
-const COLOR_LABEL = {
-  robot: {primary: "Ogen en mond", accent: "Wenkbrauwen", face: "Achtergrond", frame: "Bril"},
-  cartoon: {primary: "Iris", accent: "Haar (of petje)", face: "Huid", frame: "Bril", lip: "Lippenstift", extra: "Sieraden en accessoires"},
+// Per basis: groepjes met de onderdelen en de kleuren die erbij horen.
+const GROUPS = {
+  robot: [
+    {title: "Ogen", parts: ["eyes"], colors: [["primary", "Kleur ogen en mond"]]},
+    {title: "Wenkbrauwen", parts: ["brows"], colors: [["accent", "Kleur wenkbrauwen"]]},
+    {title: "Mond en wangen", parts: ["mouth", "cheeks"]},
+    {title: "Bril", parts: ["glasses"], colors: [["frame", "Kleur montuur"]]},
+    {title: "Achtergrond", parts: [], colors: [["face", "Kleur achtergrond"]]},
+  ],
+  cartoon: [
+    {title: "Huid", parts: ["cheeks"], colors: [["face", "Huidskleur"]]},
+    {title: "Haar", parts: ["hair", "accessory"], colors: [["accent", "Haarkleur (of petje)"], ["extra", "Kleur accessoire en oorbellen"]]},
+    {title: "Ogen", parts: ["eyes", "lashes"], colors: [["primary", "Kleur iris"]]},
+    {title: "Wenkbrauwen en mond", parts: ["brows", "mouth", "lips"], colors: [["lip", "Kleur lippenstift"]]},
+    {title: "Bril en sieraden", parts: ["glasses", "earrings"], colors: [["frame", "Kleur montuur"]]},
+  ],
 };
-let look = null;
+const SWATCH = {
+  robot: {primary: ["#6ee7f7", "#ff6fa8", "#5be37d", "#ffb347", "#ff5a4e", "#b18cff", "#ffffff"],
+    accent: ["#6ee7f7", "#ff6fa8", "#5be37d", "#ffb347", "#ff5a4e", "#b18cff", "#ffffff"],
+    face: ["#000000", "#0b1a2a", "#1a0b1f", "#0f1f12", "#2a1a08"],
+    frame: ["#15171c", "#6ee7f7", "#c0c0c0", "#d4af37", "#ff6fa8"]},
+  cartoon: {face: ["#ffdbac", "#f7d2b0", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#5c3a21"],
+    accent: ["#2b1b10", "#5a3214", "#c98b2b", "#e8c46a", "#b5462a", "#9aa0a6", "#ff6fa8"],
+    primary: ["#3f7fd8", "#5aa9e6", "#2e8b57", "#7a4a24", "#8a5cf6", "#222222"],
+    lip: ["#d6336c", "#b0123a", "#ff7aa8", "#c8706a", "#9b4dca"],
+    extra: ["#ff6fa8", "#ffd54a", "#6ee7f7", "#ffffff", "#5be37d", "#d4af37"],
+    frame: ["#15171c", "#8a5a2b", "#c0c0c0", "#d4af37", "#ff6fa8", "#3f7fd8"]},
+};
+let look = null, lookTab = "pick", openGroup = null;
 
 async function lookCmd(c) {
   if (!api.ready) return;
@@ -505,60 +569,104 @@ async function lookCmd(c) {
     else if (!j.ok) log(`> ${c}\n${j.reply}`);
   } catch (e) { log(`> ${c}\n(fout: ${e.message || e})`); }
 }
+function showLookTab(t) {
+  lookTab = t;
+  document.querySelectorAll("#look-tabs button").forEach(b => b.classList.toggle("on", b.dataset.ltab === t));
+  document.querySelectorAll("[data-lpane]").forEach(p => p.hidden = p.dataset.lpane !== t);
+}
+document.querySelectorAll("#look-tabs button").forEach(b => b.onclick = () => showLookTab(b.dataset.ltab));
+const optName = (part, v) => (PARTS[look.base][part].find(o => o[0] === v) || [, v])[1];
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function renderLook() {
   if (!look) return;
-  $("#look-base").value = look.base;
+  document.querySelectorAll("#look-base button").forEach(b => b.classList.toggle("on", b.dataset.base === look.base));
   $("#look-emo").checked = look.emotionColors;
-  $("#look-name").textContent = `Huidig: ${look.name}`;
-  document.querySelectorAll("#presets button, #profiles button").forEach(b => b.classList.toggle("on", b.textContent === look.name));
-  const parts = $("#parts");
-  parts.innerHTML = "";
-  for (const [part, opts] of Object.entries(PARTS[look.base])) {
-    const wrap = document.createElement("div");
-    wrap.innerHTML = `<label>${PART_LABEL[part]}</label>`;
-    const sel = document.createElement("select");
-    for (const [v, n] of opts) sel.add(new Option(n, v, false, v === look[part]));
-    sel.onchange = () => lookCmd(`look ${part} ${sel.value}`);
-    wrap.append(sel);
-    parts.append(wrap);
-  }
-  const colors = $("#colors");
-  colors.innerHTML = "";
-  for (const [key, label] of Object.entries(COLOR_LABEL[look.base])) {
-    const wrap = document.createElement("div");
-    wrap.innerHTML = `<label>${label}</label>`;
-    const inp = document.createElement("input");
-    inp.type = "color";
-    inp.value = look[key];
-    inp.onchange = () => lookCmd(`look color ${key} ${inp.value}`);
-    wrap.append(inp);
-    colors.append(wrap);
+  $("#look-name").textContent = look.name;
+  document.querySelectorAll("#presets button, #profiles .prof").forEach(b => b.classList.toggle("on", b.dataset.name === look.name));
+  const groups = $("#groups");
+  groups.innerHTML = "";
+  const list = GROUPS[look.base];
+  if (!list.some(g => g.title === openGroup)) openGroup = list[0].title;
+  for (const g of list) {
+    const d = el("details", "grp");
+    d.open = g.title === openGroup;
+    d.ontoggle = () => {
+      if (!d.open) return;
+      openGroup = g.title;
+      groups.querySelectorAll("details").forEach(o => { if (o !== d) o.open = false; });
+    };
+    const sum = el("summary");
+    sum.append(el("span", "", g.title), el("span", "sum", g.parts.map(p => optName(p, look[p])).join(" · ")));
+    const body = el("div", "grp-body");
+    for (const part of g.parts) {
+      body.append(el("label", "", PART_LABEL[part]));
+      const opts = el("div", "opts");
+      for (const [v, n] of PARTS[look.base][part]) {
+        const b = el("button", v === look[part] ? "on" : "", n);
+        b.onclick = () => lookCmd(`look ${part} ${v}`);
+        opts.append(b);
+      }
+      body.append(opts);
+    }
+    for (const [key, label] of g.colors || []) {
+      body.append(el("label", "", label));
+      const sw = el("div", "sw");
+      const cur = (look[key] || "").toLowerCase();
+      const pal = SWATCH[look.base][key] || [];
+      for (const c of pal) {
+        const b = el("button", c === cur ? "on" : "");
+        b.style.background = c;
+        b.title = c;
+        b.setAttribute("aria-label", `kleur ${c}`);
+        b.onclick = () => lookCmd(`look color ${key} ${c}`);
+        sw.append(b);
+      }
+      const custom = el("span", "custom" + (pal.includes(cur) ? "" : " on"));
+      custom.title = "Eigen kleur";
+      if (!pal.includes(cur)) custom.style.background = cur;
+      const inp = el("input");
+      inp.type = "color";
+      inp.value = cur || "#000000";
+      inp.setAttribute("aria-label", "Eigen kleur");
+      inp.onchange = () => lookCmd(`look color ${key} ${inp.value}`);
+      custom.append(inp);
+      sw.append(custom);
+      body.append(sw);
+    }
+    d.append(sum, body);
+    groups.append(d);
   }
 }
 async function loadPresets() {
   try {
     const j = await api.cmd("look presets");
     const list = JSON.parse(j.reply);
-    const fill = (id, names, own) => {
-      const g = $(id);
-      g.innerHTML = "";
-      for (const n of names) {
-        const b = document.createElement("button");
-        b.textContent = n;
-        b.onclick = () => lookCmd(`look preset ${n}`);
-        g.append(b);
-        if (own) {
-          const d = document.createElement("button");
-          d.textContent = "Verwijder";
-          d.className = "muted";
-          d.onclick = async () => { await api.cmd(`look delete ${n}`); loadPresets(); };
-          g.append(d);
-        }
-      }
-      if (own && !names.length) g.innerHTML = '<p class="muted">Nog geen eigen profielen. Stel hieronder iets samen en sla het op.</p>';
-    };
-    fill("#presets", list.presets, false);
-    fill("#profiles", list.profiles, true);
+    const pre = $("#presets");
+    pre.innerHTML = "";
+    for (const n of list.presets) {
+      const b = el("button", "", n);
+      b.dataset.name = n;
+      b.onclick = () => lookCmd(`look preset ${n}`);
+      pre.append(b);
+    }
+    const own = $("#profiles");
+    own.innerHTML = "";
+    for (const n of list.profiles) {
+      const b = el("button", "prof", n);
+      b.dataset.name = n;
+      b.onclick = () => lookCmd(`look preset ${n}`);
+      const x = el("span", "x", "✕");
+      x.title = `${n} verwijderen`;
+      x.onclick = async e => {
+        e.stopPropagation();
+        if (!confirm(`Profiel "${n}" verwijderen?`)) return;
+        await api.cmd(`look delete ${n}`);
+        loadPresets();
+      };
+      b.append(x);
+      own.append(b);
+    }
+    if (!list.profiles.length) own.innerHTML = '<p class="muted" style="margin:0">Nog geen eigen profielen. Maak er een bij <b>Zelf maken</b>.</p>';
   } catch {}
   lookCmd("look");
 }
@@ -567,11 +675,14 @@ $("#profile-save").onclick = async () => {
   if (!n) { $("#profile-name").focus(); return; }
   await lookCmd(`look save ${n}`);
   $("#profile-name").value = "";
-  loadPresets();
+  await loadPresets();
+  showLookTab("pick");
 };
+$("#profile-name").onkeydown = e => { if (e.key === "Enter") $("#profile-save").click(); };
 $("#look-random").onclick = () => lookCmd("look random");
-$("#look-base").onchange = e => lookCmd(`look base ${e.target.value}`);
+document.querySelectorAll("#look-base button").forEach(b => b.onclick = () => lookCmd(`look base ${b.dataset.base}`));
 $("#look-emo").onchange = e => lookCmd(`look emotioncolors ${e.target.checked ? "on" : "off"}`);
+showLookTab("pick");
 let lookLoaded = false;
 setInterval(() => { if (api.ready && !lookLoaded) { lookLoaded = true; loadPresets(); } }, 500);
 
