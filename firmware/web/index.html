@@ -50,10 +50,9 @@ button.icon{flex:0 0 44px;width:44px;height:44px;padding:0;display:grid;place-it
 .tabs button{flex:1 1 0;min-width:0;min-height:40px;border-radius:999px;padding:8px 6px;white-space:nowrap;font-size:14px}
 .tabs button.on{background:var(--accent);color:#04151a;border-color:var(--accent);font-weight:600}
 section.tab-off{display:none}
-.sheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
-.sheet[hidden]{display:none}
-.sheet-body{width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 28px}
-@media (min-width:700px){.sheet{align-items:center}.sheet-body{border-radius:18px}}
+main.editing .tabs,main.editing section[data-tab],main.editing #ble-info{display:none}
+button.icon.on{background:var(--accent);color:#04151a;border-color:var(--accent)}
+button.done{min-height:38px;padding:7px 16px;border-radius:999px;background:var(--accent);color:#04151a;border:0;font-weight:600}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .sheet-head h2{margin:0}
 main.off section:not(#ble-info){opacity:.45;pointer-events:none}
@@ -79,8 +78,8 @@ details.grp[open] summary::after{transform:rotate(90deg)}
 .grp-body{padding:0 14px 14px}
 .grp-body label{margin:10px 0 6px}
 .grp-body label:first-child{margin-top:0}
-.sw{display:flex;flex-wrap:wrap;gap:7px}
-.sw button,.sw .custom{width:32px;height:32px;min-height:0;padding:0;border-radius:50%;border:2px solid var(--line)}
+.sw{display:flex;flex-wrap:wrap;gap:6px}
+.sw button,.sw .custom{width:29px;height:29px;min-height:0;padding:0;border-radius:50%;border:2px solid var(--line)}
 .sw button.on{border-color:var(--text);box-shadow:0 0 0 2px var(--bg) inset}
 .sw .custom{position:relative;overflow:hidden;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)}
 .sw .custom.on{border-color:var(--text)}
@@ -210,14 +209,10 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
     <div class="row"><input type="text" id="cmd" placeholder="help" autocapitalize="none"><button id="send" style="flex:0 0 90px">Stuur</button></div>
     <div id="log"></div>
   </section>
-</main>
-  <div id="look-panel" class="sheet" hidden>
-  <section class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="look-title">
+  <section id="look-panel" aria-labelledby="look-title" hidden>
     <div class="sheet-head">
       <div><h2 id="look-title">Uiterlijk</h2><div class="look-now" id="look-name"></div></div>
-      <button id="look-close" class="icon" aria-label="Sluiten">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
+      <button id="look-close" class="done">Klaar</button>
     </div>
     <div class="seg" role="tablist" id="look-tabs">
       <button role="tab" data-ltab="pick">Kiezen</button>
@@ -246,7 +241,7 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
       </div>
     </div>
   </section>
-  </div>
+</main>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -495,15 +490,17 @@ let startTab = "control";
 try { startTab = localStorage.getItem("deskbuddy-tab") || startTab; } catch {}
 showTab(startTab);
 
-function openLook(open) {
-  $("#look-panel").hidden = !open;
-  document.body.style.overflow = open ? "hidden" : "";
-  if (open) lookCmd("look");
+// Editor-modus: het uiterlijk bewerken in plaats van de gewone tabbladen (wisselen met het palet-icoon).
+function setEditing(on) {
+  $("main").classList.toggle("editing", on);
+  $("#look-panel").hidden = !on;
+  $("#look-open").classList.toggle("on", on);
+  $("#look-open").setAttribute("aria-pressed", on);
+  if (on) { lookCmd("look"); scrollTo(0, 0); }
+  try { localStorage.setItem("deskbuddy-edit", on ? "1" : ""); } catch {}
 }
-$("#look-open").onclick = () => openLook(true);
-$("#look-close").onclick = () => openLook(false);
-$("#look-panel").onclick = e => { if (e.target.id === "look-panel") openLook(false); };
-document.addEventListener("keydown", e => { if (e.key === "Escape") openLook(false); });
+$("#look-open").onclick = () => setEditing($("#look-panel").hidden);
+$("#look-close").onclick = () => setEditing(false);
 
 // ---------- Uiterlijk (look) ----------
 const PARTS = {
@@ -677,6 +674,7 @@ $("#profile-save").onclick = async () => {
   $("#profile-name").value = "";
   await loadPresets();
   showLookTab("pick");
+try { if (localStorage.getItem("deskbuddy-edit")) setEditing(true); } catch {}
 };
 $("#profile-name").onkeydown = e => { if (e.key === "Enter") $("#profile-save").click(); };
 $("#look-random").onclick = () => lookCmd("look random");
