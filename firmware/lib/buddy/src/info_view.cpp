@@ -15,7 +15,7 @@ const lv_color_t kDim = LV_COLOR_MAKE(0x8A, 0x98, 0x9C);
 bool DeviceInfo::operator==(const DeviceInfo& o) const {
   return wifi == o.wifi && !strcmp(ssid, o.ssid) && !strcmp(ip, o.ip) && rssi / 5 == o.rssi / 5 &&
          !strcmp(hostname, o.hostname) && bleEnabled == o.bleEnabled && bleConnected == o.bleConnected &&
-         !strcmp(bleName, o.bleName) && sound == o.sound && mascot == o.mascot && batteryPct == o.batteryPct && charging == o.charging &&
+         !strcmp(bleName, o.bleName) && sound == o.sound && mascot == o.mascot && !strcmp(lookName, o.lookName) && batteryPct == o.batteryPct && charging == o.charging &&
          !strcmp(version, o.version) && updateMode == o.updateMode && updateState == o.updateState &&
          updateProgress == o.updateProgress && !strcmp(updateVersion, o.updateVersion);
 }
@@ -207,9 +207,9 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
   lv_label_set_text(soundIcon_, in.sound ? LV_SYMBOL_VOLUME_MAX : LV_SYMBOL_MUTE);
   lv_label_set_text(sound_, in.sound ? "Geluid aan" : "Geluid uit");
   lv_label_set_text(soundSub_, "Tik om te wisselen");
-  lv_label_set_text(skin_, in.mascot ? "Mascotte" : "Robot");
+  lv_label_set_text(skin_, in.lookName);
   lv_obj_invalidate(skinIcon_);
-  lv_label_set_text(skinSub_, "Tik voor ander uiterlijk");
+  lv_label_set_text(skinSub_, "Tik voor volgend personage");
 
   if (in.updateState == UpdateState::Available) {
     lv_label_set_text_fmt(footer_, LV_SYMBOL_DOWNLOAD " Update beschikbaar: %s (tik)", in.updateVersion);

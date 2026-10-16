@@ -3,6 +3,8 @@
 // Alleen afhankelijk van LVGL, zodat dezelfde code op het apparaat en in de simulator draait.
 
 #include <lvgl.h>
+
+#include "look.h"
 #include <math.h>
 #include <stdint.h>
 
@@ -80,6 +82,8 @@ class Face {
   void setMatrix(bool on);
   // Afgedekt door een ondoorzichtig paneel (klok, info, ...): dan niets hertekenen.
   void setCovered(bool covered);
+  // Geluidsniveau 0..1 (voor de LED-equalizer-mond)
+  void setSoundLevel(float l) { soundLevel_ = l; }
   bool matrix() const { return matrix_; }
   void play(Action a);
   Action action() const { return action_; }
@@ -90,6 +94,9 @@ class Face {
     return c;
   }
   Skin skin() const { return skin_; }
+  // Volledig uiterlijk (basis, stijlen per onderdeel, kleuren); zie look.h
+  void setLook(const Look& l);
+  const Look& look() const { return look_; }
 
   lv_obj_t* obj() const { return obj_; }
 
@@ -116,6 +123,10 @@ class Face {
   void draw(lv_layer_t* layer);
   void drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale);
   void drawZs(lv_layer_t* layer, lv_color_t color);
+  void drawRobot(lv_layer_t* layer);  // face_robot.cpp
+  void drawRobotBrows(lv_layer_t* layer, float cy);
+  void drawRobotGlasses(lv_layer_t* layer, float cy);
+  void drawPixelShape(lv_layer_t* layer, float x1, float y1, float x2, float y2, float r, bool heart, lv_color_t col);
   void drawMascot(lv_layer_t* layer);
   void drawMascotEye(lv_layer_t* layer, int side, float cx, float cy);
   void drawMascotMouth(lv_layer_t* layer, float cx, float cy);
@@ -145,10 +156,13 @@ class Face {
   float rnd();
 
   lv_obj_t* obj_ = nullptr;
+  Look look_;
+  uint32_t poseColor(Emotion e, uint32_t emotionColor) const;
   bool matrix_ = false;
   int bobPx_ = 0, drawnBobPx_ = 0;  // ademhaling in hele pixels: alleen hertekenen als hij echt verschuift
   bool wasSettled_ = false;
   bool covered_ = false;
+  float soundLevel_ = 0;
   float matrixHead_[2][7];  // per oog, per kolom: positie van de kop (in tekens)
   float matrixSpeed_[2][7];
   // Actie-status

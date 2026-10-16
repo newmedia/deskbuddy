@@ -24,7 +24,8 @@ struct DeviceInfo {
   uint32_t blePasskey = 0;  // >0: koppelcode die op het scherm moet staan
 
   bool sound = true;
-  bool mascot = false;     // skin
+  bool mascot = false;     // basis cartoon
+  char lookName[16] = "Robot";
 
   uint32_t heapFree = 0;     // intern RAM vrij (bytes)
   uint32_t heapMin = 0;      // laagste stand sinds opstarten

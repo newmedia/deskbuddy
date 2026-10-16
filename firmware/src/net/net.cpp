@@ -49,6 +49,8 @@ void pumpNow() {
 }
 // Verbindingspoging (voor terugkoppeling in de setup-pagina)
 bool joining = false;
+bool everConnected = false;   // ooit verbonden met het thuisnetwerk (dan bij storing geen setup-AP)
+uint32_t lastRetry = 0;
 uint32_t joinStart = 0, staSince = 0;
 int lastReason = 0;
 
@@ -139,7 +141,7 @@ void handleStatus() {
 void handleCmd() {
   String line = server.hasArg("c") ? server.arg("c") : server.arg("plain");
   line.trim();
-  char reply[400];
+  static char reply[700];
   bool ok = app->command(line.c_str(), reply, sizeof(reply));
   String body = String("{\"ok\":") + (ok ? "true" : "false") + ",\"reply\":\"";
   jsonEscape(body, reply);
@@ -362,10 +364,16 @@ void loop() {
     case Mode::Connecting:
       if (connected) {
         joining = false;
+        everConnected = true;
         setMode(Mode::Station);
         startStationServices();
-      } else if (now - modeSince > kConnectTimeout && !apUp) {
-        startAp();  // STA blijft het op de achtergrond proberen
+      } else if (!everConnected && !joining && now - modeSince > kConnectTimeout && !apUp) {
+        startAp();  // nog nooit verbonden: setup aanbieden (STA blijft het op de achtergrond proberen)
+      } else if (now - lastRetry > 15000 && now - modeSince > 5000) {
+        // Verbinding kwijt (zwak signaal, router herstart): gewoon opnieuw proberen, geen setup-AP.
+        lastRetry = now;
+        WiFi.disconnect(false);
+        WiFi.begin(ssid, pass);
       }
       break;
     case Mode::AccessPoint:
@@ -382,6 +390,9 @@ void loop() {
           setMode(Mode::Station);
           startStationServices();
         }
+      } else if (ssid[0] && WiFi.softAPgetStationNum() == 0 && now - lastRetry > 20000) {
+        lastRetry = now;  // thuisnetwerk bekend: blijven proberen terwijl het setup-AP open staat
+        WiFi.begin(ssid, pass);
       } else if (now - apLastClient > kApIdleTimeout) {
         stopAp();
         if (ssid[0]) connectSta();
@@ -389,6 +400,7 @@ void loop() {
       }
       break;
     case Mode::Station:
+      everConnected = true;
       ArduinoOTA.handle();
       updater::loop(connected);
       if (!timeSynced && esp_sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED) {

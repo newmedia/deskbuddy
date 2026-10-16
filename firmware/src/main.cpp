@@ -38,8 +38,14 @@ struct EspPlatform : Platform {
     s.sound = prefs.getBool("sound", s.sound);
     s.volume = prefs.getUChar("volume", s.volume);
     s.brightness = prefs.getUChar("bright", s.brightness);
-    s.skin = (Skin)prefs.getUChar("skin", (uint8_t)s.skin);
-    if (s.skin >= Skin::Count) s.skin = Skin::Classic;
+    Look l;
+    if (prefs.getBytesLength("look") == sizeof(Look) && prefs.getBytes("look", &l, sizeof(Look)) == sizeof(Look) &&
+        l.ver == Look().ver) {
+      l.name[sizeof(l.name) - 1] = 0;
+      s.look = l;
+    } else if (prefs.isKey("skin")) {
+      s.look = preset(prefs.getUChar("skin", 0) == 1 ? 1 : 0);  // oude instelling (alleen skin)
+    }
     s.sleepMin = prefs.getUChar("sleep", s.sleepMin);
     s.ble = prefs.getBool("ble", s.ble);
     prefs.end();
@@ -49,7 +55,7 @@ struct EspPlatform : Platform {
     prefs.putBool("sound", s.sound);
     prefs.putUChar("volume", s.volume);
     prefs.putUChar("bright", s.brightness);
-    prefs.putUChar("skin", (uint8_t)s.skin);
+    prefs.putBytes("look", &s.look, sizeof(Look));
     prefs.putUChar("sleep", s.sleepMin);
     prefs.putBool("ble", s.ble);
     prefs.end();
@@ -99,7 +105,7 @@ void handleSerial() {
     if (c == '\n' || lineLen == sizeof(line) - 1) {
       line[lineLen] = 0;
       lineLen = 0;
-      char reply[400];
+      static char reply[700];
       app.command(line, reply, sizeof(reply));
       if (reply[0]) Serial.println(reply);
     } else {

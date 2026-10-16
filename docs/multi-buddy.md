@@ -84,7 +84,7 @@ buddy die iets moet doen, krijgt een *verzoek* (cmd).
 
 ## Open vragen
 
-- Staan de buddies vooral **in één ruimte** (dan eerst ESP-NOW) of **verspreid** over huis of kantoor
-  (dan eerst MQTT)?
+- ~~Eén ruimte of verspreid?~~ **Eén ruimte** (2026-10-16): dus eerst ESP-NOW; MQTT pas later voor
+  buddies op afstand. Elke buddy kan zijn eigen look krijgen (zie "Uiterlijk" in `firmware.md`).
 - Wie mag een buddy aansturen: alleen buddies uit je eigen groep, of ook "publieke" berichtjes?
 - Moet een groepsactie altijd mogen, of wil je per buddy kunnen instellen "niet storen"?

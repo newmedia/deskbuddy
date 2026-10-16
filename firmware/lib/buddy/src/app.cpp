@@ -23,7 +23,7 @@ void App::create(lv_obj_t* screen) {
   platform_.loadSettings(settings_);
   sound.setEnabled(settings_.sound);
   sound.setVolume(settings_.volume);
-  face.setSkin(settings_.skin);
+  face.setLook(settings_.look);
   applySleep();
   platform_.deviceInfo(dev_);
   syncDev();
@@ -70,7 +70,9 @@ void App::onGesture(const GestureEvent& g) {
       char reply[96];
       firmwareUpdate("install", reply, sizeof(reply));
     } else if (h == InfoView::Hit::Skin) {
-      setSkin(settings_.skin == Skin::Mascot ? Skin::Classic : Skin::Mascot);
+      // Volgende personage (eigen look -> eerste personage)
+      int i = presetIndex(settings_.look.name);
+      setLook(preset(i < 0 ? 0 : i + 1));
       info.show();
     } else if (g.type == Gesture::Tap || g.type == Gesture::SwipeUp) {
       info.hide();
@@ -150,7 +152,7 @@ void App::statusJson(char* out, size_t len) {
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
            "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u,\"updates\":\"%s\",\"update\":\"%s\","
            "\"latest\":\"%s\",\"progress\":%u,\"ble\":%s,\"bleConnected\":%s,\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
-           dev_.version, emotionName(face.emotion()), skinName(settings_.skin), settings_.sound ? "true" : "false",
+           dev_.version, emotionName(face.emotion()), skinName(face.skin()), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
            dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin,
            updateModeName(dev_.updateMode), updateStateName(dev_.updateState), dev_.updateVersion,
@@ -161,6 +163,7 @@ void App::statusJson(char* out, size_t len) {
 
 void App::update(uint32_t dtMs) {
   behaviour.update(dtMs);
+  face.setSoundLevel(sound.level());
   face.update(dtMs);
 
   // Geluid bij een nieuwe emotie; wakker worden krijgt een eigen geluidje.
@@ -283,15 +286,101 @@ void App::setSleep(uint8_t minutes) {
 
 void App::syncDev() {
   dev_.sound = settings_.sound;
-  dev_.mascot = settings_.skin == Skin::Mascot;
+  dev_.mascot = settings_.look.base == 1;
+  snprintf(dev_.lookName, sizeof(dev_.lookName), "%s", settings_.look.name);
 }
 
-void App::setSkin(Skin s) {
-  settings_.skin = s;
-  face.setSkin(s);
+void App::setSkin(Skin s) { setLook(preset(s == Skin::Mascot ? 1 : 0)); }
+
+void App::setLook(const Look& l) {
+  settings_.look = l;
+  face.setLook(l);
   syncDev();
   sound.play(Sound::Toggle);
   save();
+}
+
+// look                         -> huidige look als JSON
+// look preset <naam|nummer>    -> personage kiezen (look presets = lijst)
+// look random                  -> verrassing
+// look <onderdeel> <stijl>     -> bijv. look eyes ring, look hair curly, look base cartoon
+// look color <primary|accent|face|frame> <#rrggbb>
+// look emotioncolors on|off  ·  look name <naam>
+bool App::lookCommand(const char* line, char* reply, size_t len) {
+  char a[16] = "", b[24] = "", c[24] = "";
+  sscanf(line, "look %15s %23s %23s", a, b, c);
+  Look l = settings_.look;
+  if (!a[0]) {
+    lookJson(l, reply, len);
+    return true;
+  }
+  if (!strcmp(a, "presets")) {
+    size_t n = snprintf(reply, len, "[");
+    for (int i = 0; i < presetCount() && n < len; i++)
+      n += snprintf(reply + n, len - n, "%s\"%s\"", i ? "," : "", preset(i).name);
+    if (n < len) snprintf(reply + n, len - n, "]");
+    return true;
+  }
+  if (!strcmp(a, "preset")) {
+    int i = presetIndex(b);
+    if (i < 0) {
+      snprintf(reply, len, "onbekend personage (zie 'look presets')");
+      return false;
+    }
+    l = preset(i);
+  } else if (!strcmp(a, "random")) {
+    l = randomLook((uint32_t)lv_tick_get() * 2654435761u);
+  } else if (!strcmp(a, "base")) {
+    if (strcmp(b, "robot") && strcmp(b, "cartoon")) {
+      snprintf(reply, len, "gebruik: look base robot|cartoon");
+      return false;
+    }
+    uint8_t nb = !strcmp(b, "cartoon");
+    if (nb != l.base) l = preset(nb);  // nieuwe basis: start bij het standaardpersonage daarvan
+  } else if (!strcmp(a, "color")) {
+    uint32_t col;
+    if (!parseColor(c, col)) {
+      snprintf(reply, len, "gebruik: look color primary|accent|face|frame #rrggbb");
+      return false;
+    }
+    if (!strcmp(b, "primary")) l.primary = col;
+    else if (!strcmp(b, "accent")) l.accent = col;
+    else if (!strcmp(b, "face")) l.face = col;
+    else if (!strcmp(b, "frame")) l.frame = col;
+    else {
+      snprintf(reply, len, "onbekende kleur: %s", b);
+      return false;
+    }
+    snprintf(l.name, sizeof(l.name), "Eigen");
+  } else if (!strcmp(a, "emotioncolors")) {
+    l.emotionColors = !strcmp(b, "on");
+  } else if (!strcmp(a, "name")) {
+    const char* p = strstr(line, "name");
+    p = p ? p + 4 : "";
+    while (*p == ' ') p++;
+    snprintf(l.name, sizeof(l.name), "%s", p);
+  } else {
+    Part part;
+    uint8_t style;
+    if (!partFromName(a, part) || !styleFromName(part, b, style)) {
+      snprintf(reply, len, "gebruik: look [presets|preset <naam>|random|base|<onderdeel> <stijl>|color ...]");
+      return false;
+    }
+    uint8_t ok[8];
+    int n = stylesFor(part, l.base, ok, 8);
+    bool allowed = false;
+    for (int i = 0; i < n; i++) allowed |= ok[i] == style;
+    if (!allowed) {
+      snprintf(reply, len, "%s '%s' bestaat niet voor %s", partName(part), b, l.base ? "cartoon" : "robot");
+      return false;
+    }
+    uint8_t* f[] = {&l.eyes, &l.brows, &l.mouth, &l.cheeks, &l.glasses, &l.hair};
+    *f[(int)part] = style;
+    snprintf(l.name, sizeof(l.name), "Eigen");
+  }
+  setLook(l);
+  lookJson(l, reply, len);
+  return true;
 }
 
 void App::applyBrightness() {
@@ -337,12 +426,13 @@ void App::status(char* out, size_t len) {
   out += n;
   len -= n;
   snprintf(out, len, "skin=%s brightness=%u sound=%s volume=%u battery=%d%s wifi=%s ip=%s ble=%s",
-           skinName(settings_.skin), settings_.brightness,
+           skinName(face.skin()), settings_.brightness,
            settings_.sound ? "on" : "off", settings_.volume, dev_.batteryPct, dev_.charging ? "+" : "", wifi,
            dev_.ip[0] ? dev_.ip : "-", dev_.bleEnabled ? (dev_.bleConnected ? "connected" : "on") : "off");
 }
 
 bool App::command(const char* line, char* reply, size_t len) {
+  if (!strncmp(line, "look", 4) && (line[4] == 0 || line[4] == ' ')) return lookCommand(line, reply, len);
   if (!strcmp(line, "reboot")) {
     snprintf(reply, len, "ok herstarten");
     rebootIn_ = 500;  // eerst het antwoord laten versturen

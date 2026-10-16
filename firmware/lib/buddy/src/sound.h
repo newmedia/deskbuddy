@@ -53,12 +53,15 @@ class SoundSynth {
   bool enabled() const { return enabled_; }
   void setVolume(uint8_t pct) { volume_ = pct > 100 ? 100 : pct; }
   uint8_t volume() const { return volume_; }
+  // Geluidsniveau van het laatst gevulde blok, 0..1 (voor de equalizer-mond)
+  float level() const { return level_; }
   bool active() const { return playing_ != Sound::None || pending_ != (uint8_t)Sound::None; }
 
  private:
   std::atomic<uint8_t> pending_{0};
   std::atomic<bool> enabled_{true};
   std::atomic<uint8_t> volume_{70};
+  std::atomic<float> level_{0};
   // Alleen in fill() gebruikt:
   Sound playing_ = Sound::None;
   uint8_t note_ = 0;

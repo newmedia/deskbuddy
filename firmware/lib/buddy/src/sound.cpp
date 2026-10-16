@@ -140,10 +140,12 @@ bool SoundSynth::fill(int16_t* out, size_t n) {
   }
   if (playing_ == Sound::None) {
     memset(out, 0, n * sizeof(int16_t));
+    level_ = level_ * 0.8f;
     return false;
   }
 
   const float gain = volume_ / 100.0f * 26000.0f;
+  float peak = 0;
   for (size_t i = 0; i < n; i++) {
     const Seq& seq = seqFor(playing_);
     if (note_ >= seq.count) {
@@ -182,11 +184,14 @@ bool SoundSynth::fill(int16_t* out, size_t n) {
       s *= nt.vol * a * r * trem;
     }
     out[i] = (int16_t)(s * gain);
+    float a = fabsf(s);
+    if (a > peak) peak = a;
     if (++pos_ >= len) {
       pos_ = 0;
       note_++;
     }
   }
+  level_ = LV_MAX(peak, level_ * 0.8f);
   return true;
 }
 

@@ -23,7 +23,7 @@ struct Settings {
   bool sound = true;
   uint8_t volume = 70;      // 0..100
   uint8_t brightness = 200; // 0..255
-  Skin skin = Skin::Classic;
+  Look look = preset(0);   // uiterlijk (basis, onderdelen, kleuren)
   uint8_t sleepMin = 3;     // minuten tot in slaap; 0 = nooit
   bool ble = true;          // Bluetooth aan
 };
@@ -73,7 +73,8 @@ class App : public CommandHost {
   void setSound(bool on) override;
   void setVolume(uint8_t pct) override;
   void playSound(Sound s) override { sound.play(s); }
-  void setSkin(Skin s) override;
+  void setSkin(Skin s) override;  // basis wisselen = personage Robot of Mascotte
+  void setLook(const Look& l);
   void setSleep(uint8_t minutes) override;
   void ble(const char* action, char* reply, size_t len) override;
   void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override;
@@ -92,6 +93,7 @@ class App : public CommandHost {
   void applyBrightness();
   void save();
   void syncDev();
+  bool lookCommand(const char* line, char* reply, size_t len);
   void applySleep();
 
   Platform& platform_;

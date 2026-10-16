@@ -44,8 +44,30 @@ bool skinFromName(const char* name, Skin& out) {
 void Face::setSkin(Skin s) {
   if (s == skin_) return;
   skin_ = s;
+  look_.base = (uint8_t)s;
   fullRedraw_ = true;
   if (obj_) lv_obj_invalidate(obj_);
+}
+
+void Face::setLook(const Look& l) {
+  look_ = l;
+  skin_ = l.base ? Skin::Mascot : Skin::Classic;
+  applyPose(poseFor(emotion_));  // kleuren opnieuw bepalen
+  mascotTargets();
+  fullRedraw_ = true;
+  if (obj_) lv_obj_invalidate(obj_);
+}
+
+// Kleur van de robotogen: de eigen hoofdkleur, behalve bij sterke emoties (als emotiekleuren aan staan).
+uint32_t Face::poseColor(Emotion e, uint32_t emotionColor) const {
+  if (look_.emotionColors &&
+      (e == Emotion::Angry || e == Emotion::Sad || e == Emotion::Love || e == Emotion::Dizzy))
+    return emotionColor;
+  uint32_t c = look_.primary;
+  if (e == Emotion::Asleep) {  // gedimd
+    c = (((c >> 16) & 0xff) * 45 / 100) << 16 | (((c >> 8) & 0xff) * 45 / 100) << 8 | ((c & 0xff) * 45 / 100);
+  }
+  return c;
 }
 
 const char* emotionName(Emotion e) {
@@ -97,9 +119,10 @@ void Face::create(lv_obj_t* parent) {
   eye_.lidBottom.snap(pose_.lidBottom);
   dy_.snap(pose_.dy);
   blush_.snap(0);
-  colR_.snap((pose_.color >> 16) & 0xff);
-  colG_.snap((pose_.color >> 8) & 0xff);
-  colB_.snap(pose_.color & 0xff);
+  uint32_t c0 = poseColor(emotion_, pose_.color);
+  colR_.snap((c0 >> 16) & 0xff);
+  colG_.snap((c0 >> 8) & 0xff);
+  colB_.snap(c0 & 0xff);
   for (Spring* s : {&colR_, &colG_, &colB_, &blush_}) {
     s->k = 60;
     s->d = 16;
@@ -137,9 +160,10 @@ void Face::applyPose(const Pose& p) {
   eye_.lidBottom.target = p.lidBottom;
   dy_.target = p.dy;
   blush_.target = p.blush;
-  colR_.target = (p.color >> 16) & 0xff;
-  colG_.target = (p.color >> 8) & 0xff;
-  colB_.target = p.color & 0xff;
+  uint32_t c = poseColor(emotion_, p.color);
+  colR_.target = (c >> 16) & 0xff;
+  colG_.target = (c >> 8) & 0xff;
+  colB_.target = c & 0xff;
   // Vorm wisselen (hart <-> rond) doen we achter een knipper, dan zie je de overgang niet.
   if (p.heart != heartShown_) {
     pendingHeart_ = true;
@@ -261,6 +285,7 @@ void Face::setCovered(bool c) {
 bool Face::settled() {
   if (matrix_ || fullRedraw_ || effectsActive() || blinkT_ >= 0 || pendingHeart_) return false;
   if (bobPx_ != drawnBobPx_) return false;
+  if (look_.mouth == (uint8_t)MouthStyle::Equalizer && soundLevel_ > 0.02f) return false;
   // Emoties met een doorlopende animatie (hartslag, wiebelen, zwevende Z'jes, pulserende o-mond)
   if (emotion_ == Emotion::Love || emotion_ == Emotion::Dizzy || emotion_ == Emotion::Sleepy ||
       emotion_ == Emotion::Asleep)
@@ -326,7 +351,11 @@ void Face::invalidate() {
     float cx = kCenter + side * kEyeSpacing + lx;
     float cy = kCenter + kEyeY + dy_.x + ly;
     growBox(box, cx - maxW / 2 - 30, cy - maxH / 2 - 34, cx + maxW / 2 + 30, cy + maxH / 2 + 60);
+    // wenkbrauwen, bril, vizier en monocle-kettinkje vallen buiten het oog zelf
+    if (look_.brows || look_.glasses || look_.eyes == (uint8_t)EyeStyle::Visor)
+      growBox(box, cx - maxW / 2 - 50, cy - maxH / 2 - 90, cx + maxW / 2 + 50, cy + maxH / 2 + 110);
   }
+  if (look_.mouth != (uint8_t)MouthStyle::Auto) growBox(box, kCenter - 75, kCenter + 60, kCenter + 75, kCenter + 175);
   if (mouthShown_ != MouthNone || mouthAlpha_ > 0)
     growBox(box, kCenter - 60, kCenter + 60, kCenter + 60, kCenter + 160);
   if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep)
@@ -357,136 +386,8 @@ void Face::draw(lv_layer_t* layer) {
     drawEffects(layer);
     return;
   }
-  float bob = (float)bobPx_;
-  drawnBobPx_ = bobPx_;
-  float baseY = kCenter + kEyeY + dy_.x + lookY_.x + bob;
-  for (int side = -1; side <= 1; side += 2) {
-    // Perspectief: het oog aan de kant waar hij naartoe kijkt wordt iets groter.
-    float persp = 1.0f + side * (lookX_.x / kLookX) * 0.07f;
-    float cx = kCenter + side * kEyeSpacing + lookX_.x;
-    float cy = baseY;
-    if (emotion_ == Emotion::Dizzy) {
-      float a = t_ * 7.0f * side;
-      cx += cosf(a) * 16;
-      cy += sinf(a) * 16;
-    }
-    drawEye(layer, side, cx, cy, persp);
-  }
-  if (pucker_)
-    drawPucker(layer, kCenter + lookX_.x * 0.4f, kCenter + bob + 112,
-               lv_color_make((uint8_t)colR_.x, (uint8_t)colG_.x, (uint8_t)colB_.x), false);
-  else if (mouthShown_ != MouthNone && mouthAlpha_ > 0.01f)
-    drawMouth(layer, kCenter + lookX_.x * 0.4f, kCenter + bob);
-  if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep)
-    drawZs(layer, lv_color_make((uint8_t)colR_.x, (uint8_t)colG_.x, (uint8_t)colB_.x));
+  drawRobot(layer);
   drawEffects(layer);
-}
-
-void Face::drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale) {
-  lv_color_t col = lv_color_make((uint8_t)LV_CLAMP(0.f, colR_.x, 255.f),
-                                 (uint8_t)LV_CLAMP(0.f, colG_.x, 255.f),
-                                 (uint8_t)LV_CLAMP(0.f, colB_.x, 255.f));
-  float sq = LV_CLAMP(-0.6f, squash_.x, 0.6f) * 0.25f;
-  float pulse = (emotion_ == Emotion::Love) ? 1.0f + 0.06f * sinf(t_ * 9.0f) : 1.0f;
-  float w = eye_.w.x * scale * (1 + sq) * pulse * swell_;
-  float h = eye_.h.x * scale * (1 - sq) * pulse * swell_;
-  float c = eyeClosure(side);
-  float hv = LV_MAX(h * (1 - c * 0.94f), 8.0f);
-  float vs = hv / h;  // verticale schaal door knipperen
-
-  float x1 = cx - w / 2, x2 = cx + w / 2;
-  float y1 = cy - hv / 2, y2 = cy + hv / 2;
-
-  // Blosjes onder de buitenkant van het oog
-  if (blush_.x > 0.02f) {
-    float bx = cx + side * 18;
-    fillEllipse(layer, bx, cy + eye_.h.x / 2 + 26, 74, 34, lv_color_hex(0xFF6FA8),
-                (lv_opa_t)LV_CLAMP(0.f, blush_.x * 190, 255.f));
-  }
-
-  if (heartShown_) {
-    float s = w * 1.08f;
-    float r = s * 0.27f;
-    fillEllipse(layer, cx - s * 0.23f, cy - s * 0.12f * vs, 2 * r, 2 * r * vs, col);
-    fillEllipse(layer, cx + s * 0.23f, cy - s * 0.12f * vs, 2 * r, 2 * r * vs, col);
-    fillTri(layer, cx - s * 0.49f, cy - s * 0.06f * vs, cx + s * 0.49f, cy - s * 0.06f * vs, cx,
-            cy + s * 0.44f * vs, col);
-    return;
-  }
-
-  float r = LV_MIN(eye_.r.x * scale, LV_MIN(w, hv) / 2);
-  fillRect(layer, x1, y1, x2, y2, r, col);
-
-  // Bovenooglid: zwart vlak met schuine onderrand. Binnenhoek = kant richting schermmidden.
-  float lid = LV_CLAMP(0.f, eye_.lidTop.x, 1.f);
-  float tilt = eye_.tilt.x;
-  if (lid > 0.005f || fabsf(tilt) > 0.5f) {
-    float slope = tanf(tilt * kPi / 180.0f) * (w / 2 + 8);
-    float base = y1 + lid * hv;
-    float yInner = base + slope, yOuter = base - slope;
-    float yl = (side < 0) ? yOuter : yInner;  // links-oog: binnenkant is rechts
-    float yr = (side < 0) ? yInner : yOuter;
-    float top = y1 - 12;
-    yl = LV_MAX(yl, top);
-    yr = LV_MAX(yr, top);
-    // Rechthoek tot het hoogste punt + één driehoek voor de schuine wig. Geen naad tussen twee
-    // driehoeken door het oog heen (die lekt door anti-aliasing een lijntje oogkleur).
-    float ymin = LV_MIN(yl, yr);
-    float xl = x1 - 8, xr = x2 + 8;
-    fillRect(layer, xl, top, xr, ymin + 2, 0, kBlack);
-    if (yl < yr) fillTri(layer, xl, yl, xr, yl, xr, yr, kBlack);
-    else if (yr < yl) fillTri(layer, xl, yr, xr, yr, xl, yl, kBlack);
-  }
-
-  // Onderooglid: zwarte ellips die van onderen omhoog komt -> blije "^"-vorm.
-  float lidB = LV_CLAMP(0.f, eye_.lidBottom.x, 1.f);
-  if (lidB > 0.005f) {
-    float ew = w * 1.7f, eh = hv * 1.3f;
-    float topY = y2 - lidB * hv;
-    fillEllipse(layer, cx, topY + eh / 2, ew, eh, kBlack);
-  }
-}
-
-void Face::drawMouth(lv_layer_t* layer, float cx, float cy) {
-  lv_color_t col = lv_color_make((uint8_t)colR_.x, (uint8_t)colG_.x, (uint8_t)colB_.x);
-  lv_opa_t opa = (lv_opa_t)(LV_CLAMP(0.f, mouthAlpha_, 1.f) * 255);
-  lv_draw_arc_dsc_t a;
-  lv_draw_arc_dsc_init(&a);
-  a.color = col;
-  a.opa = opa;
-  a.width = 9;
-  a.rounded = 1;
-  switch (mouthShown_) {
-    case MouthSmile:
-      a.center = {ri(cx), ri(cy + 78)};
-      a.radius = 34;
-      a.start_angle = 35;
-      a.end_angle = 145;
-      lv_draw_arc(layer, &a);
-      break;
-    case MouthFrown:
-      a.center = {ri(cx), ri(cy + 142)};
-      a.radius = 30;
-      a.start_angle = 220;
-      a.end_angle = 320;
-      lv_draw_arc(layer, &a);
-      break;
-    case MouthO: {
-      float s = 1.0f + 0.08f * sinf(t_ * 5);
-      a.center = {ri(cx), ri(cy + 112)};
-      a.radius = (uint16_t)(15 * s);
-      a.width = 8;
-      a.start_angle = 0;
-      a.end_angle = 360;
-      lv_draw_arc(layer, &a);
-      break;
-    }
-    case MouthFlat:
-      fillRect(layer, cx - 24, cy + 108, cx + 24, cy + 117, 5, col, opa);
-      break;
-    default:
-      break;
-  }
 }
 
 void Face::drawZs(lv_layer_t* layer, lv_color_t color) {

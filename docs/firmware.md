@@ -192,16 +192,32 @@ Elke actie zet *cues*, waar de App een geluid aan koppelt. Ze werken in beide sk
 - **Tijdens updates:** Matrix-animatie (alleen de oogvensters hertekend) en een pomp van maximaal ~10
   fps, zodat de download voorrang houdt.
 
-## Uiterlijk (skins)
+## Uiterlijk (bouwdoos)
 
-| Skin | Beschrijving |
-|---|---|
-| `classic` (Robot) | cyaan robotogen op zwart, AMOLED-zuinig (zwarte pixels staan uit) |
-| `mascot` (Mascotte) | cartoongezicht met stekelig blauw haar, dikke wenkbrauwen, zwarte bril, witte ogen met blauwe iris en een grote open lach |
+Het uiterlijk is een **look** (`lib/buddy/look.*`): een basis plus een stijl per onderdeel en een
+paar kleuren. De emoties sturen nog steeds de oogleden, wenkbrauwhoek, mond enz., en elk onderdeel
+tekent die op zijn eigen manier (`face_robot.cpp`, `face_mascot.cpp`). Alles wordt in code getekend,
+dus er zijn geen plaatjes nodig, en een look is maar een paar bytes in NVS.
 
-Beide skins gebruiken dezelfde emoties, veren en animaties. De mascotte tekent bijna het hele scherm
-opnieuw (haar, wenkbrauwen, mond), dus de framerate op het apparaat is nog te controleren. Kiezen
-kan in het info-paneel, met `skin mascot` of met toets K in de emulator. De keuze wordt bewaard.
+| Onderdeel | Robot | Cartoon |
+|---|---|---|
+| Ogen | blok, rond, pil, ring + pupil, LED-pixels, vizier | normaal (wit + iris), stipjes |
+| Wenkbrauwen | geen, balk, dik, dun, pixels | dik, recht, dun, geen |
+| Mond | per emotie, lijn, zigzag, LED-equalizer (beweegt mee met geluid), pixels | per emotie (D-lach), gesloten glimlach |
+| Wangen | geen, blosjes, streepjes, pixels | blosjes, sproeten, geen |
+| Bril | geen, vierkant, rond, zonnebril, monocle | vierkant, rond, zonnebril, monocle, geen |
+| Haar | | stekels, netjes, krullen, hanenkam, kaal, petje |
+| Kleuren | ogen/mond, wenkbrauwen, achtergrond, bril | iris, haar (of petje), huid, bril |
+
+- **Personages:** Robot, Mascotte, Retro, Pixel, Cool, Synth, Professor, Rocker, Krullebol en
+  Sportief. "Verras me" maakt een willekeurige combinatie met passende kleuren.
+- **Emotiekleuren aan/uit:** bij "aan" kleuren boos, verdrietig, verliefd en duizelig mee; bij "uit"
+  houdt de robot altijd zijn eigen kleur.
+- **Kiezen:**
+  - in de webinterface/PWA onder **Uiterlijk** (je ziet het direct op de buddy);
+  - met een tik op de Uiterlijk-rij in het info-paneel (volgend personage);
+  - met het commando `look`.
+- AMOLED-tip: een zwarte achtergrond (robot) is het zuinigst; elke verlichte pixel kost stroom.
 
 ## Geluid
 

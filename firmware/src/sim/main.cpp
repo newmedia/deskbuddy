@@ -141,6 +141,23 @@ int main(int argc, char** argv) {
     s.face.lookAt(-0.9f, -0.6f);
     s.step(800);
     savePpm(out + "/look_mascot.ppm");
+    // Personages (looks): elk in een paar emoties
+    for (int i = 0; i < presetCount(); i++) {
+      s.app.setLook(preset(i));
+      const Emotion emos[] = {Emotion::Neutral, Emotion::Happy, Emotion::Angry};
+      const char* tags[] = {"neutral", "happy", "angry"};
+      for (int k = 0; k < 3; k++) {
+        s.behaviour.command(emos[k]);
+        s.step(1500);
+        char nm[64];
+        snprintf(nm, sizeof(nm), "/look_%02d_%s.ppm", i, tags[k]);
+        savePpm(out + nm);
+      }
+    }
+    s.app.setLook(preset(0));
+    s.behaviour.command(Emotion::Neutral);
+    s.step(800);
+
     // Acties: momentopnames op kenmerkende tijdstippen, voor beide skins
     struct Shot { Action a; uint32_t ms; const char* tag; };
     const Shot shots[] = {{Action::Whistle, 1300, "whistle"}, {Action::Wink, 350, "wink"},
