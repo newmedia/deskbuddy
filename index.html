@@ -91,6 +91,7 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
 .status{margin:10px 0 0;padding:10px;border-radius:10px;background:#0e1418;border:1px solid var(--line)}
 .status.ok{border-color:var(--ok);color:var(--ok)}
 .status.bad{border-color:var(--bad);color:var(--bad)}
+a{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -197,7 +198,7 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
       <option value="off">Niet controleren</option>
     </select>
     <progress id="upd-p" value="0" max="100" hidden></progress>
-    <p class="muted" style="margin-top:14px">Of handmatig: kies <code>firmware.bin</code> (uit <code>firmware/.pio/build/esp32/</code>).</p>
+    <p class="muted" style="margin-top:14px">Of handmatig: download <code>firmware.bin</code> van de <a href="https://github.com/newmedia/deskbuddy/releases/latest" target="_blank" rel="noopener">nieuwste release op GitHub</a> (of een <a href="https://github.com/newmedia/deskbuddy/releases" target="_blank" rel="noopener">oudere versie</a>) en kies dat bestand hieronder.</p>
     <input type="file" id="fw" accept=".bin">
     <progress id="fw-p" value="0" max="100" hidden></progress>
   </section>
@@ -247,7 +248,8 @@ const EMO = [["neutral","Neutraal"],["happy","Blij"],["sad","Verdrietig"],["angr
 let st = {};
 
 // ---------- Transport: HTTP (pagina komt van de deskbuddy zelf) of Web Bluetooth (PWA via https) ----------
-const ON_DEVICE = location.protocol === "http:";
+// ?pwa: Bluetooth-modus forceren (de web-emulator biedt dan een nagebootste Bluetooth-koppeling aan)
+const ON_DEVICE = location.protocol === "http:" && !new URLSearchParams(location.search).has("pwa");
 const NUS = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
@@ -682,7 +684,7 @@ showLookTab("pick");
 let lookLoaded = false;
 setInterval(() => { if (api.ready && !lookLoaded) { lookLoaded = true; loadPresets(); } }, 500);
 
-if (!ON_DEVICE && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+if (location.protocol === "https:" && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 ui();
 setInterval(refresh, 2500);
 </script>
