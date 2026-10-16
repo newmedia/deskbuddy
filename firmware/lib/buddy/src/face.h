@@ -20,6 +20,9 @@ enum class Emotion : uint8_t {
   Love,
   Dizzy,
   Asleep,
+  Cry,    // huilen: tranen rollen over de wangen
+  Hyper,  // druk (ADHD): wijd open ogen, blik schiet alle kanten op, kleine sprongetjes
+  Pain,   // pijn: dichtgeknepen ogen, tanden op elkaar, zweetdruppel, af en toe een steek
   Count
 };
 
@@ -123,6 +126,8 @@ class Face {
   void draw(lv_layer_t* layer);
   void drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale);
   void drawZs(lv_layer_t* layer, lv_color_t color);
+  void drawTears(lv_layer_t* layer, float cx, float y0, int side);  // y0 = onderkant van het oog
+  void drawSweat(lv_layer_t* layer, float x, float y);
   void drawRobot(lv_layer_t* layer);  // face_robot.cpp
   void drawRobotBrows(lv_layer_t* layer, float cy);
   void drawRobotGlasses(lv_layer_t* layer, float cy);
@@ -199,6 +204,7 @@ class Face {
   float blinkT_ = -1;     // -1 = geen knipper bezig, anders 0..1
   float nextBlink_ = 2;
   float nextSaccade_ = 1;
+  float nextTwinge_ = 0;  // pijn: volgende steek
   bool lookHeld_ = false;
   bool autoBlink_ = true;
   uint32_t seed_ = 0x1234567;

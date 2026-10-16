@@ -307,6 +307,8 @@ void Face::updateAction(float dt) {
         eye_.h.v += 260;  // ogen schieten even groot open
         eye_.w.v += 120;
       }
+      // Ogen "poppen" even op (werkt ook bij de cartoon, waar de oogmaat begrensd is)
+      if (actStage_ > 0) swell_ = 1 + 0.25f * expf(-(t - (actNext_ - 0.95f)) * 7);
       break;
 
     default:

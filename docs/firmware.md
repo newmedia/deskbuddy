@@ -151,6 +151,17 @@ Korte animaties bovenop de emotie (`face_fx.cpp`). Na afloop keert hij terug naa
 | Ogen rollen | `play eyeroll` | blik draait in een boog over boven (2× snel heen en weer vegen) | zucht |
 | Hik | `play hiccup` | drie keer een plotse schok met grote ogen (ook spontaan) | "hik!" |
 
+Emoties met een eigen animatie (beide skins):
+
+| Emotie | Commando | Wat je ziet |
+|---|---|---|
+| Huilen | `emotion cry` | verdrietig gezicht, tranen rollen doorlopend over de wangen |
+| Druk (ADHD) | `emotion hyper` | wijd open ogen, grote lach, blik schiet steeds ergens anders heen, sprongetjes |
+| Pijn | `emotion pain` | dichtgeknepen ogen, grimas met tanden op elkaar, zweetdruppel, af en toe een steek (trillen) |
+
+Stuiteren en de hik laten het hele gezicht verspringen (eerst inzakken, dan opveren). Zo is het ook
+bij de cartoon zichtbaar.
+
 Het engine-deel bevat:
 - sluiting per oog
 - een deeltjessysteem (noten, harten, stoom, rook, vonken, symbolen, sterren)
@@ -248,7 +259,7 @@ Geluid, volume, helderheid en skin worden in NVS bewaard.
 Hetzelfde commandoprotocol wordt later via WebSocket, BLE en MQTT gebruikt.
 
 ```
-emotion <neutral|happy|sad|angry|surprised|sleepy|love|dizzy|asleep> [ms]
+emotion <neutral|happy|sad|angry|surprised|sleepy|love|dizzy|asleep|cry|hyper|pain> [ms]
 play <whistle|wink|kiss|rage|explode>
 look <x> <y> | look off      # -1..1
 blink | bounce

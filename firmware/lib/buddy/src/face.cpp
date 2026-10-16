@@ -21,7 +21,7 @@ constexpr float kPi = 3.14159265f;
 const lv_color_t kBlack = LV_COLOR_MAKE(0, 0, 0);
 
 const char* const kNames[] = {"neutral", "happy", "sad",   "angry", "surprised",
-                              "sleepy",  "love",  "dizzy", "asleep"};
+                              "sleepy",  "love",  "dizzy", "asleep", "cry", "hyper", "pain"};
 
 void growBox(lv_area_t& box, float x1, float y1, float x2, float y2) {
   box.x1 = LV_MIN(box.x1, ri(x1));
@@ -61,7 +61,8 @@ void Face::setLook(const Look& l) {
 // Kleur van de robotogen: de eigen hoofdkleur, behalve bij sterke emoties (als emotiekleuren aan staan).
 uint32_t Face::poseColor(Emotion e, uint32_t emotionColor) const {
   if (look_.emotionColors &&
-      (e == Emotion::Angry || e == Emotion::Sad || e == Emotion::Love || e == Emotion::Dizzy))
+      (e == Emotion::Angry || e == Emotion::Sad || e == Emotion::Love || e == Emotion::Dizzy ||
+       e == Emotion::Cry || e == Emotion::Pain))
     return emotionColor;
   uint32_t c = look_.primary;
   if (e == Emotion::Asleep) {  // gedimd
@@ -96,6 +97,9 @@ Face::Pose Face::poseFor(Emotion e) {
     case Emotion::Love:      return {120, 120, 40, 0.00f,   0, 0.00f,  -4, 0.70f, 0xFF6FA8, MouthSmile, true};
     case Emotion::Dizzy:     return { 84,  84, 42, 0.00f,   0, 0.00f,   0, 0.00f, 0xB89CFF, MouthO,     false};
     case Emotion::Asleep:    return {104, 124, 36, 0.93f,   0, 0.04f,  14, 0.00f, 0x2E7F8C, MouthNone,  false};
+    case Emotion::Cry:       return { 96, 110, 34, 0.36f, -18, 0.12f,  14, 0.00f, 0x5AA0FF, MouthFrown, false};
+    case Emotion::Hyper:     return {124, 140, 46, 0.00f,   0, 0.00f,  -8, 0.35f, 0x6EE7F7, MouthSmile, false};
+    case Emotion::Pain:      return {112, 112, 26, 0.40f, -20, 0.26f,   6, 0.00f, 0xFF8A4E, MouthFlat,  false};
     case Emotion::Neutral:
     default:                 return {100, 130, 34, 0.00f,   0, 0.00f,   0, 0.00f, 0x6EE7F7, MouthNone,  false};
   }
@@ -143,9 +147,12 @@ void Face::create(lv_obj_t* parent) {
 void Face::setEmotion(Emotion e) {
   if (e == emotion_) return;
   emotion_ = e;
+  fullRedraw_ = true;  // anders blijven resten staan buiten de deelgebieden (Z'jes, tranen, zweet)
   applyPose(poseFor(e));
   mascotTargets();
-  if (e == Emotion::Surprised || e == Emotion::Happy || e == Emotion::Love) bounce(0.8f);
+  if (e == Emotion::Surprised || e == Emotion::Happy || e == Emotion::Love || e == Emotion::Hyper) bounce(0.8f);
+  if (e == Emotion::Pain) nextTwinge_ = t_;  // meteen een steek
+  if (e == Emotion::Hyper) nextSaccade_ = t_;
   if (e == Emotion::Asleep) lookAt(0, 0.1f, true);
   else if (lookHeld_ && emotion_ != Emotion::Asleep) releaseLook();
 }
@@ -199,7 +206,10 @@ void Face::scheduleNextBlink() {
   nextBlink_ = t_ + base + rnd() * 3.8f;
 }
 
-void Face::scheduleNextSaccade() { nextSaccade_ = t_ + 0.9f + rnd() * 2.8f; }
+void Face::scheduleNextSaccade() {
+  // Druk: de blik schiet om de paar tienden van een seconde ergens anders heen.
+  nextSaccade_ = t_ + (emotion_ == Emotion::Hyper ? 0.12f + rnd() * 0.3f : 0.9f + rnd() * 2.8f);
+}
 
 void Face::update(uint32_t dtMs) {
   float dt = LV_MIN(dtMs, 50u) / 1000.0f;
@@ -236,13 +246,25 @@ void Face::update(uint32_t dtMs) {
 
   // Rondkijken (saccades)
   if (!lookHeld_ && t_ >= nextSaccade_) {
-    if (rnd() < 0.4f) {
+    if (emotion_ == Emotion::Hyper) {
+      lookX_.target = (rnd() * 2 - 1) * kLookX;
+      lookY_.target = (rnd() * 2 - 1) * 0.8f * kLookY;
+    } else if (rnd() < 0.4f) {
       lookX_.target = lookY_.target = 0;
     } else {
       lookX_.target = (rnd() * 2 - 1) * 0.75f * kLookX;
       lookY_.target = (rnd() * 2 - 1) * 0.55f * kLookY;
     }
     scheduleNextSaccade();
+  }
+
+  // Druk: af en toe een sprongetje. Pijn: om de paar seconden een steek (trillen, ogen knijpen).
+  if (emotion_ == Emotion::Hyper && !busy() && rnd() < dt * 0.8f) bounce(0.35f + rnd() * 0.3f);
+  if (emotion_ == Emotion::Pain && !busy() && t_ >= nextTwinge_) {
+    shake_ = 4.5f;
+    eye_.lidTop.v += 4;
+    eye_.h.v -= 200;
+    nextTwinge_ = t_ + 1.8f + rnd() * 2.2f;
   }
 
   // Mond in- en uitfaden
@@ -264,9 +286,14 @@ void Face::update(uint32_t dtMs) {
   bobPx_ = skin_ == Skin::Mascot ? 0 : (int)lroundf(sinf(t_ * 2 * kPi / 4.2f) * 3.0f);
   updateAction(dt);
   updateParticles(dt);
-  // Trillen: het hele gezichtsobject heen en weer zetten (goedkoop, geen hertekenen per pixel nodig)
-  if (shake_ > 0.2f) lv_obj_set_pos(obj_, (int32_t)((rnd() * 2 - 1) * shake_), (int32_t)((rnd() * 2 - 1) * shake_));
-  else if (lv_obj_get_x(obj_) != 0 || lv_obj_get_y(obj_) != 0) lv_obj_set_pos(obj_, 0, 0);
+  // Trillen en stuiteren: het hele gezichtsobject verschuiven. Bij een stuiter zakt het gezicht eerst
+  // in en veert dan op; de hik geeft een schok omhoog.
+  int32_t jx = 0, jy = (int32_t)lroundf(LV_CLAMP(-22.f, squash_.x * 30, 22.f));
+  if (shake_ > 0.2f) {
+    jx += (int32_t)((rnd() * 2 - 1) * shake_);
+    jy += (int32_t)((rnd() * 2 - 1) * shake_);
+  }
+  if (lv_obj_get_x(obj_) != jx || lv_obj_get_y(obj_) != jy) lv_obj_set_pos(obj_, jx, jy);
 
   squash_.target = 0;
   hairY_.target = -squash_.x * 8;  // haar veert alleen mee bij een stuiter
@@ -288,7 +315,7 @@ bool Face::settled() {
   if (look_.mouth == (uint8_t)MouthStyle::Equalizer && soundLevel_ > 0.02f) return false;
   // Emoties met een doorlopende animatie (hartslag, wiebelen, zwevende Z'jes, pulserende o-mond)
   if (emotion_ == Emotion::Love || emotion_ == Emotion::Dizzy || emotion_ == Emotion::Sleepy ||
-      emotion_ == Emotion::Asleep)
+      emotion_ == Emotion::Asleep || emotion_ == Emotion::Cry)
     return false;
   if (pose_.mouth != mouthShown_ || mouthShown_ == MouthO) return false;
   if (mouthShown_ != MouthNone && mouthAlpha_ < 1.0f) return false;
@@ -330,6 +357,13 @@ void Face::invalidate() {
     }
     lv_area_t mouth = {(int32_t)(kCenter - 135), 288, (int32_t)(kCenter + 135), 448};
     lv_obj_invalidate_area(obj_, &mouth);
+    if (emotion_ == Emotion::Cry) {  // tranen over de wangen
+      for (int side = -1; side <= 1; side += 2) {
+        float ex = kCenter + side * 82;
+        lv_area_t tears = {(int32_t)(ex - 60), (int32_t)(cy + 10), (int32_t)(ex + 60), kSize - 1};
+        lv_obj_invalidate_area(obj_, &tears);
+      }
+    }
     if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep) {
       lv_area_t zs = {(int32_t)(kCenter + 100), 30, (int32_t)(kCenter + 215), (int32_t)(kCenter - 10)};
       lv_obj_invalidate_area(obj_, &zs);
@@ -358,6 +392,11 @@ void Face::invalidate() {
   if (look_.mouth != (uint8_t)MouthStyle::Auto) growBox(box, kCenter - 75, kCenter + 60, kCenter + 75, kCenter + 175);
   if (mouthShown_ != MouthNone || mouthAlpha_ > 0)
     growBox(box, kCenter - 60, kCenter + 60, kCenter + 60, kCenter + 160);
+  if (emotion_ == Emotion::Cry)
+    for (int side = -1; side <= 1; side += 2) {
+      float cx = kCenter + side * kEyeSpacing + lx, cy = kCenter + kEyeY + dy_.x + ly;
+      growBox(box, cx - 60, cy, cx + 60, cy + maxH / 2 + 190);
+    }
   if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep)
     growBox(box, kCenter + 90, kCenter - 220, kCenter + 200, kCenter - 40);
 
@@ -404,6 +443,29 @@ void Face::drawZs(lv_layer_t* layer, lv_color_t color) {
     lv_area_t a = {ri(x), ri(y), ri(x) + 50, ri(y) + 60};
     lv_draw_label(layer, &d, &a);
   }
+}
+
+// Tranen: een plasje bij het ooglid en druppels die over de wang rollen (lus via t_).
+void Face::drawTears(lv_layer_t* layer, float cx, float y0, int side) {
+  const lv_color_t c = lv_color_hex(0x8FD3FF);
+  fillEllipse(layer, cx + side * 16, y0 + 2, 40, 12, c, 210);
+  for (int i = 0; i < 3; i++) {
+    float p = fmodf(t_ * 0.85f + i / 3.0f + (side > 0 ? 0.17f : 0), 1.0f);
+    float x = cx + side * (22 + p * 8), y = y0 + 8 + p * 150;
+    float s = 7 + 4 * (1 - p);
+    lv_opa_t o = (lv_opa_t)(p < 0.8f ? 235 : 235 * (1 - p) / 0.2f);
+    if (p < 0.8f) fillTri(layer, x - s * 0.85f, y - s * 0.3f, x + s * 0.85f, y - s * 0.3f, x, y - s * 2.3f, c);
+    fillEllipse(layer, x, y, 2 * s, 2.2f * s, c, o);
+    fillEllipse(layer, x - s * 0.3f, y - s * 0.3f, s * 0.6f, s * 0.6f, lv_color_white(), o / 2);
+  }
+}
+
+// Zweetdruppel (pijn)
+void Face::drawSweat(lv_layer_t* layer, float x, float y) {
+  const lv_color_t c = lv_color_hex(0x8FD3FF);
+  fillTri(layer, x - 12, y - 4, x + 12, y - 4, x, y - 34, c);
+  fillEllipse(layer, x, y + 4, 26, 28, c);
+  fillEllipse(layer, x - 5, y, 8, 10, lv_color_white(), 200);
 }
 
 }  // namespace buddy

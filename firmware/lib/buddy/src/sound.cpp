@@ -118,6 +118,9 @@ Sound soundForEmotion(Emotion e) {
     case Emotion::Love: return Sound::Love;
     case Emotion::Surprised: return Sound::Surprised;
     case Emotion::Sad: return Sound::Sad;
+    case Emotion::Cry: return Sound::Sad;
+    case Emotion::Pain: return Sound::Angry;
+    case Emotion::Hyper: return Sound::Laugh;
     case Emotion::Angry: return Sound::Angry;
     case Emotion::Dizzy: return Sound::Dizzy;
     case Emotion::Sleepy: return Sound::Yawn;

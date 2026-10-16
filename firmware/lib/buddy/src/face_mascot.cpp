@@ -55,6 +55,9 @@ MascotPose mascotPose(Emotion e) {
     case Emotion::Love:      return {-10, 12, 0.85f, 165};
     case Emotion::Dizzy:     return {6, 8, 1.00f, 60};
     case Emotion::Asleep:    return {0, -8, 0.00f, 70};
+    case Emotion::Cry:       return {-24, 6, 0.00f, 100};
+    case Emotion::Hyper:     return {-8, 18, 1.00f, 195};
+    case Emotion::Pain:      return {-26, -2, 0.34f, 140};
     case Emotion::Neutral:
     default:                 return {0, 0, 0.40f, 150};
   }
@@ -99,6 +102,10 @@ void Face::drawMascot(lv_layer_t* layer) {
 
   float cy = kEyeY + bob + dy_.x * 0.3f;
   for (int side = -1; side <= 1; side += 2) drawMascotEye(layer, side, C + side * kEyeDx, cy);
+  if (emotion_ == Emotion::Cry) {
+    float sh = LV_CLAMP(44.f, eye_.h.x * 0.60f, 92.f) * swell_;
+    for (int side = -1; side <= 1; side += 2) drawTears(layer, C + side * kEyeDx, cy + sh / 2 - 6, side);
+  }
 
   // Bril (stijl uit de look): glazen, brug en poten
   const GlassesStyle gs = (GlassesStyle)look_.glasses;
@@ -204,6 +211,7 @@ void Face::drawMascot(lv_layer_t* layer) {
     default:
       break;
   }
+  if (emotion_ == Emotion::Pain) drawSweat(layer, C + 172, 196);
   if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep) drawZs(layer, HAIR);
 }
 
@@ -303,6 +311,20 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
   if ((MouthStyle)look_.mouth == MouthStyle::Line) o = 0;  // altijd een gesloten glimlach
   float mw = mouthWidth_.x;
 
+  if (emotion_ == Emotion::Pain) {
+    // Grimas: tanden op elkaar in een smalle balk, mondhoeken omlaag
+    float w = mw * 0.78f, h = 30, y = my + 6;
+    fillRect(layer, cx - w / 2 - 5, y - h / 2 - 5, cx + w / 2 + 5, y + h / 2 + 5, 14, lipCol);
+    fillRect(layer, cx - w / 2, y - h / 2, cx + w / 2, y + h / 2, 10, WHITE);
+    line(layer, cx - w / 2 + 2, y, cx + w / 2 - 2, y, 3, OUTLINE);
+    for (int i = 1; i < 5; i++) {
+      float x = cx - w / 2 + w * i / 5;
+      line(layer, x, y - h / 2 + 2, x, y + h / 2 - 2, 3, OUTLINE);
+    }
+    line(layer, cx - w / 2 - 4, y + 2, cx - w / 2 - 16, y + 14, 6, lipCol);
+    line(layer, cx + w / 2 + 4, y + 2, cx + w / 2 + 16, y + 14, 6, lipCol);
+    return;
+  }
   if (ovalMouth(emotion_)) {
     float s = 1.0f + 0.06f * sinf(t_ * 5);
     float ow = mw * 0.95f * s, oh = mw * 1.1f * s;
@@ -318,7 +340,7 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
     a.color = lipCol;
     a.width = lipstick ? 11 : 8;
     a.rounded = 1;
-    if (emotion_ == Emotion::Sad) {
+    if (emotion_ == Emotion::Sad || emotion_ == Emotion::Cry) {
       a.center = {ri(cx), ri(my + mw * 0.75f)};
       a.radius = (uint16_t)(mw * 0.6f);
       a.start_angle = 228;
@@ -342,7 +364,7 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
     layer->_clip_area = clip;
     fillEllipse(layer, cx, my, mw + 10 + (lipstick ? 6 : 0), 2 * h + 10 + (lipstick ? 6 : 0), lipCol);
     fillEllipse(layer, cx, my, mw, 2 * h, MOUTH);
-    bool gritted = emotion_ == Emotion::Angry;
+    bool gritted = emotion_ == Emotion::Angry || emotion_ == Emotion::Pain;
     float th = gritted ? 2 * h * 0.92f : 2 * LV_MIN(h * 0.42f, 30.0f);
     fillEllipse(layer, cx, my + 2, mw * (gritted ? 0.92f : 0.84f), th, WHITE);
     if (!gritted) fillEllipse(layer, cx, my + h * 0.68f, mw * 0.5f, h * 0.6f, TONGUE);
