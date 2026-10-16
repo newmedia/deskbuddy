@@ -3,6 +3,25 @@
 Elke versie hieronder wordt een release op GitHub (zie `tools/release.sh` en `docs/firmware.md`).
 De tekst onder een kop is de omschrijving van die release. Nieuwste bovenaan.
 
+## v1.1.0
+
+De buddy luistert nu mee: hij reageert op klappen, praten, muziek en lawaai.
+
+- **Microfoon**: de twee ingebouwde microfoons worden nu gebruikt. Er wordt alleen het
+  geluidsniveau gemeten; er wordt niets opgenomen of verstuurd.
+  - **Klap**: hij schrikt, of wordt wakker als hij sliep.
+  - **Dubbele klap**: een blij sprongetje.
+  - **Praten**: hij luistert. Om en om steekt links en rechts een oortje uit, de geluidsgolfjes
+    komen van buiten naar het oor, en de ogen kijken mee.
+  - **Muziek**: hij danst op de maat, met hupjes en om en om opzij kijken.
+  - **Hard lawaai**: hij knijpt zijn ogen dicht.
+  - Gewone achtergrondruis (ventilator, pc) en zijn eigen geluidjes negeert hij.
+  - Aan/uit via de knop "Microfoon" in de web-app (Instellingen) of het commando `mic on|off`.
+- **Handmatig updaten**: de web-app verwijst nu naar de releases op GitHub om `firmware.bin` te
+  downloaden.
+- Voor ontwikkelaars: een web-emulator (`tools/webemu.sh`) en een automatische regressietest
+  (`tools/webemu-test.sh`) om alles, ook de web-app en de PWA, zonder apparaat te testen.
+
 ## v1.0.0
 
 De eerste volwaardige versie: een eigen uiterlijk, nieuwe emoties, een vernieuwde web-app en een
