@@ -208,14 +208,22 @@ void handleUpdateDone() {
     delay(300);
     ESP.restart();
   }
+  updateMemory(false);
   otaBusy = false;
 }
+
+}  // namespace
+
+void updateMemory(bool updating) { heap_caps_malloc_extmem_enable(updating ? 4096 : 256); }
+
+namespace {
 
 void handleUpdateUpload() {
   HTTPUpload& up = server.upload();
   if (up.status == UPLOAD_FILE_START) {
     otaBusy = true;
     otaPct = 0;
+    updateMemory(true);
     app->behaviour.command(buddy::Emotion::Neutral, 0);  // direct wakker, niet pas bij de eerste pomp
     Update.begin(UPDATE_SIZE_UNKNOWN);
     pumpNow();
@@ -228,6 +236,7 @@ void handleUpdateUpload() {
     Update.end(true);
   } else if (up.status == UPLOAD_FILE_ABORTED) {
     Update.abort();
+    updateMemory(false);
     otaBusy = false;
   }
 }
@@ -274,6 +283,7 @@ void startStationServices() {
   ArduinoOTA.setHostname(kHost);
   ArduinoOTA.setMdnsEnabled(false);  // mDNS doen we zelf (zie hierboven)
   ArduinoOTA.onStart([] {
+    updateMemory(true);
     otaBusy = true;
     otaPct = 0;
   });
@@ -282,7 +292,10 @@ void startStationServices() {
     pumpNow();
   });
   ArduinoOTA.onEnd([] { otaBusy = false; });
-  ArduinoOTA.onError([](ota_error_t) { otaBusy = false; });
+  ArduinoOTA.onError([](ota_error_t) {
+    updateMemory(false);
+    otaBusy = false;
+  });
   ArduinoOTA.begin();
   configTzTime(kTz, "pool.ntp.org", "time.google.com");
   timeSynced = false;

@@ -128,6 +128,9 @@ void handleSerial() {
 }  // namespace
 
 void setup() {
+  // Gewone malloc/new vanaf 256 bytes naar PSRAM (standaard pas vanaf 4 KB). Intern RAM is het krapst
+  // (Wi-Fi + BLE); wat echt intern moet (DMA, ISR) vraagt dat zelf met heap_caps-vlaggen.
+  net::updateMemory(false);
   Serial.begin(115200);
   Wire.begin(I2C_SDA, I2C_SCL, 400000);  // fast mode: touch/IMU-polling kost minder tijd
 

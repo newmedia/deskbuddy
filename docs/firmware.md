@@ -162,9 +162,13 @@ Elke actie zet *cues*, waar de App een geluid aan koppelt. Ze werken in beide sk
 ## Prestaties en geheugen
 
 - **Display:** eigen driver (`src/board/display.cpp`) via ESP-IDF `esp_lcd`, QSPI op 80 MHz.
-  - LVGL tekent per 20 regels in PSRAM, direct in RGB565_SWAPPED.
-  - Elk stuk wordt 90° gedraaid naar een van twee DMA-buffers (intern) en asynchroon verstuurd,
-    terwijl LVGL het volgende stuk al tekent.
+  - LVGL tekent in een schermvullende buffer in PSRAM (434 KB), direct in RGB565_SWAPPED. Elk
+    gewijzigd gebied wordt zo in één keer getekend. Met de vroegere strook van 20 regels liep de hele
+    gezichtstekening ~18× per frame, en dat kostte de mascotte de helft van zijn tekentijd.
+  - De flush draait het gebied in stroken van 10 regels 90° naar een van twee DMA-buffers (intern,
+    2 × 9,3 KB) en verstuurt ze asynchroon. De volgende strook wordt al gedraaid terwijl de vorige nog
+    verstuurd wordt.
+  - LVGL bewaart de AA-randen van 16 cirkelstralen (`LV_DRAW_SW_CIRCLE_CACHE_SIZE`).
   - Maximaal 30 fps (`LV_DEF_REFR_PERIOD`).
 - **Mascotte in rust:** alleen ogen, wenkbrauwen en mond worden hertekend. Haar en bril staan
   stil.
@@ -180,15 +184,23 @@ Elke actie zet *cues*, waar de App een geluid aan koppelt. Ze werken in beide sk
 - **`perf`-commando:** fps, frametijd (tekenen/draaien/versturen), belasting van de hoofdlus en vrij
   intern RAM (ook het laagste punt). Gemeten (Wi-Fi verbonden, BLE aan):
 
-  | Skin | fps |
-  |---|---|
-  | Classic | ~30 |
-  | Mascotte in rust | ~16 |
-  | Mascotte tijdens een actie | ~12 |
+  | Look, emotie (doorlopend bewegend) | tekenen per frame | lus-belasting |
+  |---|---|---|
+  | Robot, slaperig (10 fps) | 17 ms (was 34) | 48% (was 59%) |
+  | Robot, verliefd | 15 ms (was 30), 23–25 fps | 77% |
+  | Lisa, slaperig (10 fps) | 53 ms (was 79) | 80% (was 87%) |
+  | Mascotte, slaperig (10 fps) | 60 ms (was 84) | 86% (was 90%) |
 
-  Intern RAM ~58 KB vrij.
-- **Intern RAM is de schaarse bron:** de BT-controller (prebuilt) houdt ~60 KB vast. Daarom staan de
-  NimBLE-host, de LVGL-tekenbuffer en TLS (updates) in PSRAM, en zijn de DMA-buffers klein.
+  Stilstaand gezicht: 0 fps, ~18% belasting. Intern RAM: ~80 KB vrij met Wi-Fi en BLE aan (was
+  ~52 KB).
+- **Intern RAM is de schaarse bron:** de BT-controller (prebuilt) houdt ~60 KB vast. Daarom:
+  - staan de NimBLE-host, de LVGL-tekenbuffer en TLS (updates) in PSRAM;
+  - gaat gewone `malloc`/`new` vanaf 256 bytes naar PSRAM (`net::updateMemory`, standaard pas vanaf
+    4 KB). Tijdens een firmware-update tijdelijk terug naar 4 KB: flash schrijven vanuit
+    PSRAM-buffers maakte de upload ~5× trager (120 s in plaats van ~25 s);
+  - zijn de DMA-buffers klein (10 regels).
+- **ESP-IDF zelf opnieuw bouwen** (pioarduino `custom_sdkconfig`, bijv. om Wi-Fi/lwIP-buffers in
+  PSRAM te zetten) werkt nog niet: de build faalt op `SCons.Tool.FortranCommon` (platform 55.03.311).
 - **Tijdens updates:** Matrix-animatie (alleen de oogvensters hertekend) en een pomp van maximaal ~10
   fps, zodat de download voorrang houdt.
 

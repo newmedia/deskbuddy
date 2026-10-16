@@ -15,6 +15,10 @@ void begin(buddy::App& app);
 void loop();
 void setPump(void (*pump)());  // tijdens web-/ArduinoOTA-upload aangeroepen om het scherm bij te werken
 void fill(buddy::DeviceInfo& d);
+// Gewone malloc vanaf 256 bytes gaat naar PSRAM (meer vrij intern RAM). Tijdens een firmware-update
+// terug naar intern: flash schrijven vanuit PSRAM-buffers en netwerkbuffers in PSRAM maken de upload
+// vele malen trager.
+void updateMemory(bool updating);
 
 void startSetupAp();
 void off();

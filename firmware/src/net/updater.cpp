@@ -1,4 +1,5 @@
 #include "updater.h"
+#include "net.h"
 
 #include <Arduino.h>
 #include <HTTPClient.h>
@@ -141,6 +142,7 @@ bool parseRelease(NetworkClient& in, char* tag, size_t tagLen, char* url, size_t
 void doInstall() {
   state = UpdateState::Installing;
   progress = 0;
+  net::updateMemory(true);
   if (pump) pump();
   Serial.printf("[update] installeren %s van %s, intern vrij %u\n", latest, assetUrl,
                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
@@ -165,6 +167,7 @@ void doInstall() {
     delay(800);
     ESP.restart();
   }
+  net::updateMemory(false);
   char msg[48];
   snprintf(msg, sizeof(msg), "installeren mislukt: %s", hu.getLastErrorString().c_str());
   fail(msg);

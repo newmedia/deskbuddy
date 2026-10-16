@@ -24,10 +24,13 @@ namespace board {
 
 namespace {
 
-// 466 x 20 x 2 = 18,6 KB per buffer, 2 DMA-buffers = 37 KB intern. Groter past niet naast Wi-Fi + BLE
-// (de BT-controller houdt zelf al een flink deel van het interne RAM vast).
-constexpr int kBufLines = 20;
+// DMA-buffers: 466 x 10 x 2 = 9,3 KB per stuk, 2 = 18,6 KB intern. Groter past niet naast Wi-Fi + BLE
+// (de BT-controller houdt zelf al een flink deel van het interne RAM vast). De tekenbuffer van LVGL is
+// schermvullend en staat in PSRAM: dan tekent LVGL elk gewijzigd gebied in één keer, i.p.v. de hele
+// gezichtstekening per strook van 20 regels opnieuw te doorlopen.
+constexpr int kBufLines = 10;
 constexpr size_t kBufBytes = LCD_WIDTH * kBufLines * 2;
+constexpr size_t kDrawBufBytes = LCD_WIDTH * LCD_HEIGHT * 2;
 constexpr int kColOffset = 6;                          // het panel begint op kolom 6 (Waveshare)
 // Het bord zit 90° gedraaid in de behuizing: de fysieke bovenkant van het panel wijst naar links.
 // ROTATION_270 legt de logische bovenkant op de fysieke rechterkant, zodat het beeld rechtop staat.
@@ -66,32 +69,33 @@ bool IRAM_ATTR onTxDone(esp_lcd_panel_io_handle_t, esp_lcd_panel_io_event_data_t
 }
 
 void flushCb(lv_display_t* disp, const lv_area_t* area, uint8_t* px) {
-  int64_t t0 = esp_timer_get_time();
-  // Wacht tot een DMA-buffer vrij is, maar nooit eeuwig: gaat een "klaar"-melding verloren (bijv. tijdens
-  // flash-schrijven bij een OTA-update), dan na 50 ms gewoon door i.p.v. de hele lus te laten hangen.
-  if (xSemaphoreTake(txFree, pdMS_TO_TICKS(50)) != pdTRUE) {
-    timeouts++;
-  }
-  int64_t t1 = esp_timer_get_time();
-
-  lv_area_t a = *area;
-  int32_t w = lv_area_get_width(area), h = lv_area_get_height(area);
-  lv_display_rotate_area(disp, &a);
+  // LVGL tekent het hele gewijzigde gebied in één keer (tekenbuffer in PSRAM); wij draaien en versturen
+  // het in stroken van kBufLines regels via de twee interne DMA-buffers.
   const lv_color_format_t cf = LV_COLOR_FORMAT_RGB565;  // zelfde pixelgrootte als RGB565_SWAPPED
-  lv_draw_sw_rotate(px, txBuf[txCur], w, h, lv_draw_buf_width_to_stride(w, cf),
-                    lv_draw_buf_width_to_stride(lv_area_get_width(&a), cf), kRotation, cf);
-  int64_t t2 = esp_timer_get_time();
+  const int32_t w = lv_area_get_width(area), h = lv_area_get_height(area);
+  const uint32_t srcStride = lv_draw_buf_width_to_stride(w, cf);
+  for (int32_t y = 0; y < h; y += kBufLines) {
+    const int32_t sh = LV_MIN(kBufLines, h - y);
+    int64_t t0 = esp_timer_get_time();
+    // Wacht tot een DMA-buffer vrij is, maar nooit eeuwig: gaat een "klaar"-melding verloren (bijv.
+    // tijdens flash-schrijven bij een OTA-update), dan na 50 ms gewoon door.
+    if (xSemaphoreTake(txFree, pdMS_TO_TICKS(50)) != pdTRUE) timeouts++;
+    int64_t t1 = esp_timer_get_time();
 
-  // LVGL mag direct het volgende stuk tekenen: de pixels staan nu in onze DMA-buffer.
+    lv_area_t a = {area->x1, area->y1 + y, area->x2, area->y1 + y + sh - 1};
+    lv_display_rotate_area(disp, &a);
+    lv_draw_sw_rotate(px + y * srcStride, txBuf[txCur], w, sh, srcStride,
+                      lv_draw_buf_width_to_stride(lv_area_get_width(&a), cf), kRotation, cf);
+    int64_t t2 = esp_timer_get_time();
+
+    setWindow(a.x1, a.y1, a.x2, a.y2);  // wacht intern tot de vorige transfer klaar is
+    esp_lcd_panel_io_tx_color(io, cmdWord(0x32, 0x2C), txBuf[txCur], (size_t)w * sh * 2);  // async
+    txCur ^= 1;
+    int64_t t3 = esp_timer_get_time();
+    rotateUs += (uint64_t)(t2 - t1);
+    sendUs += (uint64_t)((t1 - t0) + (t3 - t2));  // wachten op het panel (niet overlapt)
+  }
   lv_display_flush_ready(disp);
-
-  setWindow(a.x1, a.y1, a.x2, a.y2);  // wacht intern tot de vorige transfer klaar is
-  esp_lcd_panel_io_tx_color(io, cmdWord(0x32, 0x2C), txBuf[txCur], (size_t)w * h * 2);  // async
-  txCur ^= 1;
-  int64_t t3 = esp_timer_get_time();
-
-  rotateUs += (uint64_t)(t2 - t1);
-  sendUs += (uint64_t)((t1 - t0) + (t3 - t2));  // wachten op het panel (niet overlapt)
 }
 
 // De CO5300 accepteert alleen vensters met even start- en oneven eindcoördinaten.
@@ -164,7 +168,7 @@ bool initPanel() {
 bool beginDisplay() {
   txBuf[0] = (uint8_t*)heap_caps_malloc(kBufBytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
   txBuf[1] = (uint8_t*)heap_caps_malloc(kBufBytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-  void* drawBuf = heap_caps_malloc(kBufBytes, MALLOC_CAP_SPIRAM);  // LVGL tekent hierin
+  void* drawBuf = heap_caps_malloc(kDrawBufBytes, MALLOC_CAP_SPIRAM);  // LVGL tekent hierin
   if (!txBuf[0] || !txBuf[1] || !drawBuf) return false;
   txFree = xSemaphoreCreateCounting(2, 2);
   if (!initPanel()) return false;
@@ -184,7 +188,7 @@ bool beginDisplay() {
   lv_display_t* disp = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
   lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
   lv_display_set_rotation(disp, kRotation);
-  lv_display_set_buffers(disp, drawBuf, nullptr, kBufBytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
+  lv_display_set_buffers(disp, drawBuf, nullptr, kDrawBufBytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(disp, flushCb);
   lv_display_add_event_cb(disp, rounderCb, LV_EVENT_INVALIDATE_AREA, nullptr);
   lv_display_add_event_cb(disp, refrStartCb, LV_EVENT_REFR_START, nullptr);
