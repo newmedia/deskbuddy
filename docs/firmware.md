@@ -85,6 +85,10 @@ hij het na 30 min opnieuw te controleren.
 
 ### Een release maken
 
+**Versienummers (sinds v1.0.0, semver):** nieuwe functies of uitbreidingen verhogen het middelste
+getal (1.1.0, 1.2.0), alleen bugfixes het laatste (1.0.1). Het eerste getal gaat pas omhoog bij iets
+dat niet meer samengaat met oudere versies (bijv. een andere opslag van instellingen).
+
 We bouwen zelf, niet met GitHub Actions. `tools/release.sh` doet alles:
 
 1. Schrijf bovenaan `CHANGELOG.md` een sectie `## v0.2.0` met wat er nieuw is (die tekst wordt de

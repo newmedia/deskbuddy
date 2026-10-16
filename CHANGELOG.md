@@ -3,6 +3,33 @@
 Elke versie hieronder wordt een release op GitHub (zie `tools/release.sh` en `docs/firmware.md`).
 De tekst onder een kop is de omschrijving van die release. Nieuwste bovenaan.
 
+## v1.0.0
+
+De eerste volwaardige versie: een eigen uiterlijk, nieuwe emoties, een vernieuwde web-app en een
+snellere, zuinigere buddy. Vanaf nu volgen we semver: nieuwe functies verhogen het middelste getal
+(1.1.0), alleen bugfixes het laatste (1.0.1).
+
+- **Uiterlijk als bouwdoos**: kies voor robot of cartoon en stel ogen, wenkbrauwen, mond, wangen,
+  bril, haar, wimpers, lippenstift, oorbellen en haaraccessoires zelf samen, met eigen kleuren.
+  Er zijn 16 kant-en-klare personages (o.a. Lisa, Noor, Sofie, Mila, Emma en Bo) en een
+  "verras me". Eigen looks bewaar je onder een naam (tot 8 profielen).
+- **Nieuwe emoties**: huilen (tranen over de wangen), druk/ADHD (rondschietende blik en
+  sprongetjes) en pijn (grimas, zweetdruppel en af en toe een steek).
+- **Stuiteren en trillen echt zichtbaar**: stuiteren is een sprongetje, de hik een schok omhoog, en
+  bij rage, ontploffen en pijn trilt het hele gezicht. Daarvóór zag je daar niets van.
+- **Vernieuwde web-app**: tabbladen (bediening, instellingen, Wi-Fi, systeem) en een editor voor
+  het uiterlijk die je met het palet-icoon aan- en uitzet. De editor heeft knoppen in plaats van
+  keuzelijsten en kleurstalen bij elk onderdeel. Bovenaan zie je hoe hij verbonden is (Wi-Fi met
+  signaalsterkte, Bluetooth of setup) en of hij op USB-stroom of op de accu draait.
+- **Sneller en meer geheugen**: het scherm wordt in één keer getekend in plaats van in 18 stroken,
+  waardoor tekenen 30-50% sneller gaat. Er is ~80 KB vrij werkgeheugen met Wi-Fi en Bluetooth aan
+  (was ~52 KB), als ruimte voor nieuwe functies.
+- **Bugfixes**:
+  - knipoog en kusje: het dichte oog was bij de cartoon onzichtbaar;
+  - tranen en slaap-Z'jes verdwenen achter lang of donker haar;
+  - na het wakker worden bleef soms een Z'je staan;
+  - bij het vizier bleef in de slaap een blokje staan.
+
 ## v0.3.2
 
 Zuiniger: de buddy tekent alleen nog als er iets beweegt, en updates lukken ook vanuit de slaapstand.
