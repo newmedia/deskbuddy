@@ -3,6 +3,7 @@
 #include "draw_util.h"
 
 #include <math.h>
+
 #include <string.h>
 
 #include <initializer_list>
@@ -196,6 +197,17 @@ void Face::blink() {
 
 void Face::bounce(float amount) { squash_.v += 9.0f * amount; }
 
+void Face::hop(float height) {
+  if (hopT_ >= 0) return;
+  hopT_ = 0;
+  hopH_ = height;
+  // Tijdens de sprong één momentopname verschuiven i.p.v. elk frame het hele gezicht opnieuw te tekenen:
+  // de cartoon kost ~60 ms per volledig frame, een plaatje kopiëren een fractie daarvan.
+  if (obj_ && !hopSnap_ && !matrix_ && !covered_ && !effectsActive())
+    hopSnap_ = lv_snapshot_take(obj_, LV_COLOR_FORMAT_RGB565);
+  bounce(0.5f);  // eerst even inveren voor de afzet
+}
+
 float Face::rnd() {
   seed_ = seed_ * 1664525u + 1013904223u;
   return (seed_ >> 8) / 16777216.0f;
@@ -259,7 +271,7 @@ void Face::update(uint32_t dtMs) {
   }
 
   // Druk: af en toe een sprongetje. Pijn: om de paar seconden een steek (trillen, ogen knijpen).
-  if (emotion_ == Emotion::Hyper && !busy() && rnd() < dt * 0.8f) bounce(0.35f + rnd() * 0.3f);
+  if (emotion_ == Emotion::Hyper && !busy() && rnd() < dt * 0.6f) hop(14 + rnd() * 16);
   if (emotion_ == Emotion::Pain && !busy() && t_ >= nextTwinge_) {
     shake_ = 4.5f;
     eye_.lidTop.v += 4;
@@ -286,14 +298,36 @@ void Face::update(uint32_t dtMs) {
   bobPx_ = skin_ == Skin::Mascot ? 0 : (int)lroundf(sinf(t_ * 2 * kPi / 4.2f) * 3.0f);
   updateAction(dt);
   updateParticles(dt);
-  // Trillen en stuiteren: het hele gezichtsobject verschuiven. Bij een stuiter zakt het gezicht eerst
-  // in en veert dan op; de hik geeft een schok omhoog.
-  int32_t jx = 0, jy = (int32_t)lroundf(LV_CLAMP(-22.f, squash_.x * 30, 22.f));
+  // Trillen en stuiteren: de hele tekening verschuiven (draw::ox/oy). Bij een stuiter springt het
+  // gezicht in een boog omhoog en veert het bij het landen na; de hik geeft een schok omhoog.
+  float hopY = 0;
+  if (hopT_ >= 0) {
+    hopT_ += dt / 0.5f;
+    if (hopT_ >= 1) {
+      hopT_ = -1;
+      bounce(0.9f);  // landen
+    } else {
+      hopY = -4 * hopT_ * (1 - hopT_) * hopH_;
+    }
+  }
+  // (LV_CLAMP heeft geen buitenste haakjes: eerst apart uitrekenen)
+  const float squashY = LV_CLAMP(-22.f, squash_.x * 30, 22.f);
+  int32_t jx = 0, jy = (int32_t)lroundf(squashY + hopY);
   if (shake_ > 0.2f) {
     jx += (int32_t)((rnd() * 2 - 1) * shake_);
     jy += (int32_t)((rnd() * 2 - 1) * shake_);
   }
-  if (lv_obj_get_x(obj_) != jx || lv_obj_get_y(obj_) != jy) lv_obj_set_pos(obj_, jx, jy);
+  if (jx != offX_ || jy != offY_) {
+    offX_ = (int16_t)jx;
+    offY_ = (int16_t)jy;
+    fullRedraw_ = true;
+  }
+  // Sprong voorbij en weer op de plek: momentopname weg, het gezicht leeft weer
+  if (hopSnap_ && (hopT_ < 0 || matrix_ || effectsActive()) && jx == 0 && jy == 0) {
+    lv_draw_buf_destroy(hopSnap_);
+    hopSnap_ = nullptr;
+    fullRedraw_ = true;
+  }
 
   squash_.target = 0;
   hairY_.target = -squash_.x * 8;  // haar veert alleen mee bij een stuiter
@@ -310,7 +344,7 @@ void Face::setCovered(bool c) {
 }
 
 bool Face::settled() {
-  if (matrix_ || fullRedraw_ || effectsActive() || blinkT_ >= 0 || pendingHeart_) return false;
+  if (matrix_ || fullRedraw_ || effectsActive() || blinkT_ >= 0 || pendingHeart_ || hopT_ >= 0) return false;
   if (bobPx_ != drawnBobPx_) return false;
   if (look_.mouth == (uint8_t)MouthStyle::Equalizer && soundLevel_ > 0.02f) return false;
   // Emoties met een doorlopende animatie (hartslag, wiebelen, zwevende Z'jes, pulserende o-mond)
@@ -420,12 +454,26 @@ void Face::draw(lv_layer_t* layer) {
     drawMatrix(layer);
     return;
   }
-  if (skin_ == Skin::Mascot) {
-    drawMascot(layer);
+  if (hopSnap_) {
+    // Sprongetje: de momentopname verschoven tekenen, de vrijgekomen strook in de achtergrondkleur
+    const lv_color_t bg = lv_color_hex(look_.face);
+    if (offY_ < 0) fillRect(layer, 0, kSize + offY_, kSize, kSize, 0, bg);
+    if (offY_ > 0) fillRect(layer, 0, 0, kSize, offY_, 0, bg);
+    if (offX_ < 0) fillRect(layer, kSize + offX_, 0, kSize, kSize, 0, bg);
+    if (offX_ > 0) fillRect(layer, 0, 0, offX_, kSize, 0, bg);
+    lv_draw_image_dsc_t d;
+    lv_draw_image_dsc_init(&d);
+    d.src = hopSnap_;
+    lv_area_t a = {offX_, offY_, offX_ + kSize - 1, offY_ + kSize - 1};
+    lv_draw_image(layer, &d, &a);
     drawEffects(layer);
     return;
   }
-  drawRobot(layer);
+  draw::ox = offX_;
+  draw::oy = offY_;
+  if (skin_ == Skin::Mascot) drawMascot(layer);
+  else drawRobot(layer);
+  draw::ox = draw::oy = 0;  // effecten (tint, flits, deeltjes) staan vast op het scherm
   drawEffects(layer);
 }
 
@@ -441,6 +489,7 @@ void Face::drawZs(lv_layer_t* layer, lv_color_t color) {
     d.font = (p < 0.33f) ? &lv_font_montserrat_20 : (p < 0.66f ? &lv_font_montserrat_28 : &buddy_48);
     d.opa = (lv_opa_t)(sinf(p * kPi) * 230);
     lv_area_t a = {ri(x), ri(y), ri(x) + 50, ri(y) + 60};
+    shift(a);
     lv_draw_label(layer, &d, &a);
   }
 }
@@ -448,10 +497,10 @@ void Face::drawZs(lv_layer_t* layer, lv_color_t color) {
 // Tranen: een plasje bij het ooglid en druppels die over de wang rollen (lus via t_).
 void Face::drawTears(lv_layer_t* layer, float cx, float y0, int side) {
   const lv_color_t c = lv_color_hex(0x8FD3FF);
-  fillEllipse(layer, cx + side * 16, y0 + 2, 40, 12, c, 210);
+  fillEllipse(layer, cx + side * 8, y0 + 2, 40, 12, c, 210);
   for (int i = 0; i < 3; i++) {
     float p = fmodf(t_ * 0.85f + i / 3.0f + (side > 0 ? 0.17f : 0), 1.0f);
-    float x = cx + side * (22 + p * 8), y = y0 + 8 + p * 150;
+    float x = cx + side * (12 + p * 6), y = y0 + 8 + p * 150;
     float s = 7 + 4 * (1 - p);
     lv_opa_t o = (lv_opa_t)(p < 0.8f ? 235 : 235 * (1 - p) / 0.2f);
     if (p < 0.8f) fillTri(layer, x - s * 0.85f, y - s * 0.3f, x + s * 0.85f, y - s * 0.3f, x, y - s * 2.3f, c);

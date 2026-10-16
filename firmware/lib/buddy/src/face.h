@@ -79,6 +79,7 @@ class Face {
   void releaseLook();
   void blink();
   void bounce(float amount = 1.0f);  // squash & stretch-impuls
+  void hop(float height = 48);       // sprongetje: omhoog in een boog, landen met een veer
   void setAutoBlink(bool on) { autoBlink_ = on; }
   void setSkin(Skin s);
   // Matrix-gezicht tijdens firmware-updates: groene ogen met vallende code (alleen de ogen hertekenen).
@@ -205,6 +206,9 @@ class Face {
   float nextBlink_ = 2;
   float nextSaccade_ = 1;
   float nextTwinge_ = 0;  // pijn: volgende steek
+  int16_t offX_ = 0, offY_ = 0;  // verschuiving van de tekening (stuiteren, trillen)
+  float hopT_ = -1, hopH_ = 0;
+  lv_draw_buf_t* hopSnap_ = nullptr;  // momentopname van het gezicht tijdens een sprongetje (PSRAM)  // sprongetje: voortgang 0..1 (-1 = geen) en hoogte in px
   bool lookHeld_ = false;
   bool autoBlink_ = true;
   uint32_t seed_ = 0x1234567;

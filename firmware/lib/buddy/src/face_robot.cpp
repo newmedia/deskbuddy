@@ -66,19 +66,23 @@ void Face::drawRobot(lv_layer_t* layer) {
   const lv_color_t bg = hex(look_.face);
   const lv_color_t col = lv_color_make((uint8_t)LV_CLAMP(0.f, colR_.x, 255.f), (uint8_t)LV_CLAMP(0.f, colG_.x, 255.f),
                                        (uint8_t)LV_CLAMP(0.f, colB_.x, 255.f));
-  if (look_.face != 0) fillRect(layer, 0, 0, kSize, kSize, 0, bg);  // eigen achtergrondkleur
+  if (look_.face != 0) {  // eigen achtergrondkleur, altijd schermvullend
+    NoShift ns;
+    fillRect(layer, 0, 0, kSize, kSize, 0, bg);
+  }
   float baseY = C + kEyeY + dy_.x + lookY_.x + bob;
 
   // Vizier: één brede balk over beide ogen (de oogleden per oog vormen hem daarna per emotie)
   const EyeStyle es = (EyeStyle)look_.eyes;
   if (es == EyeStyle::Visor && !heartShown_) {
-    float c = LV_MAX(eyeClosure(-1), eyeClosure(1));
+    // Dicht door knipperen of door de emotie (slapen): anders blijft tussen de ogen een blokje staan
+    float c = LV_MAX(LV_MAX(eyeClosure(-1), eyeClosure(1)), LV_CLAMP(0.f, eye_.lidTop.x, 1.f) * 0.9f);
     float h = LV_MAX(eye_.h.x * 0.5f * swell_ * (1 - c * 0.92f), 6.0f);
     float x1 = C - kEyeSpacing - eye_.w.x / 2 + lookX_.x * 0.5f, x2 = C + kEyeSpacing + eye_.w.x / 2 + lookX_.x * 0.5f;
     fillRect(layer, x1, baseY - h / 2, x2, baseY + h / 2, LV_RADIUS_CIRCLE, col);
     // "scanner": een lichter vlekje dat de kijkrichting volgt
     float sx = C + lookX_.x * 2.2f;
-    fillEllipse(layer, sx, baseY, 56, h * 0.7f, lv_color_mix(lv_color_white(), col, 150), 220);
+    if (c < 0.75f) fillEllipse(layer, sx, baseY, 56, h * 0.7f, lv_color_mix(lv_color_white(), col, 150), 220);
   }
 
   for (int side = -1; side <= 1; side += 2) {
@@ -319,14 +323,14 @@ void Face::drawMouth(lv_layer_t* layer, float cx, float cy) {
   a.rounded = 1;
   switch (shape) {
     case MouthSmile:
-      a.center = {ri(cx), ri(cy + 78)};
+      a.center = {ri(cx + ox), ri(cy + 78 + oy)};
       a.radius = 34;
       a.start_angle = 35;
       a.end_angle = 145;
       lv_draw_arc(layer, &a);
       break;
     case MouthFrown:
-      a.center = {ri(cx), ri(cy + 142)};
+      a.center = {ri(cx + ox), ri(cy + 142 + oy)};
       a.radius = 30;
       a.start_angle = 220;
       a.end_angle = 320;
@@ -334,7 +338,7 @@ void Face::drawMouth(lv_layer_t* layer, float cx, float cy) {
       break;
     case MouthO: {
       float s = 1.0f + 0.08f * sinf(t_ * 5);
-      a.center = {ri(cx), ri(cy + 112)};
+      a.center = {ri(cx + ox), ri(cy + 112 + oy)};
       a.radius = (uint16_t)(15 * s);
       a.width = 8;
       a.start_angle = 0;

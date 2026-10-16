@@ -403,7 +403,7 @@ void Face::drawPucker(lv_layer_t* layer, float cx, float cy, lv_color_t col, boo
     lv_draw_arc_dsc_init(&a);
     a.color = col;
     a.width = 8;
-    a.center = {ri(cx), ri(cy)};
+    a.center = {ri(cx + ox), ri(cy + oy)};
     a.radius = 13;
     a.start_angle = 0;
     a.end_angle = 360;

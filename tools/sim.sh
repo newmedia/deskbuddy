@@ -2,6 +2,7 @@
 # Bouwt de PC-simulator en rendert previews naar sim-out/:
 #   tools/sim.sh            -> PNG per emotie + contactsheet + demo.gif
 #   tools/sim.sh emotions   -> alleen de PNG's
+#   tools/sim.sh check      -> per personage één overzicht van alle emoties en acties (sim-out/check_NN.png)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/sim-out"
@@ -11,12 +12,24 @@ cd "$ROOT/firmware"
 BIN="$ROOT/firmware/.pio/build/sim/program"
 rm -rf "$OUT" && mkdir -p "$OUT/frames"
 
+if [ "$MODE" = "check" ]; then
+  mkdir -p "$OUT/raw"
+  "$BIN" "$OUT/raw" check
+  for n in $(ls "$OUT/raw" | sed -n 's/^check_\([0-9][0-9]\)_.*/\1/p' | sort -u); do
+    ffmpeg -loglevel error -y -pattern_type glob -i "$OUT/raw/check_${n}_*.ppm" \
+      -filter_complex "scale=200:200,tile=6x4:padding=4:color=0x303030" -frames:v 1 "$OUT/check_$n.png"
+  done
+  rm -rf "$OUT/raw" "$OUT/frames"
+  ls -1 "$OUT"
+  exit 0
+fi
+
 "$BIN" "$OUT" emotions
 for f in "$OUT"/*.ppm; do ffmpeg -loglevel error -y -i "$f" "${f%.ppm}.png" && rm "$f"; done
 ffmpeg -loglevel error -y -pattern_type glob -i "$OUT/emotion_*.png" \
-  -filter_complex "scale=233:233,tile=3x3:padding=6:color=0x303030" -frames:v 1 "$OUT/emotions.png"
+  -filter_complex "scale=233:233,tile=4x3:padding=6:color=0x303030" -frames:v 1 "$OUT/emotions.png"
 ffmpeg -loglevel error -y -pattern_type glob -i "$OUT/mascot_*.png" \
-  -filter_complex "scale=233:233,tile=3x3:padding=6:color=0x303030" -frames:v 1 "$OUT/mascot.png"
+  -filter_complex "scale=233:233,tile=4x3:padding=6:color=0x303030" -frames:v 1 "$OUT/mascot.png"
 
 if [ "$MODE" != "emotions" ]; then
   "$BIN" "$OUT/frames" demo

@@ -51,7 +51,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     face.blink();
     snprintf(reply, len, "ok");
   } else if (!strcmp(cmd, "bounce")) {
-    face.bounce(1.0f);
+    face.hop();
     snprintf(reply, len, "ok");
   } else if (!strcmp(cmd, "gesture") && a1) {
     GestureEvent g;

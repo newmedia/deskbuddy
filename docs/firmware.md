@@ -159,8 +159,11 @@ Emoties met een eigen animatie (beide skins):
 | Druk (ADHD) | `emotion hyper` | wijd open ogen, grote lach, blik schiet steeds ergens anders heen, sprongetjes |
 | Pijn | `emotion pain` | dichtgeknepen ogen, grimas met tanden op elkaar, zweetdruppel, af en toe een steek (trillen) |
 
-Stuiteren en de hik laten het hele gezicht verspringen (eerst inzakken, dan opveren). Zo is het ook
-bij de cartoon zichtbaar.
+Stuiteren (`bounce`) is een sprongetje: het gezicht gaat in een boog ~48 px omhoog en veert bij het
+landen na. De hik geeft een schok omhoog en laat de ogen even oppoppen. Het gezicht tekent in vaste
+schermcoördinaten; verspringen en trillen gaan daarom via een tekenverschuiving (`draw::ox/oy` in
+`draw_util.h`). Het object verplaatsen deed niets zichtbaars. Tijdens een sprong wordt één
+momentopname van het gezicht (PSRAM) verschoven in plaats van elk frame alles opnieuw te tekenen.
 
 Het engine-deel bevat:
 - sluiting per oog
@@ -302,6 +305,7 @@ Een nieuwe emotie toevoegen: zet een waarde in `Emotion` en een regel in `Face::
 ```bash
 tools/setup.sh        # venv met esptool, pyserial en PlatformIO
 tools/sim.sh          # simulator -> sim-out/emotions.png, mascot.png, demo.gif, demo.mp4 (met geluid)
+tools/sim.sh check    # per personage één overzicht van alle emoties en acties -> sim-out/check_NN.png
 tools/emu.sh          # interactieve emulator (eenmalig: sudo apt install libsdl2-dev)
 cd firmware && ../.venv/bin/pio run -e esp32   # alleen bouwen
 tools/flash.sh        # bouwen + flashen (vraagt bevestiging, eist een backup)

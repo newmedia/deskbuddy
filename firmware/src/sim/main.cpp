@@ -116,15 +116,65 @@ struct Sim {
 
 int main(int argc, char** argv) {
   if (argc < 3) {
-    fprintf(stderr, "gebruik: %s <outdir> emotions|demo\n", argv[0]);
+    fprintf(stderr, "gebruik: %s <outdir> emotions|demo|check\n", argv[0]);
     return 2;
   }
   std::string out = argv[1];
   std::string mode = argv[2];
   Sim s;
   s.init();
-  s.face.setAutoBlink(mode != "emotions");
+  s.face.setAutoBlink(mode != "emotions" && mode != "check");
   s.step(500);
+
+  if (mode == "check") {
+    // Controle: elk personage in elke emotie en tijdens elke actie (check_<pp>_<tag>.ppm)
+    struct Shot { Action a; uint32_t ms; const char* tag; };
+    const Shot shots[] = {{Action::Whistle, 1300, "whistle"}, {Action::Wink, 350, "wink"},
+                          {Action::Kiss, 1300, "kiss"},       {Action::Rage, 1500, "rage"},
+                          {Action::Explode, 1500, "explode"}, {Action::Sneeze, 800, "sneeze"},
+                          {Action::Laugh, 600, "laugh"},      {Action::EyeRoll, 550, "eyeroll"},
+                          {Action::Hiccup, 120, "hiccup"}};
+    for (int i = 0; i < presetCount(); i++) {
+      s.app.setLook(preset(i));
+      char nm[96];
+      for (int e = 0; e < (int)Emotion::Count; e++) {
+        s.behaviour.command((Emotion)e);
+        s.step(1500);
+        snprintf(nm, sizeof(nm), "/check_%02d_e%02d_%s.ppm", i, e, emotionName((Emotion)e));
+        savePpm(out + nm);
+      }
+      s.behaviour.command(Emotion::Neutral);
+      s.step(1500);
+      int k = 0;
+      for (const Shot& sh : shots) {
+        s.face.play(sh.a);
+        s.step(sh.ms);
+        snprintf(nm, sizeof(nm), "/check_%02d_a%02d_%s.ppm", i, k++, sh.tag);
+        savePpm(out + nm);
+        s.step(4000);
+        s.behaviour.command(Emotion::Neutral);
+        s.step(800);
+      }
+      s.face.hop();
+      s.step(250);
+      snprintf(nm, sizeof(nm), "/check_%02d_a%02d_bounce.ppm", i, k++);
+      savePpm(out + nm);
+      s.step(1500);
+      GestureEvent g;
+      g.type = Gesture::Shake;
+      s.behaviour.onGesture(g);
+      s.step(800);
+      snprintf(nm, sizeof(nm), "/check_%02d_a%02d_shake.ppm", i, k++);
+      savePpm(out + nm);
+      s.step(3500);
+      s.face.blink();
+      s.step(70);
+      snprintf(nm, sizeof(nm), "/check_%02d_a%02d_blink.ppm", i, k++);
+      savePpm(out + nm);
+      s.step(1000);
+    }
+    return 0;
+  }
 
   if (mode == "emotions") {
     for (int i = 0; i < (int)Emotion::Count; i++) {

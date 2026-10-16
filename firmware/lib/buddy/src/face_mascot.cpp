@@ -87,7 +87,10 @@ void Face::drawMascot(lv_layer_t* layer) {
   const float bob = 0;
   float sq = LV_CLAMP(-0.6f, squash_.x, 0.6f);
 
-  fillRect(layer, 0, 0, kSize, kSize, 0, SKIN);
+  {
+    NoShift ns;  // de huid vult altijd het hele scherm
+    fillRect(layer, 0, 0, kSize, kSize, 0, SKIN);
+  }
 
   const CheekStyle cs = (CheekStyle)look_.cheeks;
   if (cs == CheekStyle::Blush && blush_.x > 0.02f) {
@@ -102,10 +105,6 @@ void Face::drawMascot(lv_layer_t* layer) {
 
   float cy = kEyeY + bob + dy_.x * 0.3f;
   for (int side = -1; side <= 1; side += 2) drawMascotEye(layer, side, C + side * kEyeDx, cy);
-  if (emotion_ == Emotion::Cry) {
-    float sh = LV_CLAMP(44.f, eye_.h.x * 0.60f, 92.f) * swell_;
-    for (int side = -1; side <= 1; side += 2) drawTears(layer, C + side * kEyeDx, cy + sh / 2 - 6, side);
-  }
 
   // Bril (stijl uit de look): glazen, brug en poten
   const GlassesStyle gs = (GlassesStyle)look_.glasses;
@@ -182,7 +181,7 @@ void Face::drawMascot(lv_layer_t* layer) {
     case AccessoryStyle::Headband: {
       lv_draw_arc_dsc_t a;
       lv_draw_arc_dsc_init(&a);
-      a.center = {ri(C), ri(250 + hy)};
+      a.center = {ri(C + ox), ri(250 + hy + oy)};
       a.radius = 214;
       a.start_angle = 205;
       a.end_angle = 335;
@@ -211,8 +210,14 @@ void Face::drawMascot(lv_layer_t* layer) {
     default:
       break;
   }
+  // Tranen als laatste: lang haar valt anders over de wangen heen
+  if (emotion_ == Emotion::Cry) {
+    float sh = LV_CLAMP(44.f, eye_.h.x * 0.60f, 92.f) * swell_;
+    for (int side = -1; side <= 1; side += 2) drawTears(layer, C + side * kEyeDx, cy + sh / 2 - 6, side);
+  }
   if (emotion_ == Emotion::Pain) drawSweat(layer, C + 172, 196);
-  if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep) drawZs(layer, HAIR);
+  // Z'jes in een vaste lichte kleur: in de haarkleur verdwenen ze tegen het haar
+  if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep) drawZs(layer, hex(0xB8A6FF));
 }
 
 void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
@@ -269,8 +274,19 @@ void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
     else if (yr < yl) fillTri(layer, xl, yr, xr, yr, xl, yl, SKIN);
     // wimperlijn alleen binnen de ooromtrek
     float wl = ellipseHalfWidth(hw + 3, hh + 3, yl - cy), wr = ellipseHalfWidth(hw + 3, hh + 3, yr - cy);
-    if (lid > 0.97f) wl = wr = hw;  // helemaal dicht: volle lijn
-    if (wl > 2 || wr > 2) {
+    if (lid > 0.97f) {
+      // Helemaal dicht: een gesloten-oog-boogje in het midden (onderaan viel de lijn weg tegen de bril)
+      lv_draw_arc_dsc_t d;
+      lv_draw_arc_dsc_init(&d);
+      d.center = {ri(cx + ox), ri(cy - hw * 0.55f + oy)};
+      d.radius = (uint16_t)(hw * 0.95f);
+      d.start_angle = 55;
+      d.end_angle = 125;
+      d.width = 6;
+      d.rounded = 1;
+      d.color = OUTLINE;
+      lv_draw_arc(layer, &d);
+    } else if (wl > 2 || wr > 2) {
       float k = (yr - yl) / (xr - xl);
       float x1 = cx - wl, x2 = cx + wr;
       line(layer, x1, yl + k * (x1 - xl), x2, yl + k * (x2 - xl), 6, OUTLINE);
@@ -341,12 +357,12 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
     a.width = lipstick ? 11 : 8;
     a.rounded = 1;
     if (emotion_ == Emotion::Sad || emotion_ == Emotion::Cry) {
-      a.center = {ri(cx), ri(my + mw * 0.75f)};
+      a.center = {ri(cx + ox), ri(my + mw * 0.75f + oy)};
       a.radius = (uint16_t)(mw * 0.6f);
       a.start_angle = 228;
       a.end_angle = 312;
     } else {
-      a.center = {ri(cx), ri(my - mw * 0.55f)};
+      a.center = {ri(cx + ox), ri(my - mw * 0.55f + oy)};
       a.radius = (uint16_t)(mw * 0.95f);
       a.start_angle = 58;
       a.end_angle = 122;
@@ -359,7 +375,7 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
   float h = 16 + 70 * o;
   lv_area_t saved = layer->_clip_area;
   lv_area_t clip = saved;
-  clip.y1 = LV_MAX(clip.y1, ri(my));
+  clip.y1 = LV_MAX(clip.y1, ri(my + oy));
   if (clip.y1 <= clip.y2) {
     layer->_clip_area = clip;
     fillEllipse(layer, cx, my, mw + 10 + (lipstick ? 6 : 0), 2 * h + 10 + (lipstick ? 6 : 0), lipCol);
