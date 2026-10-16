@@ -7,9 +7,10 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${PORT:-8765}"
+export WEBEMU_STATE="${WEBEMU_STATE:-$ROOT/firmware/.pio/webemu-state}"
 for a in "$@"; do
   case "$a" in
-    --reset) rm -rf "$ROOT/firmware/.pio/webemu-state" ;;
+    --reset) rm -rf "$WEBEMU_STATE" ;;
     *) PORT="$a" ;;
   esac
 done

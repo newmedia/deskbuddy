@@ -342,6 +342,18 @@ bereikbaar vanaf deze computer.
 Instellingen, eigen profielen, de Bluetooth-koppeling en de "geïnstalleerde" versie blijven bewaard
 in `firmware/.pio/webemu-state/` (net als NVS). `tools/webemu.sh --reset` begint schoon.
 
+### Regressietest
+
+`tools/webemu-test.sh` (`-v` toont ook de geslaagde controles) bouwt env `webemu` en start hem op een
+vrije poort met een eigen, lege staat (`WEBEMU_STATE`, je gewone `webemu-state` blijft staan). Daarna
+loopt `tools/webemu_test.py` alles via HTTP na: alle emoties en acties (de lijsten komen uit
+`/emu/state`, dus nieuwe gaan vanzelf mee), blink/bounce/schudden, personages en eigen profielen,
+Wi-Fi-scan en verbinden (fout wachtwoord, netwerk weg, goed), BLE (koppelcode, verkeerde code,
+regelcommando's, bonded), vegen naar info en klok (`view` in `/emu/state`), geluid (PCM na
+`play whistle`) en updates (check, install, herstart met nieuwe versie en bewaarde instellingen,
+upload via `POST /update`). Duurt ongeveer 30 s. Eindigt met een overzicht per groep; exitcode 0
+betekent alles goed, anders 1 plus het einde van het emulator-log. Draai hem vóór een release.
+
 Niet nagebootst: echte radio's (Wi-Fi/BLE-bereik), TLS naar GitHub, flash schrijven, en de
 snelheid van het echte scherm. Meet prestaties daarom altijd op het apparaat (`perf`).
 

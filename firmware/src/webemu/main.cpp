@@ -402,7 +402,9 @@ int main(int argc, char** argv) {
   gArgv = argv;
   gRoot = argc > 1 ? argv[1] : ".";
   int port = argc > 2 ? atoi(argv[2]) : 8765;
-  gState = gRoot + "/firmware/.pio/webemu-state";
+  // WEBEMU_STATE: andere map voor de bewaarde staat (de regressietest gebruikt een eigen map)
+  const char* st = getenv("WEBEMU_STATE");
+  gState = st && *st ? st : gRoot + "/firmware/.pio/webemu-state";
   mkdir((gRoot + "/firmware/.pio").c_str(), 0755);
   mkdir(gState.c_str(), 0755);
   signal(SIGPIPE, SIG_IGN);
@@ -543,12 +545,21 @@ int main(int argc, char** argv) {
             snprintf(reply, sizeof(reply),
                      "{\"wifi\":%d,\"battery\":%d,\"charging\":%s,\"ble\":%s,\"bleConnected\":%s,\"blePaired\":%s,"
                      "\"pairCode\":%u,\"offered\":\"%s\",\"version\":\"%s\",\"emotion\":\"%s\",\"brightness\":%u,"
-                     "\"sound\":%s}",
+                     "\"sound\":%s,\"view\":\"%s\",\"emotions\":[",
                      (int)d.wifi, d.batteryPct, d.charging ? "true" : "false", d.bleEnabled ? "true" : "false",
                      d.bleConnected ? "true" : "false", platform.blePaired ? "true" : "false", pairCode,
                      platform.offered.c_str(), d.version, emotionName(app.face.emotion()), platform.brightness,
-                     app.sound.enabled() ? "true" : "false");
-            respond(fd, 200, "application/json", reply);
+                     app.sound.enabled() ? "true" : "false",
+                     app.setup.visible() ? "setup" : app.info.visible() ? "info" : app.clock.visible() ? "clock" : "face");
+            // Alle emoties en acties, zodat de regressietest (tools/webemu-test.sh) nieuwe vanzelf meeneemt
+            std::string js = reply;
+            for (int i = 0; i < (int)Emotion::Count; i++)
+              js += std::string(i ? "," : "") + "\"" + emotionName((Emotion)i) + "\"";
+            js += "],\"actions\":[";
+            for (int i = 1; i < (int)Action::Count; i++)
+              js += std::string(i > 1 ? "," : "") + "\"" + actionName((Action)i) + "\"";
+            js += "]}";
+            respond(fd, 200, "application/json", js);
           } else if (P == "/emu/input") {
             std::string t = arg(r, "t");
             if (t == "touch") {
