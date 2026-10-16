@@ -31,6 +31,9 @@ struct Settings {
 struct Platform {
   virtual ~Platform() = default;
   virtual void loadSettings(Settings&) {}
+  // Kleine binaire blobs (eigen profielen); geeft het aantal gelezen bytes.
+  virtual size_t loadBlob(const char* key, void* buf, size_t max) { (void)key; (void)buf; (void)max; return 0; }
+  virtual void saveBlob(const char* key, const void* buf, size_t len) { (void)key; (void)buf; (void)len; }
   virtual void saveSettings(const Settings&) {}
   virtual void localTime(struct tm& out) = 0;
   virtual void deviceInfo(DeviceInfo& out) = 0;
@@ -94,6 +97,10 @@ class App : public CommandHost {
   void save();
   void syncDev();
   bool lookCommand(const char* line, char* reply, size_t len);
+  void saveProfiles();
+  int findProfile(const char* name) const;
+  Look profiles_[kMaxProfiles];
+  int profileCount_ = 0;
   void applySleep();
 
   Platform& platform_;

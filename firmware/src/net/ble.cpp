@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <NimBLEDevice.h>
+#include <esp_heap_caps.h>
 #include <esp_random.h>
 
 #include <atomic>
@@ -140,8 +141,8 @@ void loop() {
   if (!queue) return;
   Msg m;
   while (xQueueReceive(queue, &m, 0) == pdTRUE) {
-    static char reply[1200];
-    app->command(m.line, reply, sizeof(reply));
+    static char* reply = (char*)heap_caps_malloc(1200, MALLOC_CAP_SPIRAM);
+    app->command(m.line, reply, 1200);
     send(m.conn, reply);
   }
 }

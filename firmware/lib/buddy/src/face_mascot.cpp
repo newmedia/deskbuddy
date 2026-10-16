@@ -143,6 +143,67 @@ void Face::drawMascot(lv_layer_t* layer) {
   }
 
   drawHair(layer, hairY_.x);
+
+  // Oorbellen (onder het haar zichtbaar bij de oren)
+  const EarringStyle er = (EarringStyle)look_.earrings;
+  if (er != EarringStyle::None) {
+    for (int side = -1; side <= 1; side += 2) {
+      float x = C + side * 192, y = 318;
+      if (er == EarringStyle::Studs) {
+        fillEllipse(layer, x, y, 18, 18, OUTLINE);
+        fillEllipse(layer, x, y, 13, 13, hex(look_.extra));
+        fillEllipse(layer, x - 2, y - 2, 4, 4, WHITE, 200);
+      } else {
+        frame(layer, x - 17, y - 4, x + 17, y + 32, LV_RADIUS_CIRCLE, 5, hex(look_.extra), WHITE, 0);
+      }
+    }
+  }
+  // Haaraccessoire
+  const lv_color_t ac = hex(look_.extra);
+  float hy = hairY_.x - kHairUp;
+  switch ((AccessoryStyle)look_.accessory) {
+    case AccessoryStyle::Bow: {
+      float x = C + 118, y = 104 + hy;
+      fillTri(layer, x, y, x - 46, y - 28, x - 46, y + 28, OUTLINE);
+      fillTri(layer, x, y, x + 46, y - 28, x + 46, y + 28, OUTLINE);
+      fillTri(layer, x, y, x - 40, y - 22, x - 40, y + 22, ac);
+      fillTri(layer, x, y, x + 40, y - 22, x + 40, y + 22, ac);
+      fillEllipse(layer, x, y, 22, 22, OUTLINE);
+      fillEllipse(layer, x, y, 16, 16, shade(look_.extra, 60));
+      break;
+    }
+    case AccessoryStyle::Headband: {
+      lv_draw_arc_dsc_t a;
+      lv_draw_arc_dsc_init(&a);
+      a.center = {ri(C), ri(250 + hy)};
+      a.radius = 214;
+      a.start_angle = 205;
+      a.end_angle = 335;
+      a.width = 20;
+      a.color = OUTLINE;
+      lv_draw_arc(layer, &a);
+      a.width = 14;
+      a.radius = 211;
+      a.color = ac;
+      lv_draw_arc(layer, &a);
+      break;
+    }
+    case AccessoryStyle::Flower: {
+      float x = C - 132, y = 104 + hy;
+      for (int i = 0; i < 5; i++) {
+        float an = i * 2 * kPi / 5;
+        fillEllipse(layer, x + cosf(an) * 18, y + sinf(an) * 18, 30, 30, OUTLINE);
+      }
+      for (int i = 0; i < 5; i++) {
+        float an = i * 2 * kPi / 5;
+        fillEllipse(layer, x + cosf(an) * 18, y + sinf(an) * 18, 24, 24, ac);
+      }
+      fillEllipse(layer, x, y, 18, 18, hex(0xFFD54A));
+      break;
+    }
+    default:
+      break;
+  }
   if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep) drawZs(layer, HAIR);
 }
 
@@ -215,9 +276,25 @@ void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
     float topY = cy + hh - lidB * sh;
     fillEllipse(layer, cx, topY + eh / 2, ew, eh, SKIN);
   }
+  // Wimpers of eyeliner aan de buitenkant (alleen als het oog open genoeg is)
+  const LashStyle ls = (LashStyle)look_.lashes;
+  if (ls != LashStyle::None && LV_MAX(c, LV_CLAMP(0.f, eye_.lidTop.x, 1.f)) < 0.55f) {
+    if (ls == LashStyle::Liner) {
+      line(layer, cx + side * hw * 0.35f, cy - hh * 0.95f, cx + side * (hw + 4), cy - hh * 0.55f, 7, OUTLINE);
+      line(layer, cx + side * (hw + 2), cy - hh * 0.55f, cx + side * (hw + 20), cy - hh * 0.95f, 7, OUTLINE);
+    } else {
+      static const float ang[] = {0.45f, 0.8f, 1.15f};  // radialen vanaf horizontaal, aan de buitenkant
+      for (float a : ang) {
+        float px = cx + side * (hw + 2) * cosf(a), py = cy - (hh + 2) * sinf(a);
+        line(layer, px, py, px + side * 13 * cosf(a), py - 13 * sinf(a), 5, OUTLINE);
+      }
+    }
+  }
 }
 
 void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
+  const bool lipstick = (LipStyle)look_.lips == LipStyle::Lipstick;
+  const lv_color_t lipCol = lipstick ? hex(look_.lip) : OUTLINE;
   if (pucker_) {
     drawPucker(layer, cx, my + 12, OUTLINE, true);
     return;
@@ -229,7 +306,7 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
   if (ovalMouth(emotion_)) {
     float s = 1.0f + 0.06f * sinf(t_ * 5);
     float ow = mw * 0.95f * s, oh = mw * 1.1f * s;
-    fillEllipse(layer, cx, my + 20, ow + 9, oh + 9, OUTLINE);
+    fillEllipse(layer, cx, my + 20, ow + 9 + (lipstick ? 6 : 0), oh + 9 + (lipstick ? 6 : 0), lipCol);
     fillEllipse(layer, cx, my + 20, ow, oh, MOUTH);
     fillEllipse(layer, cx, my + 20 + oh * 0.28f, ow * 0.6f, oh * 0.32f, TONGUE);
     return;
@@ -238,8 +315,8 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
   if (o < 0.08f) {
     lv_draw_arc_dsc_t a;
     lv_draw_arc_dsc_init(&a);
-    a.color = OUTLINE;
-    a.width = 8;
+    a.color = lipCol;
+    a.width = lipstick ? 11 : 8;
     a.rounded = 1;
     if (emotion_ == Emotion::Sad) {
       a.center = {ri(cx), ri(my + mw * 0.75f)};
@@ -263,7 +340,7 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
   clip.y1 = LV_MAX(clip.y1, ri(my));
   if (clip.y1 <= clip.y2) {
     layer->_clip_area = clip;
-    fillEllipse(layer, cx, my, mw + 10, 2 * h + 10, OUTLINE);
+    fillEllipse(layer, cx, my, mw + 10 + (lipstick ? 6 : 0), 2 * h + 10 + (lipstick ? 6 : 0), lipCol);
     fillEllipse(layer, cx, my, mw, 2 * h, MOUTH);
     bool gritted = emotion_ == Emotion::Angry;
     float th = gritted ? 2 * h * 0.92f : 2 * LV_MIN(h * 0.42f, 30.0f);
@@ -271,10 +348,10 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
     if (!gritted) fillEllipse(layer, cx, my + h * 0.68f, mw * 0.5f, h * 0.6f, TONGUE);
     layer->_clip_area = saved;
   }
-  line(layer, cx - mw / 2 - 4, my, cx + mw / 2 + 4, my, 7, OUTLINE);
+  line(layer, cx - mw / 2 - 4, my, cx + mw / 2 + 4, my, lipstick ? 11 : 7, lipCol);
   // mondhoekjes
-  line(layer, cx - mw / 2 - 4, my, cx - mw / 2 - 14, my - 10, 6, OUTLINE);
-  line(layer, cx + mw / 2 + 4, my, cx + mw / 2 + 14, my - 10, 6, OUTLINE);
+  line(layer, cx - mw / 2 - 4, my, cx - mw / 2 - 14, my - 10, 6, lipCol);
+  line(layer, cx + mw / 2 + 4, my, cx + mw / 2 + 14, my - 10, 6, lipCol);
 }
 
 void Face::drawHair(lv_layer_t* layer, float dy) {
@@ -337,6 +414,80 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
       fillEllipse(layer, C, -6 + dy, 30, 20, shade(look_.accent, -70));
       fillEllipse(layer, C + 60, 70 + dy, 56, 56, WHITE, 230);  // logo
       line(layer, 150, 30 + dy, 190, 100 + dy, 10, HAIR_HI, 180);
+      break;
+    }
+    case HairStyle::Long:
+    case HairStyle::LongCurly: {
+      // Lang haar: kap + zachte pony + lange, ronde zijlokken langs de rand tot onderaan
+      bool curly = hs == HairStyle::LongCurly;
+      for (int pass = 0; pass < 2; pass++) {
+        lv_color_t c = pass ? HAIR : OUTLINE;
+        float g = pass ? 0 : 7;
+        fillEllipse(layer, C, -20 + dy, 630 + g, 310 + g, c);
+        fillEllipse(layer, 30, 280, 190 + g, 470 + g, c);    // zijlokken
+        fillEllipse(layer, 436, 280, 190 + g, 470 + g, c);
+        fillEllipse(layer, C - 40, 70 + dy, 300 + g, 150 + g, c);  // pony, iets naar links
+        if (curly)
+          for (int i = 0; i < 6; i++) {
+            fillEllipse(layer, 74, 150 + i * 56, 66 + g, 66 + g, c);
+            fillEllipse(layer, 392, 150 + i * 56, 66 + g, 66 + g, c);
+          }
+      }
+      line(layer, 150, 44 + dy, 196, 96 + dy, 9, HAIR_HI, 180);
+      line(layer, 34, 190, 40, 340, 8, HAIR_HI, 140);
+      line(layer, 430, 190, 424, 340, 8, HAIR_HI, 140);
+      break;
+    }
+    case HairStyle::Ponytail: {
+      // Strak naar achteren met een paardenstaart rechts
+      fillEllipse(layer, C, -20 + dy, 630, 310, OUTLINE);
+      fillEllipse(layer, C, -20 + dy, 618, 298, HAIR);
+      fillEllipse(layer, 420, 300, 86, 230, OUTLINE);
+      fillEllipse(layer, 420, 300, 74, 218, HAIR);
+      fillRect(layer, 396, 164, 444, 186, 8, hex(look_.extra));  // elastiekje
+      fillTri(layer, 100, 96 + dy, 300, 96 + dy, 120, 132 + dy, HAIR);
+      line(layer, 170, 40 + dy, 230, 90 + dy, 9, HAIR_HI, 180);
+      line(layer, 412, 200, 418, 360, 7, HAIR_HI, 140);
+      break;
+    }
+    case HairStyle::Bun: {
+      // Knotje bovenop + gladde kap met kleine pony
+      fillEllipse(layer, C, -20 + dy, 630, 310, OUTLINE);
+      fillEllipse(layer, C, -20 + dy, 618, 298, HAIR);
+      fillEllipse(layer, C, 52, 150, 120, OUTLINE);  // knotje: vast in beeld bovenop
+      fillEllipse(layer, C, 52, 138, 108, HAIR);
+      line(layer, C - 52, 54, C + 52, 54, 5, shade(look_.accent, -50), 200);
+      fillTri(layer, 30, 110 + dy, 92, 100 + dy, 56, 200 + dy, HAIR);
+      fillTri(layer, 374, 100 + dy, 436, 110 + dy, 410, 200 + dy, HAIR);
+      line(layer, C - 34, 26, C - 4, 44, 7, HAIR_HI, 180);
+      break;
+    }
+    case HairStyle::Bob: {
+      // Bob tot de kaaklijn (ronde zijkanten) met een rechte pony
+      for (int pass = 0; pass < 2; pass++) {
+        lv_color_t c = pass ? HAIR : OUTLINE;
+        float g = pass ? 0 : 7;
+        fillEllipse(layer, C, -20 + dy, 630 + g, 310 + g, c);
+        fillEllipse(layer, 46, 226, 190 + g, 300 + g, c);
+        fillEllipse(layer, 420, 226, 190 + g, 300 + g, c);
+        fillRect(layer, 96 - g, 70 + dy, 370 + g, 136 + dy + g, 24, c);  // pony
+      }
+      line(layer, 140, 40 + dy, 190, 100 + dy, 9, HAIR_HI, 180);
+      break;
+    }
+    case HairStyle::Pigtails: {
+      // Middenscheiding met twee staartjes opzij
+      fillEllipse(layer, C, -20 + dy, 630, 310, OUTLINE);
+      fillEllipse(layer, C, -20 + dy, 618, 298, HAIR);
+      line(layer, C, 0 + dy, C, 96 + dy, 5, shade(look_.accent, -60), 200);
+      for (int side = -1; side <= 1; side += 2) {
+        float x = C + side * 206;
+        fillEllipse(layer, x, 290, 98, 160, OUTLINE);
+        fillEllipse(layer, x, 290, 86, 148, HAIR);
+        fillEllipse(layer, x - side * 10, 196, 34, 24, hex(look_.extra));  // elastiekje
+      }
+      fillTri(layer, 96, 96 + dy, C - 6, 96 + dy, 116, 140 + dy, HAIR);
+      fillTri(layer, C + 6, 96 + dy, 370, 96 + dy, 350, 140 + dy, HAIR);
       break;
     }
     case HairStyle::Spiky:

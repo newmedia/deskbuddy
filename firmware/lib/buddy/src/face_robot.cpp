@@ -49,14 +49,14 @@ bool inHeart(float px, float py, float cx, float cy, float s, float vs) {
 // LED-raster: vierkante "pixels" binnen de vorm (afgeronde rechthoek of hart).
 void Face::drawPixelShape(lv_layer_t* layer, float x1, float y1, float x2, float y2, float r, bool heart,
                           lv_color_t col) {
-  const float cell = 14, dot = 11;
+  const float cell = 16, dot = 13;  // grotere pixels = minder blokjes per frame
   float cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
   float s = (x2 - x1) * 1.08f, vs = 1;
   // raster vast t.o.v. het oogmidden, zodat pixels niet "zwemmen" bij kleine bewegingen
   for (float y = cy - floorf((cy - y1) / cell) * cell; y <= y2; y += cell)
     for (float x = cx - floorf((cx - x1) / cell) * cell; x <= x2; x += cell) {
       bool in = heart ? inHeart(x, y, cx, cy, s, vs) : inRoundRect(x, y, x1, y1, x2, y2, r);
-      if (in) fillRect(layer, x - dot / 2, y - dot / 2, x + dot / 2, y + dot / 2, 2, col);
+      if (in) fillRect(layer, x - dot / 2, y - dot / 2, x + dot / 2, y + dot / 2, 0, col);  // recht = veel sneller
     }
 }
 

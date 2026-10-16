@@ -21,6 +21,13 @@ void App::create(lv_obj_t* screen) {
   pair.create(screen);
 
   platform_.loadSettings(settings_);
+  {
+    uint8_t buf[kPackedLookSize * kMaxProfiles];
+    size_t n = platform_.loadBlob("profiles", buf, sizeof(buf));
+    profileCount_ = 0;
+    for (size_t i = 0; i + kPackedLookSize <= n && profileCount_ < kMaxProfiles; i += kPackedLookSize)
+      if (unpackLook(buf + i, profiles_[profileCount_])) profileCount_++;
+  }
   sound.setEnabled(settings_.sound);
   sound.setVolume(settings_.volume);
   face.setLook(settings_.look);
@@ -71,8 +78,11 @@ void App::onGesture(const GestureEvent& g) {
       firmwareUpdate("install", reply, sizeof(reply));
     } else if (h == InfoView::Hit::Skin) {
       // Volgende personage (eigen look -> eerste personage)
-      int i = presetIndex(settings_.look.name);
-      setLook(preset(i < 0 ? 0 : i + 1));
+      int total = presetCount() + profileCount_;
+      int cur = findProfile(settings_.look.name);
+      int i = cur >= 0 ? presetCount() + cur : presetIndex(settings_.look.name);
+      int next = (i < 0 ? 0 : i + 1) % total;
+      setLook(next < presetCount() ? preset(next) : profiles_[next - presetCount()]);
       info.show();
     } else if (g.type == Gesture::Tap || g.type == Gesture::SwipeUp) {
       info.hide();
@@ -151,12 +161,12 @@ void App::statusJson(char* out, size_t len) {
            "{\"version\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
            "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u,\"updates\":\"%s\",\"update\":\"%s\","
-           "\"latest\":\"%s\",\"progress\":%u,\"ble\":%s,\"bleConnected\":%s,\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
+           "\"latest\":\"%s\",\"progress\":%u,\"ble\":%s,\"bleConnected\":%s,\"look\":\"%s\",\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
            dev_.version, emotionName(face.emotion()), skinName(face.skin()), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
            dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin,
            updateModeName(dev_.updateMode), updateStateName(dev_.updateState), dev_.updateVersion,
-           (unsigned)dev_.updateProgress, settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false",
+           (unsigned)dev_.updateProgress, settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false", settings_.look.name,
            (unsigned long)dev_.heapFree, (unsigned long)dev_.heapMin, (unsigned long)dev_.psramFree, dev_.fps,
            dev_.renderMs, dev_.load);
 }
@@ -306,6 +316,18 @@ void App::setLook(const Look& l) {
 // look <onderdeel> <stijl>     -> bijv. look eyes ring, look hair curly, look base cartoon
 // look color <primary|accent|face|frame> <#rrggbb>
 // look emotioncolors on|off  ·  look name <naam>
+int App::findProfile(const char* name) const {
+  for (int i = 0; i < profileCount_; i++)
+    if (!strcasecmp(profiles_[i].name, name)) return i;
+  return -1;
+}
+
+void App::saveProfiles() {
+  uint8_t buf[kPackedLookSize * kMaxProfiles];
+  for (int i = 0; i < profileCount_; i++) packLook(profiles_[i], buf + i * kPackedLookSize);
+  platform_.saveBlob("profiles", buf, (size_t)profileCount_ * kPackedLookSize);
+}
+
 bool App::lookCommand(const char* line, char* reply, size_t len) {
   char a[16] = "", b[24] = "", c[24] = "";
   sscanf(line, "look %15s %23s %23s", a, b, c);
@@ -314,20 +336,62 @@ bool App::lookCommand(const char* line, char* reply, size_t len) {
     lookJson(l, reply, len);
     return true;
   }
+  // naam = rest van de regel na het woord (mag spaties bevatten)
+  auto restAfter = [&](const char* word) {
+    const char* p = strstr(line, word);
+    p = p ? p + strlen(word) : "";
+    while (*p == ' ') p++;
+    return p;
+  };
   if (!strcmp(a, "presets")) {
-    size_t n = snprintf(reply, len, "[");
+    size_t n = snprintf(reply, len, "{\"presets\":[");
     for (int i = 0; i < presetCount() && n < len; i++)
       n += snprintf(reply + n, len - n, "%s\"%s\"", i ? "," : "", preset(i).name);
-    if (n < len) snprintf(reply + n, len - n, "]");
+    if (n < len) n += snprintf(reply + n, len - n, "],\"profiles\":[");
+    for (int i = 0; i < profileCount_ && n < len; i++)
+      n += snprintf(reply + n, len - n, "%s\"%s\"", i ? "," : "", profiles_[i].name);
+    if (n < len) snprintf(reply + n, len - n, "]}");
     return true;
   }
-  if (!strcmp(a, "preset")) {
-    int i = presetIndex(b);
+  if (!strcmp(a, "save")) {
+    const char* nm = restAfter("save");
+    if (!*nm) {
+      snprintf(reply, len, "gebruik: look save <naam>");
+      return false;
+    }
+    snprintf(l.name, 13, "%s", nm);  // max 12 tekens (compacte opslag)
+    int i = findProfile(l.name);
     if (i < 0) {
+      if (profileCount_ >= kMaxProfiles) {
+        snprintf(reply, len, "maximaal %d eigen profielen; verwijder er eerst een", kMaxProfiles);
+        return false;
+      }
+      i = profileCount_++;
+    }
+    profiles_[i] = l;
+    saveProfiles();
+  } else if (!strcmp(a, "delete")) {
+    int i = findProfile(restAfter("delete"));
+    if (i < 0) {
+      snprintf(reply, len, "geen eigen profiel met die naam");
+      return false;
+    }
+    for (int k = i; k < profileCount_ - 1; k++) profiles_[k] = profiles_[k + 1];
+    profileCount_--;
+    saveProfiles();
+    snprintf(reply, len, "ok verwijderd");
+    return true;
+  } else if (!strcmp(a, "preset")) {
+    const char* nm = restAfter("preset");
+    int i = findProfile(nm);
+    if (i >= 0) {
+      l = profiles_[i];
+    } else if ((i = presetIndex(nm)) >= 0) {
+      l = preset(i);
+    } else {
       snprintf(reply, len, "onbekend personage (zie 'look presets')");
       return false;
     }
-    l = preset(i);
   } else if (!strcmp(a, "random")) {
     l = randomLook((uint32_t)lv_tick_get() * 2654435761u);
   } else if (!strcmp(a, "base")) {
@@ -340,13 +404,15 @@ bool App::lookCommand(const char* line, char* reply, size_t len) {
   } else if (!strcmp(a, "color")) {
     uint32_t col;
     if (!parseColor(c, col)) {
-      snprintf(reply, len, "gebruik: look color primary|accent|face|frame #rrggbb");
+      snprintf(reply, len, "gebruik: look color primary|accent|face|frame|lip|extra #rrggbb");
       return false;
     }
     if (!strcmp(b, "primary")) l.primary = col;
     else if (!strcmp(b, "accent")) l.accent = col;
     else if (!strcmp(b, "face")) l.face = col;
     else if (!strcmp(b, "frame")) l.frame = col;
+    else if (!strcmp(b, "lip")) l.lip = col;
+    else if (!strcmp(b, "extra")) l.extra = col;
     else {
       snprintf(reply, len, "onbekende kleur: %s", b);
       return false;
@@ -366,15 +432,15 @@ bool App::lookCommand(const char* line, char* reply, size_t len) {
       snprintf(reply, len, "gebruik: look [presets|preset <naam>|random|base|<onderdeel> <stijl>|color ...]");
       return false;
     }
-    uint8_t ok[8];
-    int n = stylesFor(part, l.base, ok, 8);
+    uint8_t ok[16];
+    int n = stylesFor(part, l.base, ok, 16);
     bool allowed = false;
     for (int i = 0; i < n; i++) allowed |= ok[i] == style;
     if (!allowed) {
       snprintf(reply, len, "%s '%s' bestaat niet voor %s", partName(part), b, l.base ? "cartoon" : "robot");
       return false;
     }
-    uint8_t* f[] = {&l.eyes, &l.brows, &l.mouth, &l.cheeks, &l.glasses, &l.hair};
+    uint8_t* f[] = {&l.eyes, &l.brows, &l.mouth, &l.cheeks, &l.glasses, &l.hair, &l.lashes, &l.lips, &l.earrings, &l.accessory};
     *f[(int)part] = style;
     snprintf(l.name, sizeof(l.name), "Eigen");
   }

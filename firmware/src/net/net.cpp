@@ -8,6 +8,7 @@
 #include <Update.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <esp_heap_caps.h>
 #include <esp_netif.h>
 #include <esp_sntp.h>
 
@@ -141,8 +142,8 @@ void handleStatus() {
 void handleCmd() {
   String line = server.hasArg("c") ? server.arg("c") : server.arg("plain");
   line.trim();
-  static char reply[700];
-  bool ok = app->command(line.c_str(), reply, sizeof(reply));
+  static char* reply = (char*)heap_caps_malloc(700, MALLOC_CAP_SPIRAM);  // PSRAM: intern RAM is krap
+  bool ok = app->command(line.c_str(), reply, 700);
   String body = String("{\"ok\":") + (ok ? "true" : "false") + ",\"reply\":\"";
   jsonEscape(body, reply);
   body += "\"}";

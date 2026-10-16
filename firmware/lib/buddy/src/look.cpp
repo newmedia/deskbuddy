@@ -8,13 +8,17 @@ namespace buddy {
 
 namespace {
 
-const char* const kParts[] = {"eyes", "brows", "mouth", "cheeks", "glasses", "hair"};
+const char* const kParts[] = {"eyes", "brows", "mouth", "cheeks", "glasses", "hair", "lashes", "lips", "earrings", "accessory"};
 const char* const kEyes[] = {"block", "round", "pill", "ring", "pixel", "visor"};
 const char* const kBrows[] = {"none", "bar", "thick", "thin", "pixel"};
 const char* const kMouths[] = {"auto", "line", "zigzag", "equalizer", "pixel"};
 const char* const kCheeks[] = {"none", "blush", "stripes", "pixel", "freckles"};
 const char* const kGlasses[] = {"none", "square", "round", "shades", "monocle"};
-const char* const kHair[] = {"spiky", "neat", "curly", "mohawk", "bald", "cap"};
+const char* const kHair[] = {"spiky", "neat", "curly", "mohawk", "bald", "cap", "long", "ponytail", "bun", "bob", "pigtails", "longcurly"};
+const char* const kLashes[] = {"none", "lashes", "liner"};
+const char* const kLips[] = {"none", "lipstick"};
+const char* const kEarrings[] = {"none", "studs", "hoops"};
+const char* const kAccessory[] = {"none", "bow", "headband", "flower"};
 
 struct Names {
   const char* const* names;
@@ -27,7 +31,11 @@ Names names(Part p) {
     case Part::Mouth: return {kMouths, 5};
     case Part::Cheeks: return {kCheeks, 5};
     case Part::Glasses: return {kGlasses, 5};
-    case Part::Hair: return {kHair, 6};
+    case Part::Hair: return {kHair, 12};
+    case Part::Lashes: return {kLashes, 3};
+    case Part::Lips: return {kLips, 2};
+    case Part::Earrings: return {kEarrings, 3};
+    case Part::Accessory: return {kAccessory, 4};
     default: return {nullptr, 0};
   }
 }
@@ -48,6 +56,16 @@ Look make(const char* name, uint8_t base, uint8_t eyes, uint8_t brows, uint8_t m
   l.frame = frame;
   l.emotionColors = emo;
   snprintf(l.name, sizeof(l.name), "%s", name);
+  return l;
+}
+
+Look girl(Look l, uint8_t lashes, uint8_t lips, uint8_t earrings, uint8_t acc, uint32_t lip, uint32_t extra) {
+  l.lashes = lashes;
+  l.lips = lips;
+  l.earrings = earrings;
+  l.accessory = acc;
+  l.lip = lip;
+  l.extra = extra;
   return l;
 }
 
@@ -80,17 +98,30 @@ const Look kPresets[] = {
          0x4A2C17, 0x8D5524, 0x15171C),
     make("Sportief", 1, I(E::Block), I(B::Thin), I(M::Line), I(C::Blush), I(G::None), I(H::Cap), 0x2F7D4F, 0xD62828,
          0xFFDBB5, 0x15171C),
+    girl(make("Lisa", 1, I(E::Block), I(B::Thin), I(M::Auto), I(C::Blush), I(G::None), I(H::Long), 0x3F7FD8, 0xC98B2B,
+              0xF7D2B0, 0x15171C), 1, 1, 1, 0, 0xD6336C, 0xFFD54A),
+    girl(make("Noor", 1, I(E::Block), I(B::Thin), I(M::Line), I(C::Freckles), I(G::None), I(H::Ponytail), 0x2F7D4F,
+              0x8B3A1E, 0xFBD9BC, 0x15171C), 1, 0, 0, 3, 0xD6336C, 0x2DB37A),
+    girl(make("Sofie", 1, I(E::Block), I(B::Thin), I(M::Auto), I(C::Blush), I(G::Round), I(H::Bun), 0x6B4E2E, 0x2B1B10,
+              0xE8B98A, 0xB07A3A), 1, 1, 1, 0, 0xB83B5E, 0xE6E6E6),
+    girl(make("Mila", 1, I(E::Round), I(B::Thin), I(M::Auto), I(C::Blush), I(G::None), I(H::LongCurly), 0x3B2A1A,
+              0x1A120C, 0x7A4A2A, 0x15171C), 2, 1, 2, 3, 0xA0234F, 0xFFC93C),
+    girl(make("Emma", 1, I(E::Block), I(B::Thin), I(M::Auto), I(C::Freckles), I(G::None), I(H::Pigtails), 0x4A90D9,
+              0xE0A040, 0xFFE0C4, 0x15171C), 1, 0, 0, 1, 0xD6336C, 0xFF5A8C),
+    girl(make("Bo", 1, I(E::Block), I(B::Bar), I(M::Line), I(C::None), I(G::Shades), I(H::Bob), 0x3A7BD5, 0x111111,
+              0xF2C4A0, 0x111111), 2, 1, 2, 2, 0xC2185B, 0xE0E0E0),
 };
 constexpr int kPresetCount = sizeof(kPresets) / sizeof(kPresets[0]);
 
 // Wat er per basis kiesbaar is (robot = 0, cartoon = 1)
 bool allowed(Part p, uint8_t base, uint8_t s) {
   if (base == 0) {
-    if (p == Part::Hair) return false;
+    if (p == Part::Hair || p == Part::Lips || p == Part::Earrings || p == Part::Accessory) return false;
     if (p == Part::Cheeks) return s != (uint8_t)CheekStyle::Freckles;
     return true;
   }
   switch (p) {
+    case Part::Lashes: case Part::Lips: case Part::Earrings: case Part::Accessory: return true;
     case Part::Eyes: return s == (uint8_t)EyeStyle::Block || s == (uint8_t)EyeStyle::Round;  // normaal, stipjes
     case Part::Brows: return s != (uint8_t)BrowStyle::Pixel;
     case Part::Mouth: return s == (uint8_t)MouthStyle::Auto || s == (uint8_t)MouthStyle::Line;
@@ -159,9 +190,9 @@ Look randomLook(uint32_t seed) {
   static const uint32_t irises[] = {0x5A7CEB, 0x3B2A1A, 0x2F7D4F, 0x6B8E4E, 0x7A4E2D};
 
   Look l = preset(rnd(2));  // begin bij Robot of Mascotte
-  uint8_t pick[8];
+  uint8_t pick[16];
   for (int p = 0; p < (int)Part::Count; p++) {
-    int n = stylesFor((Part)p, l.base, pick, 8);
+    int n = stylesFor((Part)p, l.base, pick, 16);
     if (!n) continue;
     uint8_t s = pick[rnd(n)];
     switch ((Part)p) {
@@ -171,6 +202,10 @@ Look randomLook(uint32_t seed) {
       case Part::Cheeks: l.cheeks = s; break;
       case Part::Glasses: l.glasses = rnd(3) ? (uint8_t)GlassesStyle::None : s; break;  // niet te vaak een bril
       case Part::Hair: l.hair = s; break;
+      case Part::Lashes: l.lashes = rnd(2) ? 0 : s; break;
+      case Part::Lips: l.lips = rnd(2) ? 0 : s; break;
+      case Part::Earrings: l.earrings = rnd(2) ? 0 : s; break;
+      case Part::Accessory: l.accessory = rnd(3) ? 0 : s; break;
       default: break;
     }
   }
@@ -182,6 +217,10 @@ Look randomLook(uint32_t seed) {
     l.face = skins[rnd(7)];
     l.accent = hairs[rnd(8)];
     l.primary = irises[rnd(5)];
+    static const uint32_t lips[] = {0xD6336C, 0xB83B5E, 0xA0234F, 0xE85D75};
+    static const uint32_t extras[] = {0xFFD54A, 0xFF5A8C, 0x2DB37A, 0xE6E6E6, 0x6EA8FF};
+    l.lip = lips[rnd(4)];
+    l.extra = extras[rnd(5)];
   }
   snprintf(l.name, sizeof(l.name), "Verrassing");
   return l;
@@ -191,11 +230,53 @@ void lookJson(const Look& l, char* out, size_t len) {
   snprintf(out, len,
            "{\"name\":\"%s\",\"base\":\"%s\",\"eyes\":\"%s\",\"brows\":\"%s\",\"mouth\":\"%s\",\"cheeks\":\"%s\","
            "\"glasses\":\"%s\",\"hair\":\"%s\",\"primary\":\"#%06lx\",\"accent\":\"#%06lx\",\"face\":\"#%06lx\","
-           "\"frame\":\"#%06lx\",\"emotionColors\":%s}",
+           "\"frame\":\"#%06lx\",\"lip\":\"#%06lx\",\"extra\":\"#%06lx\",\"lashes\":\"%s\",\"lips\":\"%s\","
+           "\"earrings\":\"%s\",\"accessory\":\"%s\",\"emotionColors\":%s}",
            l.name, l.base ? "cartoon" : "robot", styleName(Part::Eyes, l.eyes), styleName(Part::Brows, l.brows),
            styleName(Part::Mouth, l.mouth), styleName(Part::Cheeks, l.cheeks), styleName(Part::Glasses, l.glasses),
            styleName(Part::Hair, l.hair), (unsigned long)l.primary, (unsigned long)l.accent, (unsigned long)l.face,
-           (unsigned long)l.frame, l.emotionColors ? "true" : "false");
+           (unsigned long)l.frame, (unsigned long)l.lip, (unsigned long)l.extra, styleName(Part::Lashes, l.lashes),
+           styleName(Part::Lips, l.lips), styleName(Part::Earrings, l.earrings), styleName(Part::Accessory, l.accessory),
+           l.emotionColors ? "true" : "false");
+}
+
+void packLook(const Look& l, uint8_t* o) {
+  memset(o, 0, kPackedLookSize);
+  o[0] = 0xB2;  // kenmerk + versie
+  o[1] = (l.base & 1) | (l.emotionColors ? 2 : 0);
+  const uint8_t st[10] = {l.eyes, l.brows, l.mouth, l.cheeks, l.glasses, l.hair, l.lashes, l.lips, l.earrings, l.accessory};
+  for (int i = 0; i < 10; i++) o[2 + i / 2] |= (st[i] & 0x0F) << ((i & 1) * 4);
+  const uint32_t cols[6] = {l.primary, l.accent, l.face, l.frame, l.lip, l.extra};
+  for (int i = 0; i < 6; i++) {
+    o[7 + i * 3] = (cols[i] >> 16) & 0xFF;
+    o[8 + i * 3] = (cols[i] >> 8) & 0xFF;
+    o[9 + i * 3] = cols[i] & 0xFF;
+  }
+  strncpy((char*)o + 25, l.name, 12);
+}
+
+bool unpackLook(const uint8_t* in, Look& l) {
+  if (in[0] != 0xB2) return false;
+  l = Look();
+  l.base = in[1] & 1;
+  l.emotionColors = in[1] & 2;
+  uint8_t st[10];
+  for (int i = 0; i < 10; i++) st[i] = (in[2 + i / 2] >> ((i & 1) * 4)) & 0x0F;
+  l.eyes = st[0];
+  l.brows = st[1];
+  l.mouth = st[2];
+  l.cheeks = st[3];
+  l.glasses = st[4];
+  l.hair = st[5];
+  l.lashes = st[6];
+  l.lips = st[7];
+  l.earrings = st[8];
+  l.accessory = st[9];
+  uint32_t* cols[6] = {&l.primary, &l.accent, &l.face, &l.frame, &l.lip, &l.extra};
+  for (int i = 0; i < 6; i++) *cols[i] = (uint32_t)in[7 + i * 3] << 16 | (uint32_t)in[8 + i * 3] << 8 | in[9 + i * 3];
+  memcpy(l.name, in + 25, 12);
+  l.name[12] = 0;
+  return true;
 }
 
 bool parseColor(const char* s, uint32_t& out) {

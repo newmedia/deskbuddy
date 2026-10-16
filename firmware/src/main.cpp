@@ -50,6 +50,17 @@ struct EspPlatform : Platform {
     s.ble = prefs.getBool("ble", s.ble);
     prefs.end();
   }
+  size_t loadBlob(const char* key, void* buf, size_t max) override {
+    prefs.begin("deskbuddy", false);
+    size_t n = prefs.isKey(key) ? prefs.getBytes(key, buf, max) : 0;
+    prefs.end();
+    return n;
+  }
+  void saveBlob(const char* key, const void* buf, size_t len) override {
+    prefs.begin("deskbuddy", false);
+    prefs.putBytes(key, buf, len);
+    prefs.end();
+  }
   void saveSettings(const Settings& s) override {
     prefs.begin("deskbuddy", false);
     prefs.putBool("sound", s.sound);
@@ -105,8 +116,8 @@ void handleSerial() {
     if (c == '\n' || lineLen == sizeof(line) - 1) {
       line[lineLen] = 0;
       lineLen = 0;
-      static char reply[700];
-      app.command(line, reply, sizeof(reply));
+      static char* reply = (char*)heap_caps_malloc(700, MALLOC_CAP_SPIRAM);  // PSRAM: intern RAM is krap
+      app.command(line, reply, 700);
       if (reply[0]) Serial.println(reply);
     } else {
       line[lineLen++] = c;

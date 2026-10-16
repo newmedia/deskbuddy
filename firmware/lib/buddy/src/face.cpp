@@ -128,7 +128,7 @@ void Face::create(lv_obj_t* parent) {
     s->d = 16;
   }
   lookX_.k = lookY_.k = 260;
-  lookX_.d = lookY_.d = 20;
+  lookX_.d = lookY_.d = 27;  // nog een klein beetje naveren, maar sneller stil (minder hertekenen)
   squash_.k = 320;
   squash_.d = 14;
   hairY_.k = 90;   // haar veert trager na dan het gezicht
