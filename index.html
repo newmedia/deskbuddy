@@ -38,6 +38,9 @@ progress{width:100%;height:8px;accent-color:var(--accent)}
 .muted{color:var(--dim);font-size:13px}
 main.off section:not(#ble-info){opacity:.45;pointer-events:none}
 #ble-connect{flex:0 0 auto;background:var(--accent);color:#04151a;font-weight:600;border:0}
+.parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:10px}
+.parts label{margin:0 0 4px}
+input[type=color]{width:100%;height:40px;border:1px solid var(--line);border-radius:10px;background:#0e1418;padding:2px}
 label.check{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px;margin-top:10px}
 label.check input{width:20px;height:20px;accent-color:var(--accent)}
 .status{margin:10px 0 0;padding:10px;border-radius:10px;background:#0e1418;border:1px solid var(--line)}
@@ -79,12 +82,21 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
     </div>
   </section>
 
-  <section>
-    <h2>Uiterlijk &amp; geluid</h2>
-    <div class="row">
-      <button id="skin-classic" data-cmd="skin classic">Robot</button>
-      <button id="skin-mascot" data-cmd="skin mascot">Mascotte</button>
+  <section id="look-section">
+    <h2>Uiterlijk</h2>
+    <div class="grid" id="presets"></div>
+    <div class="row" style="margin-top:8px">
+      <button id="look-random">Verras me</button>
+      <select id="look-base" aria-label="Basis"><option value="robot">Robot</option><option value="cartoon">Cartoon</option></select>
     </div>
+    <div class="parts" id="parts"></div>
+    <div class="parts" id="colors"></div>
+    <label class="check"><input type="checkbox" id="look-emo"> Emotiekleuren (boos = rood, verliefd = roze, ...)</label>
+    <p class="muted" id="look-name"></p>
+  </section>
+
+  <section>
+    <h2>Geluid &amp; scherm</h2>
     <div class="row" style="margin-top:8px">
       <button id="sound-btn">Geluid</button>
       <button data-cmd="sound happy">Test geluid</button>
@@ -180,7 +192,7 @@ const ble = {
   ready: false, rx: null, buf: "", waiting: [], chain: Promise.resolve(),
   async connect() {
     const dev = await navigator.bluetooth.requestDevice({filters: [{services: [NUS]}, {namePrefix: "deskbuddy"}], optionalServices: [NUS]});
-    dev.addEventListener("gattserverdisconnected", () => { ble.ready = false; ui(); });
+    dev.addEventListener("gattserverdisconnected", () => { ble.ready = false; lookLoaded = false; ui(); });
     const srv = await (await dev.gatt.connect()).getPrimaryService(NUS);
     ble.rx = await srv.getCharacteristic(NUS_RX);
     const tx = await srv.getCharacteristic(NUS_TX);
@@ -269,8 +281,6 @@ async function refresh() {
   const wifi = {sta: `verbonden met ${st.ssid}`, ap: `setup-netwerk ${st.ssid}`, connecting: `verbinden met ${st.ssid}…`, off: "uit"}[st.wifi];
   $("#sub").textContent = `${st.emotion} · v${st.version}${ON_DEVICE ? "" : " · Bluetooth"}`;
   document.querySelectorAll("[data-emo]").forEach(b => b.classList.toggle("on", b.dataset.emo === st.emotion));
-  $("#skin-classic").classList.toggle("on", st.skin === "classic");
-  $("#skin-mascot").classList.toggle("on", st.skin === "mascot");
   const sb = $("#sound-btn"); sb.classList.toggle("on", st.sound); sb.textContent = st.sound ? "Geluid aan" : "Geluid uit";
   for (const id of ["volume", "brightness"]) {
     const el = $("#" + id);
@@ -361,6 +371,90 @@ $("#fw").onchange = () => {
   x.onerror = () => log("update: verbinding verbroken (herstart hij?)");
   x.open("POST", "/update"); x.send(fd);
 };
+
+// ---------- Uiterlijk (look) ----------
+const PARTS = {
+  robot: {
+    eyes: [["block", "Blok"], ["round", "Rond"], ["pill", "Pil"], ["ring", "Ring + pupil"], ["pixel", "LED-pixels"], ["visor", "Vizier"]],
+    brows: [["none", "Geen"], ["bar", "Balk"], ["thick", "Dik"], ["thin", "Dun"], ["pixel", "Pixels"]],
+    mouth: [["auto", "Per emotie"], ["line", "Lijn"], ["zigzag", "Zigzag"], ["equalizer", "LED-equalizer"], ["pixel", "Pixels"]],
+    cheeks: [["none", "Geen"], ["blush", "Blosjes"], ["stripes", "Streepjes"], ["pixel", "Pixels"]],
+    glasses: [["none", "Geen"], ["square", "Vierkant"], ["round", "Rond"], ["shades", "Zonnebril"], ["monocle", "Monocle"]],
+  },
+  cartoon: {
+    hair: [["spiky", "Stekels"], ["neat", "Netjes"], ["curly", "Krullen"], ["mohawk", "Hanenkam"], ["bald", "Kaal"], ["cap", "Petje"]],
+    eyes: [["block", "Normaal"], ["round", "Stipjes"]],
+    brows: [["thick", "Dik"], ["bar", "Recht"], ["thin", "Dun"], ["none", "Geen"]],
+    mouth: [["auto", "Per emotie"], ["line", "Gesloten glimlach"]],
+    cheeks: [["blush", "Blosjes"], ["freckles", "Sproeten"], ["none", "Geen"]],
+    glasses: [["square", "Vierkant"], ["round", "Rond"], ["shades", "Zonnebril"], ["monocle", "Monocle"], ["none", "Geen"]],
+  },
+};
+const PART_LABEL = {eyes: "Ogen", brows: "Wenkbrauwen", mouth: "Mond", cheeks: "Wangen", glasses: "Bril", hair: "Haar"};
+const COLOR_LABEL = {
+  robot: {primary: "Ogen en mond", accent: "Wenkbrauwen", face: "Achtergrond", frame: "Bril"},
+  cartoon: {primary: "Iris", accent: "Haar (of petje)", face: "Huid", frame: "Bril"},
+};
+let look = null;
+
+async function lookCmd(c) {
+  if (!api.ready) return;
+  try {
+    const j = await api.cmd(c);
+    if (j.ok && j.reply.startsWith("{")) { look = JSON.parse(j.reply); renderLook(); }
+    else if (!j.ok) log(`> ${c}\n${j.reply}`);
+  } catch (e) { log(`> ${c}\n(fout: ${e.message || e})`); }
+}
+function renderLook() {
+  if (!look) return;
+  $("#look-base").value = look.base;
+  $("#look-emo").checked = look.emotionColors;
+  $("#look-name").textContent = `Huidig: ${look.name}`;
+  document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("on", b.textContent === look.name));
+  const parts = $("#parts");
+  parts.innerHTML = "";
+  for (const [part, opts] of Object.entries(PARTS[look.base])) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `<label>${PART_LABEL[part]}</label>`;
+    const sel = document.createElement("select");
+    for (const [v, n] of opts) sel.add(new Option(n, v, false, v === look[part]));
+    sel.onchange = () => lookCmd(`look ${part} ${sel.value}`);
+    wrap.append(sel);
+    parts.append(wrap);
+  }
+  const colors = $("#colors");
+  colors.innerHTML = "";
+  for (const [key, label] of Object.entries(COLOR_LABEL[look.base])) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `<label>${label}</label>`;
+    const inp = document.createElement("input");
+    inp.type = "color";
+    inp.value = look[key];
+    inp.onchange = () => lookCmd(`look color ${key} ${inp.value}`);
+    wrap.append(inp);
+    colors.append(wrap);
+  }
+}
+async function loadPresets() {
+  try {
+    const j = await api.cmd("look presets");
+    const names = JSON.parse(j.reply);
+    const g = $("#presets");
+    g.innerHTML = "";
+    for (const n of names) {
+      const b = document.createElement("button");
+      b.textContent = n;
+      b.onclick = () => lookCmd(`look preset ${n}`);
+      g.append(b);
+    }
+  } catch {}
+  lookCmd("look");
+}
+$("#look-random").onclick = () => lookCmd("look random");
+$("#look-base").onchange = e => lookCmd(`look base ${e.target.value}`);
+$("#look-emo").onchange = e => lookCmd(`look emotioncolors ${e.target.checked ? "on" : "off"}`);
+let lookLoaded = false;
+setInterval(() => { if (api.ready && !lookLoaded) { lookLoaded = true; loadPresets(); } }, 500);
 
 if (!ON_DEVICE && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 ui();
