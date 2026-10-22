@@ -3,6 +3,19 @@
 Elke versie hieronder wordt een release op GitHub (zie `tools/release.sh` en `docs/firmware.md`).
 De tekst onder een kop is de omschrijving van die release. Nieuwste bovenaan.
 
+## v1.1.1
+
+Het deskbuddy-logo staat nu overal: op het scherm van de buddy, in de web-app en op de installatiepagina.
+
+- **Opstartscherm**: bij het inschakelen toont de buddy kort het logo met zijn naam en versie, en
+  gaat daarna zacht over in het gezicht.
+- **Info-paneel**: een klein logo naast de versieregel.
+- **Web-pagina op het apparaat** (en de PWA): hetzelfde logo in de koptekst en als tabblad-icoon, in
+  plaats van de eerdere eigen versie zonder lach.
+- **Firmware installeren via USB**: nieuwe sectie in het tabblad Systeem en een voettekst met links naar
+  de installatiepagina (https://newmedia.github.io/deskbuddy/flash/), waar je ook een oudere versie kunt
+  kiezen.
+
 ## v1.1.0
 
 De buddy luistert nu mee: hij reageert op klappen, praten, muziek en lawaai.
