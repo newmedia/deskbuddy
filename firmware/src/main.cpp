@@ -144,6 +144,7 @@ void setup() {
   pinMode(BOOT_BUTTON, INPUT_PULLUP);
 
   app.create(lv_screen_active());
+  app.showSplash();
   Serial.printf("[mem] na display/sensoren: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
   bool audio = board::beginAudio(app.sound, app.mic);
   net::updater::begin(DESKBUDDY_VERSION);

@@ -19,6 +19,7 @@ void App::create(lv_obj_t* screen) {
   setup.create(screen);
   updating.create(screen);
   pair.create(screen);
+  screen_ = screen;
 
   platform_.loadSettings(settings_);
   {
@@ -36,6 +37,11 @@ void App::create(lv_obj_t* screen) {
   platform_.deviceInfo(dev_);
   syncDev();
   applyBrightness();
+}
+
+void App::showSplash(uint32_t ms) {
+  if (!splash.created()) splash.create(screen_, dev_.version);  // als laatste: ligt boven alle andere lagen
+  splash.show(ms);
 }
 
 void App::onTouch(bool pressed, int x, int y, uint32_t now) {
@@ -257,7 +263,8 @@ void App::update(uint32_t dtMs) {
   wasInstalling_ = installing;
   updating.update(installing, dev_.updateProgress, dev_.updateVersion);
   face.setMatrix(installing);
-  face.setCovered(!installing && (clock.visible() || info.visible() || setup.visible() || pair.visible()));
+  if (splash.created()) splash.update(dtMs);
+  face.setCovered(!installing && (clock.visible() || info.visible() || setup.visible() || pair.visible() || splash.visible()));
   applyBrightness();
 
   if (rebootIn_) {

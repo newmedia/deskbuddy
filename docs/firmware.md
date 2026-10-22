@@ -85,6 +85,15 @@ hij het na 30 min opnieuw te controleren.
 
 ### Installeren via de browser (installatiepagina)
 
+- **Versiekeuze:** de pagina toont alle GitHub-releases; de nieuwste staat voorgeselecteerd. Per versie
+  staat er een eigen map (`flash/<versie>/firmware.bin` en `manifest.json`), de rest is gedeeld.
+  `?v=0.3.2` in de URL kiest direct een versie.
+- **Logo:** `firmware/web/icon.svg` is het deskbuddy-logo (cyaan ring met ogen en lach). Het staat in
+  de web-app (koptekst en tabblad-icoon), de installatiepagina, de README, het opstartscherm en
+  het info-paneel van het apparaat (`draw::logo()` in `draw_util.h` tekent dezelfde vormen). De PNG-versies
+  (`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`) staan naast de svg voor het beginscherm van
+  een telefoon.
+
 Voor wie de firmware voor het eerst op een bord wil zetten staat er een pagina op
 **https://newmedia.github.io/deskbuddy/flash/**. Die gebruikt [ESP Web Tools](https://esphome.github.io/esp-web-tools/)
 (Web Serial, dus Chrome, Edge of Opera op een computer) en flasht via USB.

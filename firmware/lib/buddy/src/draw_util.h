@@ -76,6 +76,30 @@ inline void frame(lv_layer_t* layer, float x1, float y1, float x2, float y2, flo
   lv_draw_rect(layer, &d, &a);
 }
 
+// Het deskbuddy-logo (dezelfde vormen als firmware/web/icon.svg): cyaan ring, twee ogen en een lach.
+// size = diameter van de ring in pixels; cx/cy = midden. Tekent niet verschoven (los van het gezicht).
+inline void logo(lv_layer_t* layer, float cx, float cy, float size, lv_color_t col = lv_color_hex(0x6EE7F7)) {
+  const float k = size / 400.0f;  // ring: straal 200 (+9 lijn) in de 512-ruimte van de svg
+  const float ox0 = ox, oy0 = oy;
+  ox = oy = 0;
+  frame(layer, cx - 200 * k, cy - 200 * k, cx + 200 * k, cy + 200 * k, LV_RADIUS_CIRCLE, LV_MAX(2.0f, 18 * k), col,
+        lv_color_black(), LV_OPA_COVER);
+  fillRect(layer, cx - 106 * k, cy - 86 * k, cx - 28 * k, cy + 34 * k, 30 * k, col);
+  fillRect(layer, cx + 28 * k, cy - 86 * k, cx + 106 * k, cy + 34 * k, 30 * k, col);
+  lv_draw_arc_dsc_t a;
+  lv_draw_arc_dsc_init(&a);
+  a.center = {ri(cx), ri(cy + 24 * k)};  // "q50 40 100 0" in de svg: een ondiepe boog onder de ogen
+  a.radius = (uint16_t)LV_MAX(3.0f, 90 * k);
+  a.width = (uint16_t)LV_MAX(2.0f, 16 * k);
+  a.rounded = 1;
+  a.color = col;
+  a.start_angle = 45;
+  a.end_angle = 135;
+  lv_draw_arc(layer, &a);
+  ox = ox0;
+  oy = oy0;
+}
+
 inline void heart(lv_layer_t* layer, float cx, float cy, float s, lv_color_t c) {
   float r = s * 0.27f;
   fillEllipse(layer, cx - s * 0.23f, cy - s * 0.12f, 2 * r, 2 * r, c);

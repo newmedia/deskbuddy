@@ -15,6 +15,7 @@
 #include "info_view.h"
 #include "setup_view.h"
 #include "mic.h"
+#include "splash_view.h"
 #include "sound.h"
 #include "update.h"
 
@@ -60,6 +61,7 @@ class App : public CommandHost {
   explicit App(Platform& p) : platform_(p) {}
 
   void create(lv_obj_t* screen);
+  void showSplash(uint32_t ms = 1500);  // opstartscherm met het logo (apparaat en web-emulator)
   void onTouch(bool pressed, int x, int y, uint32_t nowMs);
   void onAccel(float ax, float ay, float az, uint32_t nowMs);
   void onGesture(const GestureEvent& g);
@@ -91,6 +93,7 @@ class App : public CommandHost {
   InfoView info;
   SetupView setup;
   PairView pair;
+  SplashView splash;
   SoundSynth sound;
   MicListener mic;
   UpdateView updating;
@@ -106,6 +109,7 @@ class App : public CommandHost {
   int profileCount_ = 0;
   void applySleep();
 
+  lv_obj_t* screen_ = nullptr;
   Platform& platform_;
   TouchGestures touch_;
   MotionGestures motion_;

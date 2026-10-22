@@ -75,6 +75,7 @@ class InfoView {
   lv_obj_t* skinIcon_ = nullptr;
   lv_obj_t* skin_ = nullptr;
   lv_obj_t* skinSub_ = nullptr;
+  lv_obj_t* logo_ = nullptr;  // klein logo links van de versieregel
   lv_obj_t* footer_ = nullptr;   // naam + versie
   lv_obj_t* battery_ = nullptr;  // helemaal onderaan
   DeviceInfo last_;

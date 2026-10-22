@@ -86,6 +86,18 @@ void InfoView::create(lv_obj_t* parent) {
   lv_obj_add_flag(footer_, LV_OBJ_FLAG_IGNORE_LAYOUT);
   lv_obj_align(footer_, LV_ALIGN_BOTTOM_MID, -20, -36);  // vlak boven de accuregel
 
+  logo_ = lv_obj_create(root_);
+  lv_obj_remove_style_all(logo_);
+  lv_obj_set_size(logo_, 22, 22);
+  lv_obj_add_flag(logo_, LV_OBJ_FLAG_IGNORE_LAYOUT);
+  lv_obj_remove_flag(logo_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(logo_, [](lv_event_t* e) {
+    lv_obj_t* o = (lv_obj_t*)lv_event_get_target(e);
+    lv_area_t a;
+    lv_obj_get_coords(o, &a);
+    draw::logo(lv_event_get_layer(e), (a.x1 + a.x2) / 2.0f, (a.y1 + a.y2) / 2.0f, 20);
+  }, LV_EVENT_DRAW_MAIN, nullptr);
+
   battery_ = lv_label_create(root_);
   lv_obj_set_style_text_font(battery_, &lv_font_montserrat_20, 0);
   lv_obj_set_style_text_color(battery_, kText, 0);
@@ -218,6 +230,8 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
     lv_label_set_text_fmt(footer_, "deskbuddy %s", in.version);
     lv_obj_set_style_text_color(footer_, kDim, 0);
   }
+  lv_obj_update_layout(root_);  // breedte van de tekst is nu bekend: logo ernaast
+  lv_obj_align_to(logo_, footer_, LV_ALIGN_OUT_LEFT_MID, -6, 0);
   if (in.batteryPct < 0)
     lv_label_set_text(battery_, LV_SYMBOL_USB "  USB");
   else

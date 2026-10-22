@@ -5,7 +5,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-FILES=(index.html manifest.webmanifest sw.js icon.svg)
+FILES=(index.html manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png)
 SRC_REV="$(git rev-parse --short HEAD)"
 TMP="$(mktemp -d)"
 trap 'git worktree remove --force "$TMP" >/dev/null 2>&1 || true; rm -rf "$TMP"' EXIT

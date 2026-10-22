@@ -515,6 +515,7 @@ int main(int argc, char** argv) {
   }
   App app(platform);
   app.create(lv_screen_active());
+  app.showSplash();
 
   int srv = socket(AF_INET, SOCK_STREAM, 0);
   int one = 1;

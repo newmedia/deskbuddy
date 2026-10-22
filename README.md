@@ -1,4 +1,12 @@
+<p align="center"><img src="firmware/web/icon.svg" alt="deskbuddy" width="128" height="128"></p>
+
 # deskbuddy
+
+<p align="center">
+  <a href="https://newmedia.github.io/deskbuddy/flash/"><b>Firmware installeren</b></a> ·
+  <a href="https://newmedia.github.io/deskbuddy/">Web-app (PWA)</a> ·
+  <a href="https://github.com/newmedia/deskbuddy/releases">Alle versies</a>
+</p>
 
 Een desk-robot met een rond AMOLED-scherm, gebouwd op een
 [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm)
