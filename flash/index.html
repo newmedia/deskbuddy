@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0f12">
+<title>deskbuddy installeren</title>
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<script type="module" src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js?module"></script>
+<style>
+:root{--bg:#0b0f12;--card:#141b20;--line:#22303a;--text:#e6f0f2;--dim:#8a989c;--accent:#6ee7f7;--warn:#ffb347;--bad:#ff5a4e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px 16px 48px}
+main{max-width:640px;margin:0 auto;display:grid;gap:14px}
+h1{font-size:24px;margin:8px 0 0}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:0 0 8px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+p{margin:0 0 10px}p:last-child{margin-bottom:0}
+a{color:var(--accent)}
+.muted{color:var(--dim);font-size:14px}
+ol{margin:0;padding-left:22px}li{margin:4px 0}
+.install{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+esp-web-install-button{--esp-tools-button-color:#6ee7f7;--esp-tools-button-text-color:#04151a;--esp-tools-button-border-radius:999px}
+esp-web-install-button button{font:inherit;font-weight:600;padding:12px 22px;border-radius:999px;border:0;background:var(--accent);color:#04151a;cursor:pointer;min-height:44px}
+.ver{color:var(--dim);font-size:14px}
+.warn{border-color:var(--warn)}
+.warn h2{color:var(--warn)}
+#nosupport{display:none;border-color:var(--bad)}
+#nosupport h2{color:var(--bad)}
+code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0 5px;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <h1>deskbuddy installeren</h1>
+  <p class="muted" style="margin:0">Zet de deskbuddy-firmware op je Waveshare ESP32-S3-Touch-AMOLED-1.75, direct vanuit je browser. Je hebt alleen een USB-kabel nodig.</p>
+
+  <section id="nosupport">
+    <h2>Deze browser kan het niet</h2>
+    <p>Installeren via USB werkt met Web Serial, en dat bieden alleen <b>Chrome</b>, <b>Edge</b> en <b>Opera</b> op een computer (Windows, macOS, Linux of ChromeOS). Firefox, Safari en telefoons ondersteunen het niet.</p>
+    <p class="muted">Liever zelf flashen? Download <code>firmware.bin</code> van de <a href="https://github.com/newmedia/deskbuddy/releases/latest">releases</a> en gebruik <code>esptool</code>.</p>
+  </section>
+
+  <section>
+    <h2>Installeren</h2>
+    <div class="install">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate">Verbind en installeer</button>
+        <span slot="unsupported">Open deze pagina in Chrome of Edge op een computer.</span>
+        <span slot="not-allowed">Open deze pagina via https om te installeren.</span>
+      </esp-web-install-button>
+      <span class="ver" id="ver"></span>
+    </div>
+    <ol style="margin-top:14px">
+      <li>Sluit de deskbuddy met een USB-C-kabel aan op je computer (een kabel die ook data kan, niet alleen laden).</li>
+      <li>Klik op <b>Verbind en installeer</b> en kies de poort <code>USB JTAG/serial debug unit</code>.</li>
+      <li>Wacht tot het klaar is (ongeveer een minuut). De deskbuddy start daarna vanzelf opnieuw op.</li>
+    </ol>
+  </section>
+
+  <section class="warn">
+    <h2>Let op</h2>
+    <p>Hiermee <b>vervang je de firmware</b> op het apparaat. Staat er nog de originele firmware op en wil je die behouden, maak dan eerst een backup van de flash (zie <a href="https://github.com/newmedia/deskbuddy/blob/main/docs/hardware.md">docs</a>). Daarna kun je niet meer terug zonder die backup.</p>
+    <p>Je Wi-Fi-gegevens en instellingen blijven bewaard als er al een deskbuddy-firmware op stond.</p>
+  </section>
+
+  <section>
+    <h2>Lukt het niet?</h2>
+    <ul style="margin:0;padding-left:22px">
+      <li>Geen poort in de lijst: probeer een andere kabel of USB-poort. Houd anders <b>BOOT</b> ingedrukt terwijl je de USB-kabel aansluit en probeer opnieuw.</li>
+      <li>Linux: je gebruiker moet in de groep <code>dialout</code> zitten.</li>
+      <li>Daarna updaten? Dat kan vanzelf: de deskbuddy haalt nieuwe versies zelf van GitHub (zie <a href="https://github.com/newmedia/deskbuddy">de README</a>).</li>
+    </ul>
+  </section>
+
+  <p class="muted"><a href="../">Web-app (PWA)</a> · <a href="https://github.com/newmedia/deskbuddy">Broncode</a> · <a href="https://github.com/newmedia/deskbuddy/releases">Alle versies</a></p>
+</main>
+<script>
+if (!("serial" in navigator)) document.getElementById("nosupport").style.display = "block";
+fetch("manifest.json").then(r => r.json()).then(m => {
+  document.getElementById("ver").textContent = `Versie ${m.version}`;
+}).catch(() => {});
+</script>
+</body>
+</html>
