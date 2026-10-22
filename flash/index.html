@@ -6,13 +6,19 @@
 <meta name="theme-color" content="#0b0f12">
 <title>deskbuddy installeren</title>
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <script type="module" src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js?module"></script>
 <style>
 :root{--bg:#0b0f12;--card:#141b20;--line:#22303a;--text:#e6f0f2;--dim:#8a989c;--accent:#6ee7f7;--warn:#ffb347;--bad:#ff5a4e}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px 16px 48px}
 main{max-width:640px;margin:0 auto;display:grid;gap:14px}
-h1{font-size:24px;margin:8px 0 0}
+h1{font-size:24px;margin:0}
+.head{display:flex;align-items:center;gap:14px;margin-top:8px}
+.head img{width:56px;height:56px;flex:0 0 56px}
+label{display:block;color:var(--dim);font-size:14px;margin:14px 0 6px}
+select{width:100%;background:#0e1418;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit}
+.note{margin:6px 0 0;font-size:14px;color:var(--dim)}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:0 0 8px}
 section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
 p{margin:0 0 10px}p:last-child{margin-bottom:0}
@@ -32,8 +38,13 @@ code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0
 </head>
 <body>
 <main>
-  <h1>deskbuddy installeren</h1>
-  <p class="muted" style="margin:0">Zet de deskbuddy-firmware op je Waveshare ESP32-S3-Touch-AMOLED-1.75, direct vanuit je browser. Je hebt alleen een USB-kabel nodig.</p>
+  <div class="head">
+    <img src="../icon.svg" alt="deskbuddy">
+    <div>
+      <h1>deskbuddy installeren</h1>
+      <p class="muted" style="margin:2px 0 0">Zet de firmware op je Waveshare ESP32-S3-Touch-AMOLED-1.75, direct vanuit je browser. Je hebt alleen een USB-kabel nodig.</p>
+    </div>
+  </div>
 
   <section id="nosupport">
     <h2>Deze browser kan het niet</h2>
@@ -43,8 +54,11 @@ code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0
 
   <section>
     <h2>Installeren</h2>
-    <div class="install">
-      <esp-web-install-button manifest="manifest.json">
+    <label for="version" style="margin-top:0">Versie</label>
+    <select id="version" aria-label="Firmwareversie"><option>laden…</option></select>
+    <p class="note" id="vnote"></p>
+    <div class="install" style="margin-top:14px">
+      <esp-web-install-button id="btn">
         <button slot="activate">Verbind en installeer</button>
         <span slot="unsupported">Open deze pagina in Chrome of Edge op een computer.</span>
         <span slot="not-allowed">Open deze pagina via https om te installeren.</span>
@@ -77,9 +91,28 @@ code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0
 </main>
 <script>
 if (!("serial" in navigator)) document.getElementById("nosupport").style.display = "block";
-fetch("manifest.json").then(r => r.json()).then(m => {
-  document.getElementById("ver").textContent = `Versie ${m.version}`;
-}).catch(() => {});
+const sel = document.getElementById("version"), btn = document.getElementById("btn");
+const note = document.getElementById("vnote"), ver = document.getElementById("ver");
+let list = [];
+function pick(v) {
+  const e = list.find(x => x.version === v) || list[0];
+  if (!e) return;
+  sel.value = e.version;
+  btn.setAttribute("manifest", `${e.version}/manifest.json`);
+  ver.textContent = `v${e.version}`;
+  const latest = e === list[0];
+  note.innerHTML = (e.note ? e.note.replace(/[<>&]/g, c => ({"<": "&lt;", ">": "&gt;", "&": "&amp;"}[c])) + " " : "") +
+    `<a href="https://github.com/newmedia/deskbuddy/releases/tag/v${e.version}">Release-notities</a>` +
+    (latest ? "" : " · <b>Dit is niet de nieuwste versie</b>: oudere versies kunnen bekende problemen hebben.");
+  history.replaceState(null, "", latest ? location.pathname : `?v=${e.version}`);
+}
+fetch("versions.json").then(r => r.json()).then(j => {
+  list = j.versions;
+  sel.innerHTML = "";
+  list.forEach((e, i) => sel.add(new Option(`v${e.version}${i === 0 ? " (nieuwste)" : ""} · ${e.date}`, e.version)));
+  pick(new URLSearchParams(location.search).get("v"));
+}).catch(() => { sel.innerHTML = "<option>kon de versielijst niet laden</option>"; });
+sel.onchange = () => pick(sel.value);
 </script>
 </body>
 </html>
