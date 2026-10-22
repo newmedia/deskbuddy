@@ -5,6 +5,11 @@ Een desk-robot met een rond AMOLED-scherm, gebouwd op een
 in een 3D-geprinte behuizing. Op het bord staat nu nog de originele closed-source firmware;
 De eigen deskbuddy-firmware staat in `firmware/`.
 
+## Installeren
+Zonder iets te bouwen: open **https://newmedia.github.io/deskbuddy/flash/** in Chrome of Edge, sluit
+het bord via USB aan en klik op *Verbind en installeer*. Let op: dit vervangt de firmware op het
+apparaat (maak eerst een backup als je de originele wilt bewaren).
+
 ## Documentatie
 - [docs/hardware.md](docs/hardware.md): het bord, de chips, de pin-mapping en hoe het zich op USB meldt
 - [docs/original-firmware.md](docs/original-firmware.md): wat de originele firmware doet en wat nog open staat

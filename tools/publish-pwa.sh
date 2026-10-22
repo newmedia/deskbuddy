@@ -21,8 +21,11 @@ else
 fi
 
 for f in "${FILES[@]}"; do cp "firmware/web/$f" "$TMP/$f"; done
+# Installatiepagina (flash/): alleen de pagina zelf; de firmware komt via tools/publish-flash.sh
+mkdir -p "$TMP/flash"
+cp firmware/web/flash/index.html "$TMP/flash/index.html"
 touch "$TMP/.nojekyll"  # bestanden ongewijzigd serveren
-git -C "$TMP" add -A "${FILES[@]}" .nojekyll
+git -C "$TMP" add -A "${FILES[@]}" flash/index.html .nojekyll
 if git -C "$TMP" diff --cached --quiet; then
   echo "PWA is al up-to-date."
   exit 0

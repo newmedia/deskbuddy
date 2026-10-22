@@ -83,6 +83,20 @@ Tijdens het installeren kijkt het gezicht verrast en loopt er een voortgangsring
 Daarna herstart hij met de nieuwe versie; mislukt het, dan kijkt hij even verdrietig en probeert
 hij het na 30 min opnieuw te controleren.
 
+### Installeren via de browser (installatiepagina)
+
+Voor wie de firmware voor het eerst op een bord wil zetten staat er een pagina op
+**https://newmedia.github.io/deskbuddy/flash/**. Die gebruikt [ESP Web Tools](https://esphome.github.io/esp-web-tools/)
+(Web Serial, dus Chrome, Edge of Opera op een computer) en flasht via USB.
+
+- Het zet vier delen: bootloader (0x0), partitietabel (0x8000), boot_app0 (0xE000) en de app (0x10000).
+  De NVS-partitie (0x9000) blijft ongemoeid: Wi-Fi en instellingen blijven bewaard.
+- De firmware komt uit de nieuwste GitHub-release. Na elke release draai je dus
+  `tools/publish-flash.sh` (haalt `firmware.bin` op, controleert de sha256 en publiceert naar `gh-pages`).
+  Bootloader en partitietabel komen uit de lokale build (`.pio/build/esp32`) en veranderen niet.
+- `tools/publish-pwa.sh` ververst alleen de pagina zelf (`firmware/web/flash/index.html`).
+- Updaten kan ook zonder deze pagina: de buddy haalt nieuwe versies zelf van GitHub.
+
 ### Een release maken
 
 **Versienummers (sinds v1.0.0, semver):** nieuwe functies of uitbreidingen verhogen het middelste
