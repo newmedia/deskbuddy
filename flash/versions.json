@@ -1,0 +1,34 @@
+{
+ "versions": [
+  {
+   "version": "1.1.0",
+   "date": "2026-10-16",
+   "note": "De buddy luistert nu mee: hij reageert op klappen, praten, muziek en lawaai."
+  },
+  {
+   "version": "1.0.0",
+   "date": "2026-10-16",
+   "note": "De eerste volwaardige versie: een eigen uiterlijk, nieuwe emoties, een vernieuwde web-app en een snellere, zuinigere buddy. Vanaf nu volgen we semver: nieuwe functies verhogen het middelste getal (1.1.0), alleen bugfixes het laatste (1.0.1)."
+  },
+  {
+   "version": "0.3.2",
+   "date": "2026-10-15",
+   "note": "Zuiniger: de buddy tekent alleen nog als er iets beweegt, en updates lukken ook vanuit de slaapstand."
+  },
+  {
+   "version": "0.3.1",
+   "date": "2026-10-15",
+   "note": "Updates en Bluetooth gaan nu samen, plus nieuwe acties en een snellere schermaansturing."
+  },
+  {
+   "version": "0.3.0",
+   "date": "2026-10-15",
+   "note": "Bluetooth, een app voor je telefoon en een snellere, zuinigere buddy."
+  },
+  {
+   "version": "0.2.0",
+   "date": "2026-10-15",
+   "note": "Eerste release die de deskbuddy zelf kan ophalen."
+  }
+ ]
+}
