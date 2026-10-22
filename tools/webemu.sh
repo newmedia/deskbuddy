@@ -15,5 +15,15 @@ for a in "$@"; do
   esac
 done
 cd "$ROOT/firmware"
-"$ROOT/.venv/bin/pio" run -e webemu -s
+# Een kapotte bouwcache (bijv. "cannot find main.o" bij het linken) herstelt zichzelf: eenmaal schoon opnieuw bouwen.
+if ! "$ROOT/.venv/bin/pio" run -e webemu -s; then
+  echo "Bouwen mislukt; de bouwmap van de emulator wordt opgeruimd en het wordt nog eens geprobeerd..." >&2
+  rm -rf "${ROOT:?}/firmware/.pio/build/webemu"
+  "$ROOT/.venv/bin/pio" run -e webemu -s
+fi
+if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then
+  echo "Poort $PORT is al in gebruik (draait er al een emulator? stop die met: pkill -x program)." >&2
+  echo "Of kies een andere poort: tools/webemu.sh 9000" >&2
+  exit 1
+fi
 exec "$ROOT/firmware/.pio/build/webemu/program" "$ROOT" "$PORT"
