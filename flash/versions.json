@@ -1,6 +1,11 @@
 {
  "versions": [
   {
+   "version": "1.1.1",
+   "date": "2026-10-22",
+   "note": "Het deskbuddy-logo staat nu overal: op het scherm van de buddy, in de web-app en op de installatiepagina."
+  },
+  {
    "version": "1.1.0",
    "date": "2026-10-16",
    "note": "De buddy luistert nu mee: hij reageert op klappen, praten, muziek en lawaai."
