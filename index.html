@@ -308,7 +308,7 @@ const NL = {
     "Een nieuw bord instellen, of een bepaalde versie kiezen (ook een oudere)? Dat kan vanuit de browser met een USB-kabel, zonder iets te bouwen.",
   "Go to the install page": "Naar de installatiepagina", "Status": "Status",
   "Control over Bluetooth (also without Wi-Fi):": "Bediening via Bluetooth (ook zonder Wi-Fi):",
-  "Signal": "Signaal", "Battery": "Accu", "Idle": "Inactief", "connected": "verbonden", "on": "aan", "off": "uit",
+  "Signal": "Signaal", "Battery": "Accu", "Idle": "Inactief", "Board": "Bord", "connected": "verbonden", "on": "aan", "off": "uit",
   "connected to {ssid}": "verbonden met {ssid}", "setup network {ssid}": "setup-netwerk {ssid}",
   "connecting to {ssid}…": "verbinden met {ssid}…", "Now: {wifi}": "Nu: {wifi}",
   "USB power": "USB-stroom", "Battery {p}%": "Accu {p}%", " · charging": " · laden", "{p}% (charging)": "{p}% (laden)",
@@ -562,7 +562,11 @@ async function refresh() {
   }
   if (document.activeElement !== $("#sleep")) $("#sleep").value = String(st.sleep);
   const batt = st.battery < 0 ? "USB" : st.charging ? t("{p}% (charging)", {p: st.battery}) : `${st.battery}%`;
-  $("#stat").innerHTML = [["Wi-Fi", wifi], ["IP", st.ip || "-"], [t("Signal"), st.wifi === "sta" ? `${st.rssi} dBm` : "-"],
+  // Board: Original (1.75") or XL (2.16"); install links open on the right one
+  const board = st.board === "xl" ? "XL (2.16″)" : "Original (1.75″)";
+  document.querySelectorAll('a[href^="https://newmedia.github.io/deskbuddy/flash/"]').forEach(a =>
+    a.href = "https://newmedia.github.io/deskbuddy/flash/" + (st.board === "xl" ? "?board=xl" : ""));
+  $("#stat").innerHTML = [[t("Board"), board], ["Wi-Fi", wifi], ["IP", st.ip || "-"], [t("Signal"), st.wifi === "sta" ? `${st.rssi} dBm` : "-"],
     ["Bluetooth", st.ble ? (st.bleConnected ? t("connected") : t("on")) : t("off")], [t("Battery"), batt], [t("Idle"), `${st.idle} s`]]
     .map(([k, v]) => `<span>${esc(k)}</span><span>${esc(v)}</span>`).join("");
   $("#wifi-now").textContent = t("Now: {wifi}", {wifi});
