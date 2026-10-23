@@ -62,6 +62,7 @@ code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0
     <p class="note">Pick the board you have: the firmware of the other one gives a wrong picture (installing the right one fixes it).</p>
     <label for="version">Version</label>
     <select id="version" aria-label="Firmware version"><option>loading…</option></select>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="pre"> Show test versions (beta)</label>
     <p class="note" id="vnote"></p>
     <div class="install" style="margin-top:14px">
       <esp-web-install-button id="btn">
@@ -99,13 +100,15 @@ code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0
 if (!("serial" in navigator)) document.getElementById("nosupport").style.display = "block";
 const sel = document.getElementById("version"), btn = document.getElementById("btn"), boardSel = document.getElementById("board");
 const note = document.getElementById("vnote"), ver = document.getElementById("ver");
-const MANIFEST = {original: "manifest.json", xl: "manifest-xl.json"};
-let all = [], list = [];
-// Versions for the chosen board (older versions.json without "boards": Original only)
+const MANIFEST = {original: "manifest.json", xl: "manifest-xl.json"}, preBox = document.getElementById("pre");
+let all = [], list = [], newest = null;
+// Versions for the chosen board (older versions.json without "boards": Original only); test versions
+// (pre-releases) only with "Show test versions". "(latest)" is the newest regular version.
 function fill(board, v) {
-  list = all.filter(e => (e.boards || ["original"]).includes(board));
+  list = all.filter(e => (e.boards || ["original"]).includes(board) && (preBox.checked || !e.pre));
+  newest = list.find(e => !e.pre) || list[0];
   sel.innerHTML = "";
-  list.forEach((e, i) => sel.add(new Option(`v${e.version}${i === 0 ? " (latest)" : ""} · ${e.date}`, e.version)));
+  list.forEach(e => sel.add(new Option(`v${e.version}${e === newest ? " (latest)" : e.pre ? " (test version)" : ""} · ${e.date}`, e.version)));
   btn.hidden = !list.length;
   if (!list.length) {
     sel.add(new Option("no firmware for this board yet"));
@@ -117,14 +120,15 @@ function fill(board, v) {
   pick(v);
 }
 function pick(v) {
-  const e = list.find(x => x.version === v) || list[0];
+  const e = list.find(x => x.version === v) || newest;
   sel.value = e.version;
   btn.setAttribute("manifest", `${e.version}/${MANIFEST[boardSel.value]}`);
   ver.textContent = `v${e.version}`;
-  const latest = e === list[0];
+  const latest = e === newest;
   note.innerHTML = (e.note ? e.note.replace(/[<>&]/g, c => ({"<": "&lt;", ">": "&gt;", "&": "&amp;"}[c])) + " " : "") +
     `<a href="https://github.com/newmedia/deskbuddy/releases/tag/v${e.version}">Release notes</a>` +
-    (latest ? "" : " · <b>This is not the latest version</b>: older versions may have known issues.");
+    (e.pre ? " · <b>Test version</b>: new features to try out, may still have bugs. Your buddy does not update to test versions by itself, but does move on to the next regular version."
+      : latest ? "" : " · <b>This is not the latest version</b>: older versions may have known issues.");
   updateUrl(boardSel.value, latest ? null : e.version);
 }
 // ?board=xl&v=1.2.0 (both optional); the plain URL means Original, latest version
@@ -136,12 +140,14 @@ function updateUrl(board, v) {
 }
 const params = new URLSearchParams(location.search);
 if (params.get("board") === "xl") boardSel.value = "xl";
+if (params.has("beta") || (params.get("v") || "").includes("-")) preBox.checked = true;
 fetch("versions.json").then(r => r.json()).then(j => {
   all = j.versions;
   fill(boardSel.value, params.get("v"));
 }).catch(() => { sel.innerHTML = "<option>could not load the version list</option>"; });
 sel.onchange = () => pick(sel.value);
 boardSel.onchange = () => fill(boardSel.value, null);
+preBox.onchange = () => fill(boardSel.value, sel.value);
 </script>
 </body>
 </html>
