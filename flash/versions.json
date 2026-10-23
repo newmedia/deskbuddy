@@ -1,39 +1,44 @@
 {
  "versions": [
   {
+   "version": "1.2.0",
+   "date": "2026-10-23",
+   "note": "English and Dutch: the buddy and the web app speak both, and the whole project is now in English."
+  },
+  {
    "version": "1.1.1",
    "date": "2026-10-22",
-   "note": "Het deskbuddy-logo staat nu overal: op het scherm van de buddy, in de web-app en op de installatiepagina."
+   "note": "The deskbuddy logo is now everywhere: on the buddy's screen, in the web app and on the install page."
   },
   {
    "version": "1.1.0",
    "date": "2026-10-16",
-   "note": "De buddy luistert nu mee: hij reageert op klappen, praten, muziek en lawaai."
+   "note": "The buddy now listens along: it reacts to claps, talking, music and noise."
   },
   {
    "version": "1.0.0",
    "date": "2026-10-16",
-   "note": "De eerste volwaardige versie: een eigen uiterlijk, nieuwe emoties, een vernieuwde web-app en een snellere, zuinigere buddy. Vanaf nu volgen we semver: nieuwe functies verhogen het middelste getal (1.1.0), alleen bugfixes het laatste (1.0.1)."
+   "note": "The first full version: its own look, new emotions, a revamped web app and a faster, more economical buddy. From now on we follow semver: new features raise the middle number (1.1.0), bugfixes only the last (1.0.1)."
   },
   {
    "version": "0.3.2",
    "date": "2026-10-15",
-   "note": "Zuiniger: de buddy tekent alleen nog als er iets beweegt, en updates lukken ook vanuit de slaapstand."
+   "note": "More economical: the buddy only draws when something moves, and updates also work from sleep mode."
   },
   {
    "version": "0.3.1",
    "date": "2026-10-15",
-   "note": "Updates en Bluetooth gaan nu samen, plus nieuwe acties en een snellere schermaansturing."
+   "note": "Updates and Bluetooth now work together, plus new actions and faster display control."
   },
   {
    "version": "0.3.0",
    "date": "2026-10-15",
-   "note": "Bluetooth, een app voor je telefoon en een snellere, zuinigere buddy."
+   "note": "Bluetooth, an app for your phone and a faster, more economical buddy."
   },
   {
    "version": "0.2.0",
    "date": "2026-10-15",
-   "note": "Eerste release die de deskbuddy zelf kan ophalen."
+   "note": "First release that the deskbuddy can fetch by itself."
   }
  ]
 }
