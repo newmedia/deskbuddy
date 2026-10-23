@@ -1,8 +1,9 @@
-<p align="center"><img src="firmware/web/icon.svg" alt="deskbuddy" width="128" height="128"></p>
+<p align="center"><img src="firmware/web/icon.svg" alt="deskbuddy.dev" width="128" height="128"></p>
 
-# deskbuddy
+# deskbuddy.dev
 
 <p align="center">
+  <a href="https://deskbuddy.dev"><b>deskbuddy.dev</b></a> ·
   <a href="https://newmedia.github.io/deskbuddy/flash/"><b>Firmware installeren</b></a> ·
   <a href="https://newmedia.github.io/deskbuddy/">Web-app (PWA)</a> ·
   <a href="https://github.com/newmedia/deskbuddy/releases">Alle versies</a>

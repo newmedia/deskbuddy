@@ -90,7 +90,10 @@ hij het na 30 min opnieuw te controleren.
   `?v=0.3.2` in de URL kiest direct een versie.
 - **Logo:** `firmware/web/icon.svg` is het deskbuddy-logo (cyaan ring met ogen en lach). Het staat in
   de web-app (koptekst en tabblad-icoon), de installatiepagina, de README, het opstartscherm en
-  het info-paneel van het apparaat (`draw::logo()` in `draw_util.h` tekent dezelfde vormen). De PNG-versies
+  het info-paneel van het apparaat (`draw::logo()` in `draw_util.h` tekent dezelfde vormen). Let op:
+  eigen tekenwerk (`lv_draw_*` met een eigen descriptor) negeert de `opa`-stijl van het object. Wat
+  meevervaagt, zoals het opstartscherm en het info-paneel, geeft de opa daarom zelf door aan `draw::logo()`.
+  Het opstartscherm wordt na afloop verwijderd, niet alleen verborgen. De PNG-versies
   (`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`) staan naast de svg voor het beginscherm van
   een telefoon.
 

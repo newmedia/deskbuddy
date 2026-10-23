@@ -40,7 +40,7 @@ void App::create(lv_obj_t* screen) {
 }
 
 void App::showSplash(uint32_t ms) {
-  if (!splash.created()) splash.create(screen_, dev_.version);  // als laatste: ligt boven alle andere lagen
+  if (!splash.visible()) splash.create(screen_, dev_.version);  // als laatste: ligt boven alle andere lagen
   splash.show(ms);
 }
 
@@ -263,12 +263,13 @@ void App::update(uint32_t dtMs) {
   wasInstalling_ = installing;
   updating.update(installing, dev_.updateProgress, dev_.updateVersion);
   face.setMatrix(installing);
-  if (splash.created()) splash.update(dtMs);
+  splash.update();
   face.setCovered(!installing && (clock.visible() || info.visible() || setup.visible() || pair.visible() || splash.visible()));
   applyBrightness();
 
   if (rebootIn_) {
     if (dtMs >= rebootIn_) {
+      rebootIn_ = 0;  // eenmalig: anders schuift de emulator de herstart elk frame weer op
       platform_.saveSettings(settings_);
       platform_.reboot();
     } else {

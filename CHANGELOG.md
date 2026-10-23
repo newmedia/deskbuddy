@@ -3,6 +3,20 @@
 Elke versie hieronder wordt een release op GitHub (zie `tools/release.sh` en `docs/firmware.md`).
 De tekst onder een kop is de omschrijving van die release. Nieuwste bovenaan.
 
+## v1.1.2
+
+Bugfix: na het opstartscherm bleef er een zwart rondje over het gezicht staan.
+
+- **Opstartscherm**: het logo vervaagt nu echt mee en het scherm wordt na afloop helemaal opgeruimd.
+  Daarvoor bleef op het apparaat soms het (zwarte) logo-rondje over de ogen hangen; grote effecten
+  zoals de ontploffing waren er wel omheen te zien.
+- **Naam**: de buddy heet nu **deskbuddy.dev**, op het opstartscherm, in het info-paneel, in de
+  web-app en op de installatiepagina. In de voettekst staat een link naar https://deskbuddy.dev.
+- **Web-emulator**: `reboot` herstart nu altijd (de herstart schoof soms eindeloos op), en na een
+  herstart heet het proces nog steeds `program`, zodat `pkill -x program` hem blijft vinden.
+- **tools/setup.sh** kiest een Python die PlatformIO met het ESP32-platform ondersteunt (3.10-3.14) en
+  maakt de venv opnieuw aan als die met een andere versie gemaakt is.
+
 ## v1.1.1
 
 Het deskbuddy-logo staat nu overal: op het scherm van de buddy, in de web-app en op de installatiepagina.

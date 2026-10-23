@@ -95,7 +95,8 @@ void InfoView::create(lv_obj_t* parent) {
     lv_obj_t* o = (lv_obj_t*)lv_event_get_target(e);
     lv_area_t a;
     lv_obj_get_coords(o, &a);
-    draw::logo(lv_event_get_layer(e), (a.x1 + a.x2) / 2.0f, (a.y1 + a.y2) / 2.0f, 20);
+    draw::logo(lv_event_get_layer(e), (a.x1 + a.x2) / 2.0f, (a.y1 + a.y2) / 2.0f, 20,
+               lv_obj_get_style_opa_recursive(o, LV_PART_MAIN));  // vervaagt mee met het paneel
   }, LV_EVENT_DRAW_MAIN, nullptr);
 
   battery_ = lv_label_create(root_);
@@ -227,7 +228,7 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
     lv_label_set_text_fmt(footer_, LV_SYMBOL_DOWNLOAD " Update beschikbaar: %s (tik)", in.updateVersion);
     lv_obj_set_style_text_color(footer_, kAccent, 0);
   } else {
-    lv_label_set_text_fmt(footer_, "deskbuddy %s", in.version);
+    lv_label_set_text_fmt(footer_, "deskbuddy.dev %s", in.version);
     lv_obj_set_style_text_color(footer_, kDim, 0);
   }
   lv_obj_update_layout(root_);  // breedte van de tekst is nu bekend: logo ernaast

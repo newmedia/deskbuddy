@@ -63,14 +63,14 @@ inline void line(lv_layer_t* layer, float x1, float y1, float x2, float y2, floa
 }
 
 inline void frame(lv_layer_t* layer, float x1, float y1, float x2, float y2, float r, float bw, lv_color_t c,
-                  lv_color_t fill, lv_opa_t fillOpa) {
+                  lv_color_t fill, lv_opa_t fillOpa, lv_opa_t borderOpa = LV_OPA_COVER) {
   lv_draw_rect_dsc_t d;
   lv_draw_rect_dsc_init(&d);
   d.bg_color = fill;
   d.bg_opa = fillOpa;
   d.border_color = c;
   d.border_width = ri(bw);
-  d.border_opa = LV_OPA_COVER;
+  d.border_opa = borderOpa;
   d.radius = ri(r);
   lv_area_t a = {ri(x1 + ox), ri(y1 + oy), ri(x2 + ox) - 1, ri(y2 + oy) - 1};
   lv_draw_rect(layer, &d, &a);
@@ -78,14 +78,18 @@ inline void frame(lv_layer_t* layer, float x1, float y1, float x2, float y2, flo
 
 // Het deskbuddy-logo (dezelfde vormen als firmware/web/icon.svg): cyaan ring, twee ogen en een lach.
 // size = diameter van de ring in pixels; cx/cy = midden. Tekent niet verschoven (los van het gezicht).
-inline void logo(lv_layer_t* layer, float cx, float cy, float size, lv_color_t col = lv_color_hex(0x6EE7F7)) {
+// opa: zelf doorgeven bij een vervagend object; eigen tekenwerk negeert de opa-stijl van LVGL, zodat er
+// anders een dekkend zwart rondje blijft staan terwijl de rest al weg is.
+inline void logo(lv_layer_t* layer, float cx, float cy, float size, lv_opa_t opa = LV_OPA_COVER,
+                 lv_color_t col = lv_color_hex(0x6EE7F7)) {
+  if (opa <= LV_OPA_MIN) return;
   const float k = size / 400.0f;  // ring: straal 200 (+9 lijn) in de 512-ruimte van de svg
   const float ox0 = ox, oy0 = oy;
   ox = oy = 0;
   frame(layer, cx - 200 * k, cy - 200 * k, cx + 200 * k, cy + 200 * k, LV_RADIUS_CIRCLE, LV_MAX(2.0f, 18 * k), col,
-        lv_color_black(), LV_OPA_COVER);
-  fillRect(layer, cx - 106 * k, cy - 86 * k, cx - 28 * k, cy + 34 * k, 30 * k, col);
-  fillRect(layer, cx + 28 * k, cy - 86 * k, cx + 106 * k, cy + 34 * k, 30 * k, col);
+        lv_color_black(), opa, opa);
+  fillRect(layer, cx - 106 * k, cy - 86 * k, cx - 28 * k, cy + 34 * k, 30 * k, col, opa);
+  fillRect(layer, cx + 28 * k, cy - 86 * k, cx + 106 * k, cy + 34 * k, 30 * k, col, opa);
   lv_draw_arc_dsc_t a;
   lv_draw_arc_dsc_init(&a);
   a.center = {ri(cx), ri(cy + 24 * k)};  // "q50 40 100 0" in de svg: een ondiepe boog onder de ogen
@@ -93,6 +97,7 @@ inline void logo(lv_layer_t* layer, float cx, float cy, float size, lv_color_t c
   a.width = (uint16_t)LV_MAX(2.0f, 16 * k);
   a.rounded = 1;
   a.color = col;
+  a.opa = opa;
   a.start_angle = 45;
   a.end_angle = 135;
   lv_draw_arc(layer, &a);

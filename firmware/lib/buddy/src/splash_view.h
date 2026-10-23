@@ -1,5 +1,6 @@
 #pragma once
-// Opstartscherm: het deskbuddy-logo met de naam, kort na het inschakelen.
+// Opstartscherm: het deskbuddy.dev-logo met de naam, kort na het inschakelen. Na afloop wordt het
+// object verwijderd (niet alleen verborgen).
 
 #include <lvgl.h>
 #include <stdint.h>
@@ -10,13 +11,13 @@ class SplashView {
  public:
   void create(lv_obj_t* parent, const char* version);
   void show(uint32_t ms = 1500);
-  void update(uint32_t dtMs);
-  bool visible() const { return left_ > 0; }
-  bool created() const { return root_ != nullptr; }
+  void update();
+  bool visible() const { return root_ != nullptr; }
 
  private:
   lv_obj_t* root_ = nullptr;
-  uint32_t left_ = 0, total_ = 0;
+  uint32_t start_ = 0, total_ = 0;
+  bool started_ = false;
 };
 
 }  // namespace buddy

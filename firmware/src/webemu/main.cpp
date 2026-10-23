@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -490,6 +491,7 @@ uint64_t audioTotal = 0;  // aantal samples ooit gemaakt
 
 int main(int argc, char** argv) {
   gArgv = argv;
+  prctl(PR_SET_NAME, "program");  // na een herstart (execv van /proc/self/exe) anders "exe": pkill -x program blijft werken
   gRoot = argc > 1 ? argv[1] : ".";
   int port = argc > 2 ? atoi(argv[2]) : 8765;
   // WEBEMU_STATE: andere map voor de bewaarde staat (de regressietest gebruikt een eigen map)
