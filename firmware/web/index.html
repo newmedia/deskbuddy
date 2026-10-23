@@ -97,6 +97,14 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
 .status.ok{border-color:var(--ok);color:var(--ok)}
 .status.bad{border-color:var(--bad);color:var(--bad)}
 a{color:var(--accent)}
+.row.btns{align-items:stretch}
+button.danger{background:none;border-color:transparent;color:var(--bad);width:100%;margin-top:10px}
+button.danger:hover{border-color:var(--bad)}
+.group-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:2px 0 10px}
+.group-name{font-size:18px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.buddy-list{display:grid;gap:6px}
+.buddy-list div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#0e1418}
+.buddy-list div span:last-child{color:var(--dim);font-size:13px;white-space:nowrap}
 .langs{display:inline-flex;gap:2px;margin-left:6px;vertical-align:middle}
 .langs button{min-height:0;padding:2px 7px;border-radius:999px;font-size:12px;background:none;color:var(--dim)}
 .langs button.on{background:var(--accent);color:#04151a;border-color:var(--accent);font-weight:600}
@@ -182,25 +190,33 @@ a{color:var(--accent)}
     <p class="muted" style="margin-top:0" data-t>Buddies in the same group see each other (in the same room, also without a router) and catch each other's yawns.</p>
     <div id="join-offer" class="status ok" hidden></div>
     <div id="in-group" hidden>
-      <p id="buddies-now" class="status"></p>
-      <div class="stat" id="buddies-list" style="margin-top:10px"></div>
-      <label class="check"><input type="checkbox" id="group-visible"> <span data-t>Others nearby can find this group by searching</span></label>
-      <div class="row" style="margin-top:12px"><button id="invite-show" data-t>Show invite on the buddy</button><button id="invite-copy" data-t>Copy invite link</button></div>
-      <p class="muted" id="invite-text" hidden style="word-break:break-all;margin:8px 0 0"></p>
-      <button id="group-leave" class="wide" data-t>Leave group</button>
+      <div class="group-head"><span class="group-name" id="group-name"></span><span class="muted" id="buddies-now"></span></div>
+      <div class="buddy-list" id="buddies-list"></div>
+      <button id="group-leave" class="danger" data-t>Leave group</button>
     </div>
-    <div id="no-group" hidden>
-      <p class="status" data-t>Not in a group yet.</p>
-      <label data-t>Groups nearby</label>
-      <button id="scan-groups" data-t>Search for groups</button>
-      <div class="nets" id="groups-list"></div>
-      <p class="muted" id="groups-hint" hidden data-t>To join, ask someone in the group to show the invite on their buddy (Buddies tab), and scan it with the camera of the phone that controls your buddy. Or paste the invite below.</p>
-      <label for="new-group" data-t>New group</label>
-      <div class="row"><input type="text" id="new-group" maxlength="20" data-tp="Name, e.g. Team Dev"><button id="group-create" style="flex:0 0 110px" data-t>Create</button></div>
-      <label for="join-code" data-t>Join with an invite</label>
-      <div class="row"><input type="text" id="join-code" autocapitalize="none" autocomplete="off" data-tp="Invite or link"><button id="group-join" style="flex:0 0 110px" data-t>Join</button></div>
-      <p id="group-msg" class="status bad" hidden></p>
-    </div>
+    <p class="muted" id="no-group" hidden style="margin:0" data-t>Not in a group yet: join one nearby or start your own.</p>
+  </section>
+
+  <section data-tab="buddies" id="invite-section" hidden>
+    <h2 data-t>Invite others</h2>
+    <div class="row btns"><button id="invite-show" data-t>Show QR on buddy</button><button id="invite-copy" data-t>Copy link</button></div>
+    <p class="muted" id="invite-text" hidden style="word-break:break-all;margin:8px 0 0"></p>
+    <label class="check"><input type="checkbox" id="group-visible"> <span data-t>Others nearby can find this group by searching</span></label>
+  </section>
+
+  <section data-tab="buddies" id="join-section" hidden>
+    <h2 data-t>Join a group</h2>
+    <button id="scan-groups" class="wide" style="margin-top:0" data-t>Search for groups</button>
+    <div class="nets" id="groups-list"></div>
+    <p class="muted" id="groups-hint" hidden data-t>To join, ask someone in the group to show the invite on their buddy (Buddies tab), and scan it with the camera of the phone that controls your buddy. Or paste the invite below.</p>
+    <label for="join-code" data-t>Have an invite?</label>
+    <div class="row"><input type="text" id="join-code" autocapitalize="none" autocomplete="off" data-tp="Invite or link"><button id="group-join" class="on" style="flex:0 0 96px" data-t>Join</button></div>
+    <p id="group-msg" class="status bad" hidden></p>
+  </section>
+
+  <section data-tab="buddies" id="create-section" hidden>
+    <h2 data-t>New group</h2>
+    <div class="row"><input type="text" id="new-group" maxlength="20" data-tp="Name, e.g. Team Dev"><button id="group-create" class="on" style="flex:0 0 96px" data-t>Create</button></div>
   </section>
 
   <section data-tab="system" id="install-section">
@@ -396,14 +412,15 @@ const NL = {
   "Buddies in the same group see each other (in the same room, also without a router) and catch each other's yawns.":
     "Buddies in dezelfde groep zien elkaar (in dezelfde ruimte, ook zonder router) en nemen elkaars gapen over.",
   "Others nearby can find this group by searching": "Anderen in de buurt kunnen deze groep vinden door te zoeken",
-  "Show invite on the buddy": "Uitnodiging op de buddy tonen", "Copy invite link": "Uitnodigingslink kopi\u00ebren",
-  "Not in a group yet.": "Nog niet in een groep.", "Groups nearby": "Groepen in de buurt", "Search for groups": "Groepen zoeken",
+  "Invite others": "Anderen uitnodigen", "Show QR on buddy": "QR op buddy tonen", "Copy link": "Link kopi\u00ebren",
+  "Not in a group yet: join one nearby or start your own.": "Nog niet in een groep: doe mee met een groep in de buurt of begin er zelf een.",
+  "Join a group": "Meedoen met een groep", "Have an invite?": "Heb je een uitnodiging?", "Search for groups": "Groepen zoeken",
+  "Nobody nearby yet": "Nog niemand dichtbij", "1 buddy nearby": "1 buddy dichtbij", "{n} buddies nearby": "{n} buddies dichtbij",
   "To join, ask someone in the group to show the invite on their buddy (Buddies tab), and scan it with the camera of the phone that controls your buddy. Or paste the invite below.":
     "Vraag iemand uit de groep om de uitnodiging op zijn buddy te tonen (tabblad Buddies) en scan die met de camera van de telefoon die jouw buddy bedient. Of plak de uitnodiging hieronder.",
   "New group": "Nieuwe groep", "Name, e.g. Team Dev": "Naam, bijv. Team Dev", "Create": "Aanmaken",
-  "Join with an invite": "Meedoen met een uitnodiging", "Invite or link": "Uitnodiging of link",
+  "Invite or link": "Uitnodiging of link",
   "Invitation to join \u201c{name}\u201d.": "Uitnodiging voor \u201c{name}\u201d.",
-  "\u201c{name}\u201d: {n} nearby.": "\u201c{name}\u201d: {n} dichtbij.", "\u201c{name}\u201d: nobody nearby yet.": "\u201c{name}\u201d: nog niemand dichtbij.",
   "No visible groups found.": "Geen zichtbare groepen gevonden.", "1 buddy": "1 buddy", "{n} buddies": "{n} buddies",
   "That invite is not valid.": "Die uitnodiging klopt niet.", "Copied:": "Gekopieerd:",
   "Leave group \u201c{name}\u201d?": "Groep \u201c{name}\u201d verlaten?",
@@ -640,8 +657,8 @@ const inviteName = inv => (inv || "").split(".").slice(1).join(".");
 function groupMsg(text) { const m = $("#group-msg"); m.hidden = !text; m.textContent = text || ""; }
 async function updateBuddies() {
   const inGroup = !!st.group;
-  $("#in-group").hidden = !inGroup;
-  $("#no-group").hidden = inGroup;
+  $("#in-group").hidden = $("#invite-section").hidden = !inGroup;
+  $("#no-group").hidden = $("#join-section").hidden = $("#create-section").hidden = inGroup;
   const offer = $("#join-offer");
   offer.hidden = !pendingJoin;
   if (pendingJoin && !offer.dataset.for) {  // built once, so the button keeps working between refreshes
@@ -656,12 +673,11 @@ async function updateBuddies() {
       g = JSON.parse((await api.cmd("group")).reply);
       buddies = JSON.parse((await api.cmd("buddies")).reply).buddies;
     } catch {}
-    const now = $("#buddies-now");
-    now.textContent = buddies.length ? t("\u201c{name}\u201d: {n} nearby.", {name: g.name, n: buddies.length})
-      : t("\u201c{name}\u201d: nobody nearby yet.", {name: g.name});
-    now.className = "status" + (buddies.length ? " ok" : "");
+    $("#group-name").textContent = g.name || "";
+    $("#buddies-now").textContent = !buddies.length ? t("Nobody nearby yet")
+      : t(buddies.length === 1 ? "1 buddy nearby" : "{n} buddies nearby", {n: buddies.length});
     // One row per buddy: name, character and signal strength
-    $("#buddies-list").innerHTML = buddies.map(b => `<span>${esc(b.name)}</span><span>${esc(b.look)} · ${esc(b.rssi)} dBm</span>`).join("");
+    $("#buddies-list").innerHTML = buddies.map(b => `<div><span>${esc(b.name)}</span><span>${esc(b.look)} · ${esc(b.rssi)} dBm</span></div>`).join("");
     if (document.activeElement !== $("#group-visible")) $("#group-visible").checked = !!g.visible;
   } else if (Date.now() < groupScanUntil) {
     try { renderGroups(JSON.parse((await api.cmd("groups")).reply).groups); } catch {}
