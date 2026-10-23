@@ -23,6 +23,10 @@ void App::create(lv_obj_t* screen) {
   pair.create(screen);
   screen_ = screen;
 
+  // Default appearance at runtime: on the device App is a global object, and its member initializer
+  // preset(0) may run before look.cpp has filled its character table (static initialization order
+  // between source files). The default was then all zeros: black eyes on a black screen.
+  settings_.look = preset(0);
   platform_.loadSettings(settings_);
   gLang = settings_.lang == (uint8_t)Lang::Nl ? Lang::Nl : Lang::En;
   {

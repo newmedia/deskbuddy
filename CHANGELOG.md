@@ -3,6 +3,20 @@
 Each version below becomes a release on GitHub (see `tools/release.sh` and `docs/firmware.md`).
 The text under a heading is the description of that release. Newest first.
 
+## v1.3.0
+
+The XL (2.16″, square screen) gets its own firmware, and a black screen on new buddies is fixed.
+
+- **Fix: black screen without a saved appearance**: a buddy that never saved its own appearance got
+  an empty one with black eyes on a black screen (effects such as the explosion were still visible).
+  This was very probably also the "black circle" after v1.1.1. Buddies that are affected are fixed
+  by this update on their own.
+- **XL (Waveshare ESP32-S3-Touch-AMOLED-2.16)**: its own firmware (`firmware-xl.bin`) with the
+  square 480×480 screen, hardware rotation, touch and motion sensor set up for this board. Each
+  buddy only installs the firmware for its own board.
+- **Install page**: first choose the board (Original or XL), then the version.
+- **Web app**: the board is shown under System → Status.
+
 ## v1.2.0
 
 English and Dutch: the buddy and the web app speak both, and the whole project is now in English.

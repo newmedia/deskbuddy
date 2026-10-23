@@ -2,8 +2,8 @@
 
 deskbuddy.dev comes in three sizes: Mini (1.43″), Original (1.75″) and XL (2.16″). The firmware runs
 on the Original. This document compares the XL board with it and plans the port. Status
-(2026-10-23): phases 1–3 done (separate XL build, screen size in the lib, XL display driver); the XL
-firmware builds and runs in the sim and web emulator, but has **not been flashed** on the XL yet.
+(2026-10-23): phases 1–4 done; the XL firmware runs on the board (picture, touch and IMU checked).
+Phase 5 (distribution) is prepared but not released yet.
 
 ## The board on the bench
 
@@ -153,20 +153,43 @@ Option 1 is less work and less risk; the board is fixed anyway, unlike the langu
 Release the XL firmware only after phase 4: the first release with `firmware-xl.bin` makes it
 installable from the install page. Until then use `tools/release.sh <version> --original-only`.
 
-### To verify on the device (phase 4)
+### Phase 4: on the board (2026-10-23)
 
-- Picture: orientation (MADCTL `0xA0`), no offset or tearing, colours; `perf` (the "rotate" time is now
-  only the copy).
-- Touch mapping and IMU axes (`tools/imu-measure.py`); both are guesses until measured.
-- Corner radius of the visible area (`kCornerRadius` in `screen.h`, estimated at 40 px; only used by
-  the emulators).
-- Audio, battery/PMU, RTC, Wi-Fi/BLE: same chips and pins, so expected to work as on the Original.
+Flashed with `tools/flash.sh --xl` onto the board above (the soundbox backup is in `backups/`).
+
+| Check | Result |
+|---|---|
+| Parts | `display=1 touch=1 imu=1 pmu=1 rtc=1 audio=1`, ES7210 at 0x40; 83 KB internal RAM free with Wi-Fi and BLE |
+| Picture | upright with USB-C at the bottom: MADCTL `0xA0` is right; no offset, colours right |
+| Touch | swipe down = info, swipe up = clock, tap closes: Waveshare's mapping (swap XY, mirror X) is right |
+| IMU | measured with `tools/imu-measure.py`: x and z inverted compared with the Original (IMU rotated 180° around the vertical axis); fixed in `board.cpp`. Flat face-up now gives z ≈ -1 like the Original |
+| Battery | with a battery connected: percentage and charging reported (9%, charging) |
+
+Speed (`perf`, same situations as the Original's numbers in `firmware.md`):
+
+| Situation | XL | Original |
+|---|---|---|
+| Robot sleepy (10 fps) | 28 ms per frame | 17 ms |
+| Robot in love | 26 ms, 25 fps | 15 ms, 23–25 fps |
+| Mascot sleepy (10 fps) | 76 ms | 60 ms |
+
+Slower per frame (6% more pixels, plus copying each strip from the PSRAM draw buffer into a DMA
+buffer: 4–8 ms), but the same frame rates. Possible later gain: DMA straight from PSRAM, without
+the copy.
+
+Found on the way, for all boards: the default appearance was all zeros (black eyes on a black
+screen) on a buddy without a saved appearance. `App` is a global object on the device, and its
+member initializer `preset(0)` ran before `look.cpp` had filled its character table (static
+initialization order). Fixed by setting the default in `App::create()`. The web emulator creates
+`App` inside `main()`, so the regression test could not see it.
+
+Not checked yet: sound out loud, Wi-Fi and BLE in use, RTC over a power cycle, and the corner radius
+of the visible area (`kCornerRadius` in `screen.h`, estimated at 40 px; only used by the emulators).
 
 ### Open questions
 
-- **Orientation in the XL case:** which side is up (where the USB port ends up) decides the MADCTL
-  value and the touch and IMU mapping. The case is still a concept; until then use the BSP default
-  (`0xA0`) and make it one setting.
+- **Orientation in the XL case:** measured with USB-C at the bottom. If the case ends up with the
+  board another way round, `LCD_MADCTL`, the touch mapping and the IMU mapping change together.
 - **KEY3:** what should it do? Suggestion: open the info panel (like PWR), or cycle emotions like
   BOOT does now.
 - **Face size:** keep the face the same size in pixels (480 is 3% bigger), or scale it up a little

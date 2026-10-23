@@ -103,10 +103,17 @@ bool readAccel(float& ax, float& ay, float& az) {
   if (!imu.getAccelerometer(x, y, az)) return false;
   // IMU axes -> screen axes, measured with tools/imu-measure.py: standing upright, gravity
   // points along IMU-y (= down on the screen), tilting right gives +x, and tilting the top
-  // towards you gives +z. XL: not measured yet (depends on how the board sits in the case); same
-  // mapping until then.
+  // towards you gives +z.
+#ifdef DESKBUDDY_BOARD_XL
+  // XL (measured 2026-10-23, upright with USB-C at the bottom): the IMU sits rotated 180° around the
+  // vertical axis, so x and z are inverted; y (gravity, down on the screen) is the same.
+  ax = -x;
+  ay = y;
+  az = -az;
+#else
   ax = x;
   ay = y;
+#endif
   return true;
 }
 

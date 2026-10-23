@@ -26,7 +26,7 @@ struct Settings {
   bool sound = true;
   uint8_t volume = 70;      // 0..100
   uint8_t brightness = 200; // 0..255
-  Look look = preset(0);   // appearance (base, parts, colors)
+  Look look;                // appearance (base, parts, colors); default preset(0) is set in App::create
   uint8_t sleepMin = 3;     // minutes until asleep; 0 = never
   bool ble = true;          // Bluetooth on
   bool mic = true;          // listen to sound (level only; nothing is recorded)
