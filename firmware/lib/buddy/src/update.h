@@ -1,6 +1,6 @@
 #pragma once
-// Firmware-updates via GitHub Releases: instelling, status en de voortgangsring tijdens installeren.
-// Het netwerkdeel (opvragen, downloaden, flashen) zit in src/net/updater.cpp.
+// Firmware updates via GitHub Releases: setting, status and the progress ring during installation.
+// The network part (query, download, flash) lives in src/net/updater.cpp.
 
 #include <lvgl.h>
 #include <stdint.h>
@@ -14,11 +14,11 @@ const char* updateModeName(UpdateMode m);
 bool updateModeFromName(const char* n, UpdateMode& out);
 const char* updateStateName(UpdateState s);
 
-// Vergelijkt semver-versies ("v1.2.3" of "1.2.3"; een achtervoegsel als "-rc1" telt niet mee).
-// Geeft <0, 0 of >0. Ongeldig = 0.0.0.
+// Compares semver versions ("v1.2.3" or "1.2.3"; a suffix like "-rc1" is ignored).
+// Returns <0, 0 or >0. Invalid = 0.0.0.
 int compareVersions(const char* a, const char* b);
 
-// Ring langs de rand van het ronde scherm plus tekst, over het gezicht heen.
+// Ring along the edge of the round screen plus text, over the face.
 class UpdateView {
  public:
   void create(lv_obj_t* parent);

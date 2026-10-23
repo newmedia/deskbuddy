@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Bouwt de PC-simulator en rendert previews naar sim-out/:
-#   tools/sim.sh            -> PNG per emotie + contactsheet + demo.gif
-#   tools/sim.sh emotions   -> alleen de PNG's
-#   tools/sim.sh check      -> per personage één overzicht van alle emoties en acties (sim-out/check_NN.png)
+# Builds the PC simulator and renders previews to sim-out/:
+#   tools/sim.sh            -> PNG per emotion + contact sheet + demo.gif
+#   tools/sim.sh emotions   -> only the PNGs
+#   tools/sim.sh check      -> one overview per character of all emotions and actions (sim-out/check_NN.png)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/sim-out"

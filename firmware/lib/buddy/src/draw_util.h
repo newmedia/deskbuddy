@@ -1,5 +1,5 @@
 #pragma once
-// Kleine tekenhulpjes bovenop de LVGL-draw-API (alleen intern voor de buddy-lib).
+// Small drawing helpers on top of the LVGL draw API (internal to the buddy lib only).
 
 #include <lvgl.h>
 #include <math.h>
@@ -9,12 +9,12 @@ namespace draw {
 
 inline int32_t ri(float v) { return (int32_t)lroundf(v); }
 
-// Verschuiving van alles wat getekend wordt (stuiteren, trillen). Het gezicht tekent in vaste
-// schermcoördinaten; zo verspringt de inhoud zonder het object te verplaatsen.
+// Offset of everything that is drawn (bouncing, shaking). The face draws in fixed
+// screen coordinates; this way the content shifts without moving the object.
 inline float ox = 0, oy = 0;
 inline void shift(lv_area_t& a) { lv_area_move(&a, ri(ox), ri(oy)); }
 inline void shift(lv_point_t& p) { p.x += ri(ox); p.y += ri(oy); }
-struct NoShift {  // tijdelijk zonder verschuiving (achtergrond, effecten over het hele scherm)
+struct NoShift {  // temporarily without offset (background, effects over the whole screen)
   float sx = ox, sy = oy;
   NoShift() { ox = oy = 0; }
   ~NoShift() { ox = sx; oy = sy; }
@@ -76,14 +76,14 @@ inline void frame(lv_layer_t* layer, float x1, float y1, float x2, float y2, flo
   lv_draw_rect(layer, &d, &a);
 }
 
-// Het deskbuddy-logo (dezelfde vormen als firmware/web/icon.svg): cyaan ring, twee ogen en een lach.
-// size = diameter van de ring in pixels; cx/cy = midden. Tekent niet verschoven (los van het gezicht).
-// opa: zelf doorgeven bij een vervagend object; eigen tekenwerk negeert de opa-stijl van LVGL, zodat er
-// anders een dekkend zwart rondje blijft staan terwijl de rest al weg is.
+// The deskbuddy logo (same shapes as firmware/web/icon.svg): cyan ring, two eyes and a smile.
+// size = diameter of the ring in pixels; cx/cy = centre. Draws unshifted (independent of the face).
+// opa: pass it yourself for a fading object; custom drawing ignores LVGL's opa style, so
+// otherwise an opaque black circle stays behind while the rest is already gone.
 inline void logo(lv_layer_t* layer, float cx, float cy, float size, lv_opa_t opa = LV_OPA_COVER,
                  lv_color_t col = lv_color_hex(0x6EE7F7)) {
   if (opa <= LV_OPA_MIN) return;
-  const float k = size / 400.0f;  // ring: straal 200 (+9 lijn) in de 512-ruimte van de svg
+  const float k = size / 400.0f;  // ring: radius 200 (+9 line) in the 512 space of the svg
   const float ox0 = ox, oy0 = oy;
   ox = oy = 0;
   frame(layer, cx - 200 * k, cy - 200 * k, cx + 200 * k, cy + 200 * k, LV_RADIUS_CIRCLE, LV_MAX(2.0f, 18 * k), col,
@@ -92,7 +92,7 @@ inline void logo(lv_layer_t* layer, float cx, float cy, float size, lv_opa_t opa
   fillRect(layer, cx + 28 * k, cy - 86 * k, cx + 106 * k, cy + 34 * k, 30 * k, col, opa);
   lv_draw_arc_dsc_t a;
   lv_draw_arc_dsc_init(&a);
-  a.center = {ri(cx), ri(cy + 24 * k)};  // "q50 40 100 0" in de svg: een ondiepe boog onder de ogen
+  a.center = {ri(cx), ri(cy + 24 * k)};  // "q50 40 100 0" in the svg: a shallow arc below the eyes
   a.radius = (uint16_t)LV_MAX(3.0f, 90 * k);
   a.width = (uint16_t)LV_MAX(2.0f, 16 * k);
   a.rounded = 1;

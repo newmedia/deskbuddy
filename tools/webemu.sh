@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Web-emulator: de deskbuddy-firmware (App, gezicht, commando's, web-API) op de PC, te bedienen in de
-# browser, met ernaast de webinterface of de PWA (nagebootste Bluetooth). Zie docs/firmware.md.
+# Web emulator: the deskbuddy firmware (App, face, commands, web API) on the PC, operated in the
+# browser, with the web interface or the PWA next to it (simulated Bluetooth). See docs/firmware.md.
 #   tools/webemu.sh            -> http://localhost:8765/emu
-#   tools/webemu.sh 9000       -> andere poort
-#   tools/webemu.sh --reset    -> eerst de bewaarde instellingen/profielen wissen
+#   tools/webemu.sh 9000       -> different port
+#   tools/webemu.sh --reset    -> first clear the saved settings/profiles
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${PORT:-8765}"
@@ -15,15 +15,15 @@ for a in "$@"; do
   esac
 done
 cd "$ROOT/firmware"
-# Een kapotte bouwcache (bijv. "cannot find main.o" bij het linken) herstelt zichzelf: eenmaal schoon opnieuw bouwen.
+# A broken build cache (e.g. "cannot find main.o" when linking) recovers itself: rebuild once from scratch.
 if ! "$ROOT/.venv/bin/pio" run -e webemu -s; then
-  echo "Bouwen mislukt; de bouwmap van de emulator wordt opgeruimd en het wordt nog eens geprobeerd..." >&2
+  echo "Build failed; cleaning the emulator build directory and trying once more..." >&2
   rm -rf "${ROOT:?}/firmware/.pio/build/webemu"
   "$ROOT/.venv/bin/pio" run -e webemu -s
 fi
 if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then
-  echo "Poort $PORT is al in gebruik (draait er al een emulator? stop die met: pkill -x program)." >&2
-  echo "Of kies een andere poort: tools/webemu.sh 9000" >&2
+  echo "Port $PORT is already in use (is an emulator already running? stop it with: pkill -x program)." >&2
+  echo "Or choose a different port: tools/webemu.sh 9000" >&2
   exit 1
 fi
 exec "$ROOT/firmware/.pio/build/webemu/program" "$ROOT" "$PORT"

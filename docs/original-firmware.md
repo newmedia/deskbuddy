@@ -1,80 +1,80 @@
-# Originele firmware
+# Original firmware
 
-## Wat het is
-- Closed-source firmware, alleen als **kant-en-klaar binary** ("ready to flash") geleverd bij de
-  digitale download. De broncode zit er bewust niet bij.
-- Geleverd met 3D-printbestanden voor de behuizing (de figuren, accessoires) en een bouwhandleiding.
-  De behuizing is modulair: hoofden, lichamen en accessoires zijn onderling uitwisselbaar.
+## What it is
+- Closed-source firmware, supplied only as a **ready-to-flash binary** with the digital download.
+  The source code is deliberately not included.
+- Supplied with 3D-print files for the case (the figures, accessories) and an assembly guide.
+  The case is modular: heads, bodies and accessories are interchangeable.
 
-## Functies (volgens de productpagina)
-- Geanimeerd gezicht met emoties dat reageert op aanraking
-- Klok, timer met alarm en accu-indicator
-- Werkt **volledig offline**
-- Optionele accu: het bord heeft een Li-ion-aansluiting en de AXP2101 regelt het laden
+## Features (according to the product page)
+- Animated face with emotions that reacts to touch
+- Clock, timer with alarm and battery indicator
+- Works **fully offline**
+- Optional battery: the board has a Li-ion connector and the AXP2101 handles charging
 
-## Wat de hardware nog meer kan
-Uit de backup blijkt dat de firmware het display, de touch, de PMU, de IMU en de speaker gebruikt (zie hieronder).
-- **Wi-Fi/BLE** (bevestigd ongebruikt): bijvoorbeeld voor NTP-tijd, notificaties, Home Assistant of een koppeling met de PC
-- **Microfoons** (speaker wordt wél gebruikt): spraak, geluiden of wake-word (Waveshare demonstreert AI-chat)
-- **microSD**: eigen animaties of assets
+## What else the hardware can do
+The backup shows that the firmware uses the display, touch, PMU, IMU and speaker (see below).
+- **Wi-Fi/BLE** (confirmed unused): for example for NTP time, notifications, Home Assistant or a link to the PC
+- **Microphones** (the speaker *is* used): speech, sounds or wake word (Waveshare demonstrates AI chat)
+- **microSD**: custom animations or assets
 
-Dit bord is dus een goede basis voor eigen firmware in het `deskbuddy`-project.
+So this board is a good basis for custom firmware in the `deskbuddy` project.
 
-## Belangrijk vóór je zelf iets flasht
-De originele firmware staat alleen op de chip. **Maak eerst een volledige flash-backup** met
-`tools/backup-flash.sh`. Zonder backup kun je niet terug, behalve met een nieuwe download van
-de oorspronkelijke maker. De backup is alleen voor eigen gebruik. Verspreid hem niet, want de firmware valt
-onder het IP van de oorspronkelijke maker.
+## Important before you flash anything yourself
+The original firmware exists only on the chip. **First make a full flash backup** with
+`tools/backup-flash.sh`. Without a backup you cannot go back, except by downloading it again from
+the original maker. The backup is for your own use only. Do not distribute it, because the firmware
+falls under the original maker's IP.
 
-## Analyse van de flash-backup (2026-10-15)
+## Analysis of the flash backup (2026-10-15)
 
-Backup: `backups/original-firmware-20261015-205611.bin` (16 MB, sha256 `54b3dc52…bf4c0a`, gecontroleerd met
-`verify-flash`). De backup staat niet in git.
+Backup: `backups/original-firmware-20261015-205611.bin` (16 MB, sha256 `54b3dc52…bf4c0a`, checked with
+`verify-flash`). The backup is not in git.
 
 ### Chip
-ESP32-S3 (QFN56) rev v0.2, 8 MB embedded PSRAM, 16 MB quad-flash (fabrikant 0x20, device 0x4018),
-40 MHz-kristal, MAC `44:bd:8d:79:a4:5c`. Er zijn geen aanwijzingen voor secure boot of
-flash-encryptie: de image is leesbaar en de bootlog meldt niets.
+ESP32-S3 (QFN56) rev v0.2, 8 MB embedded PSRAM, 16 MB quad flash (manufacturer 0x20, device 0x4018),
+40 MHz crystal, MAC `44:bd:8d:79:a4:5c`. There are no signs of secure boot or flash
+encryption: the image is readable and the boot log reports nothing.
 
-### Partitietabel (Arduino-standaard `default_16MB.csv`)
-| Naam | Offset | Grootte | Inhoud |
+### Partition table (Arduino default `default_16MB.csv`)
+| Name | Offset | Size | Contents |
 |---|---|---|---|
 | nvs | 0x9000 | 20 KB | namespace `settings`, key `volume` (u8) |
-| otadata | 0xe000 | 8 KB | actieve slot = **app0** |
-| app0 | 0x10000 | 6400 KB | originele firmware (~2.9 MB gebruikt) |
-| app1 | 0x650000 | 6400 KB | leeg (OTA-slot, ongebruikt) |
-| spiffs | 0xc90000 | 3456 KB | leeg (alles 0xFF) |
+| otadata | 0xe000 | 8 KB | active slot = **app0** |
+| app0 | 0x10000 | 6400 KB | original firmware (~2.9 MB used) |
+| app1 | 0x650000 | 6400 KB | empty (OTA slot, unused) |
+| spiffs | 0xc90000 | 3456 KB | empty (all 0xFF) |
 | coredump | 0xff0000 | 64 KB | — |
 
-Alle assets (afbeeldingen, fonts, animaties) zitten dus **in de app-binary zelf** en niet in een
-bestandssysteem.
+All assets (images, fonts, animations) are therefore **in the app binary itself** and not in a
+file system.
 
-### Framework en libraries
-- **PlatformIO**, board `esp32-s3-devkitc-1`, **Arduino-ESP32 2.0.x** op ESP-IDF v4.4.7, gebouwd
-  op Windows
-- **LVGL 8.x**, met de widgets arc, roller, dropdown, menu, chart, textarea, img en png. De
-  map `src/ui/` met `ui_theme_manager.c` en `_ui_local_style_*` wijst op een UI uit
+### Framework and libraries
+- **PlatformIO**, board `esp32-s3-devkitc-1`, **Arduino-ESP32 2.0.x** on ESP-IDF v4.4.7, built
+  on Windows
+- **LVGL 8.x**, with the widgets arc, roller, dropdown, menu, chart, textarea, img and png. The
+  `src/ui/` folder with `ui_theme_manager.c` and `_ui_local_style_*` points to a UI made with
   **SquareLine Studio**.
-- **GFX Library for Arduino** (`Arduino_ESP32QSPI`) voor het CO5300-display
-- **SensorLib** (lewisxhe) voor touch en IMU. Bij het opstarten probeert de firmware achter elkaar
-  CST226, CST816 en CST92xx; de laatste is de echte chip, de CST9217.
-- **XPowersLib** voor de AXP2101 (accu en laden)
-- **ES8311 + I2S**: de speaker wordt echt gebruikt (volume-instelling in NVS)
-- **QMI8658**-IMU: wordt geïnitialiseerd ("QMI8658 initialized!")
-- `Preferences` (NVS) en `Wire` (I2C)
+- **GFX Library for Arduino** (`Arduino_ESP32QSPI`) for the CO5300 display
+- **SensorLib** (lewisxhe) for touch and IMU. At startup the firmware tries CST226, CST816 and
+  CST92xx in turn; the last one is the real chip, the CST9217.
+- **XPowersLib** for the AXP2101 (battery and charging)
+- **ES8311 + I2S**: the speaker is actually used (volume setting in NVS)
+- **QMI8658** IMU: is initialized ("QMI8658 initialized!")
+- `Preferences` (NVS) and `Wire` (I2C)
 
-### Niet gebruikt
-- **Geen Wi-Fi en geen BLE**: er zijn geen sporen van `esp_wifi_init`, NimBLE/Bluedroid of SNTP.
-  De firmware is dus echt offline. De HTTP-foutnamen in de binary komen uit de standaard
-  `esp_err`-tabel.
-- Geen SPIFFS/LittleFS en geen SD-kaart
+### Not used
+- **No Wi-Fi and no BLE**: there are no traces of `esp_wifi_init`, NimBLE/Bluedroid or SNTP.
+  The firmware really is offline. The HTTP error names in the binary come from the standard
+  `esp_err` table.
+- No SPIFFS/LittleFS and no SD card
 
-### Bootlog (115200 baud via USB-CDC)
-De log toont een reset via USB, laadt app0 en geeft daarna een paar onschuldige foutmeldingen
-(`Wire setPins`, touch-chip-ID mismatch) tijdens het zoeken naar de juiste touch-driver. Hij eindigt
-met `QMI8658 initialized!`.
+### Boot log (115200 baud over USB-CDC)
+The log shows a reset via USB, loads app0 and then prints a few harmless error messages
+(`Wire setPins`, touch chip ID mismatch) while searching for the right touch driver. It ends
+with `QMI8658 initialized!`.
 
-## Openstaande vragen
-- Waarvoor wordt de IMU gebruikt: tikken, schudden of kantelen? Dat is te achterhalen door
-  ermee te testen.
-- Welke geluiden speelt de speaker af?
+## Open questions
+- What is the IMU used for: taps, shaking or tilting? This can be found out by
+  testing with it.
+- Which sounds does the speaker play?

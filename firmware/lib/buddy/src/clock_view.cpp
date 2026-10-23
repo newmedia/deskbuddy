@@ -2,11 +2,15 @@
 
 #include <stdio.h>
 
+#include "i18n.h"
+
 namespace buddy {
 
 namespace {
-const char* const kDays[] = {"zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"};
-const char* const kMonths[] = {"jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"};
+const char* const kDaysEn[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+const char* const kMonthsEn[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+const char* const kDaysNl[] = {"zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"};
+const char* const kMonthsNl[] = {"jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"};
 }  // namespace
 
 void ClockView::create(lv_obj_t* parent) {
@@ -30,7 +34,7 @@ void ClockView::create(lv_obj_t* parent) {
   lv_obj_set_style_arc_color(batt_, lv_color_hex(0x1A2A2E), LV_PART_MAIN);
 
   time_ = lv_label_create(root_);
-  lv_obj_set_style_text_font(time_, &buddy_clock_88, 0);  // eigen font met alleen cijfers: scherp en klein
+  lv_obj_set_style_text_font(time_, &buddy_clock_88, 0);  // own font with digits only: sharp and small
   lv_obj_set_style_text_color(time_, lv_color_hex(0x6EE7F7), 0);
   lv_obj_align(time_, LV_ALIGN_CENTER, 0, -20);
 
@@ -68,10 +72,13 @@ void ClockView::update(const struct tm& now, int pct, bool charging, uint32_t dt
   }
   if (!visible_ && lv_obj_get_style_opa(root_, LV_PART_MAIN) == LV_OPA_TRANSP) lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
 
-  if (now.tm_min != lastMin_) {
+  if (now.tm_min != lastMin_ || gLang != lang_) {
     lastMin_ = now.tm_min;
+    lang_ = gLang;
+    const bool nl = gLang == Lang::Nl;
     lv_label_set_text_fmt(time_, "%02d:%02d", now.tm_hour, now.tm_min);
-    lv_label_set_text_fmt(date_, "%s %d %s", kDays[now.tm_wday % 7], now.tm_mday, kMonths[now.tm_mon % 12]);
+    lv_label_set_text_fmt(date_, "%s %d %s", (nl ? kDaysNl : kDaysEn)[now.tm_wday % 7], now.tm_mday,
+                          (nl ? kMonthsNl : kMonthsEn)[now.tm_mon % 12]);
   }
   if (pct != lastPct_ || charging != lastCharging_) {
     lastPct_ = pct;

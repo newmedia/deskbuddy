@@ -15,8 +15,8 @@ using namespace draw;
 namespace {
 
 constexpr float kCenter = Face::kSize / 2.0f;
-constexpr float kEyeSpacing = 94;   // afstand oogmidden tot schermmidden
-constexpr float kEyeY = -18;        // ogen iets boven het midden
+constexpr float kEyeSpacing = 94;   // distance from eye centres to screen centre
+constexpr float kEyeY = -18;        // eyes slightly above the centre
 constexpr float kLookX = 58, kLookY = 42;
 constexpr float kPi = 3.14159265f;
 const lv_color_t kBlack = LV_COLOR_MAKE(0, 0, 0);
@@ -53,20 +53,20 @@ void Face::setSkin(Skin s) {
 void Face::setLook(const Look& l) {
   look_ = l;
   skin_ = l.base ? Skin::Mascot : Skin::Classic;
-  applyPose(poseFor(emotion_));  // kleuren opnieuw bepalen
+  applyPose(poseFor(emotion_));  // determine colours again
   mascotTargets();
   fullRedraw_ = true;
   if (obj_) lv_obj_invalidate(obj_);
 }
 
-// Kleur van de robotogen: de eigen hoofdkleur, behalve bij sterke emoties (als emotiekleuren aan staan).
+// Colour of the robot eyes: the own primary colour, except for strong emotions (if emotion colours are on).
 uint32_t Face::poseColor(Emotion e, uint32_t emotionColor) const {
   if (look_.emotionColors &&
       (e == Emotion::Angry || e == Emotion::Sad || e == Emotion::Love || e == Emotion::Dizzy ||
        e == Emotion::Cry || e == Emotion::Pain))
     return emotionColor;
   uint32_t c = look_.primary;
-  if (e == Emotion::Asleep) {  // gedimd
+  if (e == Emotion::Asleep) {  // dimmed
     c = (((c >> 16) & 0xff) * 45 / 100) << 16 | (((c >> 8) & 0xff) * 45 / 100) << 8 | ((c & 0xff) * 45 / 100);
   }
   return c;
@@ -133,10 +133,10 @@ void Face::create(lv_obj_t* parent) {
     s->d = 16;
   }
   lookX_.k = lookY_.k = 260;
-  lookX_.d = lookY_.d = 27;  // nog een klein beetje naveren, maar sneller stil (minder hertekenen)
+  lookX_.d = lookY_.d = 27;  // still a tiny bit of settling, but quiet sooner (less redrawing)
   squash_.k = 320;
   squash_.d = 14;
-  hairY_.k = 90;   // haar veert trager na dan het gezicht
+  hairY_.k = 90;   // hair springs back slower than the face
   hairY_.d = 9;
   mascotTargets();
   browAngle_.snap(browAngle_.target);
@@ -148,11 +148,11 @@ void Face::create(lv_obj_t* parent) {
 void Face::setEmotion(Emotion e) {
   if (e == emotion_) return;
   emotion_ = e;
-  fullRedraw_ = true;  // anders blijven resten staan buiten de deelgebieden (Z'jes, tranen, zweet)
+  fullRedraw_ = true;  // otherwise remnants stay outside the sub-areas (Z's, tears, sweat)
   applyPose(poseFor(e));
   mascotTargets();
   if (e == Emotion::Surprised || e == Emotion::Happy || e == Emotion::Love || e == Emotion::Hyper) bounce(0.8f);
-  if (e == Emotion::Pain) nextTwinge_ = t_;  // meteen een steek
+  if (e == Emotion::Pain) nextTwinge_ = t_;  // a stab right away
   if (e == Emotion::Hyper) nextSaccade_ = t_;
   if (e == Emotion::Asleep) lookAt(0, 0.1f, true);
   else if (lookHeld_ && emotion_ != Emotion::Asleep) releaseLook();
@@ -172,7 +172,7 @@ void Face::applyPose(const Pose& p) {
   colR_.target = (c >> 16) & 0xff;
   colG_.target = (c >> 8) & 0xff;
   colB_.target = c & 0xff;
-  // Vorm wisselen (hart <-> rond) doen we achter een knipper, dan zie je de overgang niet.
+  // Changing shape (heart <-> round) is done behind a blink, so the transition is not visible.
   if (p.heart != heartShown_) {
     pendingHeart_ = true;
     blink();
@@ -212,11 +212,11 @@ void Face::hop(float height) {
   if (hopT_ >= 0) return;
   hopT_ = 0;
   hopH_ = height;
-  // Tijdens de sprong één momentopname verschuiven i.p.v. elk frame het hele gezicht opnieuw te tekenen:
-  // de cartoon kost ~60 ms per volledig frame, een plaatje kopiëren een fractie daarvan.
+  // During the jump, shift one snapshot instead of redrawing the whole face every frame:
+  // the cartoon costs ~60 ms per full frame, copying a picture a fraction of that.
   if (obj_ && !hopSnap_ && !matrix_ && !covered_ && !effectsActive())
     hopSnap_ = lv_snapshot_take(obj_, LV_COLOR_FORMAT_RGB565);
-  bounce(0.5f);  // eerst even inveren voor de afzet
+  bounce(0.5f);  // first dip briefly for the take-off
 }
 
 float Face::rnd() {
@@ -230,7 +230,7 @@ void Face::scheduleNextBlink() {
 }
 
 void Face::scheduleNextSaccade() {
-  // Druk: de blik schiet om de paar tienden van een seconde ergens anders heen.
+  // Busy: the gaze darts somewhere else every few tenths of a second.
   nextSaccade_ = t_ + (emotion_ == Emotion::Hyper ? 0.12f + rnd() * 0.3f : 0.9f + rnd() * 2.8f);
 }
 
@@ -241,17 +241,17 @@ void Face::update(uint32_t dtMs) {
     for (int e = 0; e < 2; e++)
       for (int c = 0; c < 7; c++) {
         matrixHead_[e][c] += matrixSpeed_[e][c] * dt;
-        if (matrixHead_[e][c] > 14) {  // onderaan uit beeld: opnieuw van boven
+        if (matrixHead_[e][c] > 14) {  // at the bottom out of view: start again from the top
           matrixHead_[e][c] = -rnd() * 3;
           matrixSpeed_[e][c] = 5 + rnd() * 9;
         }
       }
   }
 
-  // Knipperen
+  // Blinking
   if (autoBlink_ && blinkT_ < 0 && t_ >= nextBlink_ && emotion_ != Emotion::Asleep) {
     blinkT_ = 0;
-    if (rnd() < 0.15f) nextBlink_ = t_ + 0.25f;  // af en toe dubbel knipperen
+    if (rnd() < 0.15f) nextBlink_ = t_ + 0.25f;  // occasionally blink twice
     else scheduleNextBlink();
   }
   if (blinkT_ >= 0) {
@@ -267,7 +267,7 @@ void Face::update(uint32_t dtMs) {
     }
   }
 
-  // Rondkijken (saccades)
+  // Looking around (saccades)
   if (!lookHeld_ && t_ >= nextSaccade_) {
     if (emotion_ == Emotion::Hyper) {
       lookX_.target = (rnd() * 2 - 1) * kLookX;
@@ -281,14 +281,14 @@ void Face::update(uint32_t dtMs) {
     scheduleNextSaccade();
   }
 
-  // Luisteren: om de 1,6 s wisselt het oor van kant, de ogen kijken mee
+  // Listening: every 1.6 s the ear switches sides, the eyes look along
   if (listening_) {
     listenT_ += dt;
     int side = ((int)(listenT_ / 1.6f) % 2) ? -1 : 1;
     if (side != earSide_) {
       earSide_ = side;
       earPop_ = 0;
-      fullRedraw_ = true;  // het oude oor moet weg
+      fullRedraw_ = true;  // the old ear has to go
       lookAt(0.35f * side, -0.1f, true);
     }
     earPop_ = LV_MIN(1.0f, earPop_ + dt * 5);
@@ -297,7 +297,7 @@ void Face::update(uint32_t dtMs) {
     if (earPop_ == 0) fullRedraw_ = true;
   }
 
-  // Druk: af en toe een sprongetje. Pijn: om de paar seconden een steek (trillen, ogen knijpen).
+  // Busy: an occasional little hop. Pain: a stab every few seconds (shaking, squeezing the eyes).
   if (emotion_ == Emotion::Hyper && !busy() && rnd() < dt * 0.6f) hop(14 + rnd() * 16);
   if (emotion_ == Emotion::Pain && !busy() && t_ >= nextTwinge_) {
     shake_ = 4.5f;
@@ -306,7 +306,7 @@ void Face::update(uint32_t dtMs) {
     nextTwinge_ = t_ + 1.8f + rnd() * 2.2f;
   }
 
-  // Mond in- en uitfaden
+  // Fade the mouth in and out
   if (pose_.mouth != mouthShown_) {
     mouthAlpha_ -= dt * 7;
     if (mouthAlpha_ <= 0) {
@@ -325,19 +325,19 @@ void Face::update(uint32_t dtMs) {
   bobPx_ = skin_ == Skin::Mascot ? 0 : (int)lroundf(sinf(t_ * 2 * kPi / 4.2f) * 3.0f);
   updateAction(dt);
   updateParticles(dt);
-  // Trillen en stuiteren: de hele tekening verschuiven (draw::ox/oy). Bij een stuiter springt het
-  // gezicht in een boog omhoog en veert het bij het landen na; de hik geeft een schok omhoog.
+  // Shaking and bouncing: shift the whole drawing (draw::ox/oy). On a bounce the
+  // face jumps up in an arc and springs back on landing; the hiccup gives a jolt upward.
   float hopY = 0;
   if (hopT_ >= 0) {
     hopT_ += dt / 0.5f;
     if (hopT_ >= 1) {
       hopT_ = -1;
-      bounce(0.9f);  // landen
+      bounce(0.9f);  // landing
     } else {
       hopY = -4 * hopT_ * (1 - hopT_) * hopH_;
     }
   }
-  // (LV_CLAMP heeft geen buitenste haakjes: eerst apart uitrekenen)
+  // (LV_CLAMP has no outer parentheses: compute separately first)
   const float squashY = LV_CLAMP(-22.f, squash_.x * 30, 22.f);
   int32_t jx = 0, jy = (int32_t)lroundf(squashY + hopY);
   if (shake_ > 0.2f) {
@@ -349,7 +349,7 @@ void Face::update(uint32_t dtMs) {
     offY_ = (int16_t)jy;
     fullRedraw_ = true;
   }
-  // Sprong voorbij en weer op de plek: momentopname weg, het gezicht leeft weer
+  // Jump over and back in place: snapshot gone, the face is alive again
   if (hopSnap_ && (hopT_ < 0 || matrix_ || effectsActive()) && jx == 0 && jy == 0) {
     lv_draw_buf_destroy(hopSnap_);
     hopSnap_ = nullptr;
@@ -357,7 +357,7 @@ void Face::update(uint32_t dtMs) {
   }
 
   squash_.target = 0;
-  hairY_.target = -squash_.x * 8;  // haar veert alleen mee bij een stuiter
+  hairY_.target = -squash_.x * 8;  // hair only springs along on a bounce
 
   invalidate();
 }
@@ -367,18 +367,18 @@ static float closure(float blinkT) { return blinkT < 0 ? 0 : sinf(blinkT * kPi);
 void Face::setCovered(bool c) {
   if (c == covered_) return;
   covered_ = c;
-  if (!c) fullRedraw_ = true;  // weer zichtbaar: één keer alles tekenen
+  if (!c) fullRedraw_ = true;  // visible again: draw everything once
 }
 
 bool Face::settled() { return stillExceptEar() && !listening_ && earPop_ <= 0; }
 
-// Alles staat stil behalve (eventueel) het luister-oor met zijn golfjes.
+// Everything is still except (possibly) the listening ear with its waves.
 bool Face::stillExceptEar() {
   if (matrix_ || fullRedraw_ || effectsActive() || blinkT_ >= 0 || pendingHeart_ || hopT_ >= 0) return false;
-  if (listening_ && earPop_ < 1) return false;  // oor schuift nog in
+  if (listening_ && earPop_ < 1) return false;  // ear is still sliding in
   if (bobPx_ != drawnBobPx_) return false;
   if (look_.mouth == (uint8_t)MouthStyle::Equalizer && soundLevel_ > 0.02f) return false;
-  // Emoties met een doorlopende animatie (hartslag, wiebelen, zwevende Z'jes, pulserende o-mond)
+  // Emotions with a continuous animation (heartbeat, wobbling, floating Z's, pulsing o-mouth)
   if (emotion_ == Emotion::Love || emotion_ == Emotion::Dizzy || emotion_ == Emotion::Sleepy ||
       emotion_ == Emotion::Asleep || emotion_ == Emotion::Cry)
     return false;
@@ -394,15 +394,15 @@ bool Face::stillExceptEar() {
 
 void Face::invalidate() {
   if (!obj_) return;
-  // Stilstaand gezicht: het laatste frame klopt nog, dus niets hertekenen. Het eerste "stille" frame
-  // tekenen we nog wel, zodat de exact vastgeklikte eindwaarden op het scherm staan.
+  // Still face: the last frame is still correct, so redraw nothing. The first "still" frame
+  // is still drawn, so the exactly snapped end values are on the screen.
   if (covered_) return;
   bool still = stillExceptEar();
   bool s = still && !listening_ && earPop_ <= 0;
   if (s && wasSettled_) return;
   wasSettled_ = s;
   if (still && !s && skin_ == Skin::Mascot) {
-    // Alleen de golfjes bewegen: alleen het gebied rond het oor hertekenen (niet ogen en mond)
+    // Only the waves move: redraw only the area around the ear (not eyes and mouth)
     lv_area_t ear = earSide_ > 0 ? lv_area_t{(int32_t)(kCenter + 136), (int32_t)(kCenter - 70), kSize - 1, (int32_t)(kCenter + 116)}
                                  : lv_area_t{0, (int32_t)(kCenter - 70), (int32_t)(kCenter - 136), (int32_t)(kCenter + 116)};
     lv_obj_invalidate_area(obj_, &ear);
@@ -416,7 +416,7 @@ void Face::invalidate() {
     return;
   }
   if (matrix_ && !fullRedraw_) {
-    // Alleen de twee oogvensters veranderen: dat houdt de update-download snel.
+    // Only the two eye windows change: that keeps the update download fast.
     for (int side = -1; side <= 1; side += 2) {
       lv_area_t a = {(int32_t)(kCenter + side * 94 - 64), (int32_t)(kCenter - 18 - 56),
                      (int32_t)(kCenter + side * 94 + 64), (int32_t)(kCenter - 18 + 56)};
@@ -426,7 +426,7 @@ void Face::invalidate() {
   }
   if (skin_ == Skin::Mascot && !fullRedraw_ && !effectsActive() && fabsf(dy_.v) < 0.5f && fabsf(hairY_.v) < 0.5f &&
       fabsf(hairY_.x - hairY_.target) < 0.3f) {
-    // Mascotte in rust: alleen ogen (in de bril), wenkbrauwen, mond en eventueel Z'jes hertekenen.
+    // Mascot at rest: redraw only eyes (in the glasses), eyebrows, mouth and possibly Z's.
     float cy = 246 + dy_.x * 0.3f;
     for (int side = -1; side <= 1; side += 2) {
       float ex = kCenter + side * 82, bx = kCenter + side * 86, by = cy - 78 - browRaise_.x;
@@ -437,12 +437,12 @@ void Face::invalidate() {
     }
     lv_area_t mouth = {(int32_t)(kCenter - 135), 288, (int32_t)(kCenter + 135), 448};
     lv_obj_invalidate_area(obj_, &mouth);
-    if (listening_ || earPop_ > 0) {  // luister-oor aan de zijkant
+    if (listening_ || earPop_ > 0) {  // listening ear at the side
       lv_area_t ear = earSide_ > 0 ? lv_area_t{(int32_t)(kCenter + 136), (int32_t)(kCenter - 70), kSize - 1, (int32_t)(kCenter + 116)}
                                    : lv_area_t{0, (int32_t)(kCenter - 70), (int32_t)(kCenter - 136), (int32_t)(kCenter + 116)};
       lv_obj_invalidate_area(obj_, &ear);
     }
-    if (emotion_ == Emotion::Cry) {  // tranen over de wangen
+    if (emotion_ == Emotion::Cry) {  // tears over the cheeks
       for (int side = -1; side <= 1; side += 2) {
         float ex = kCenter + side * 82;
         lv_area_t tears = {(int32_t)(ex - 60), (int32_t)(cy + 10), (int32_t)(ex + 60), kSize - 1};
@@ -457,7 +457,7 @@ void Face::invalidate() {
     return;
   }
   if (skin_ == Skin::Mascot || fullRedraw_ || effectsActive()) {
-    // Mascotte in beweging (stuiter, emotiewissel) of effecten: alles opnieuw.
+    // Mascot in motion (bounce, emotion change) or effects: everything again.
     lv_obj_invalidate(obj_);
     fullRedraw_ = false;
     prevBox_ = {0, 0, kSize - 1, kSize - 1};
@@ -470,7 +470,7 @@ void Face::invalidate() {
     float cx = kCenter + side * kEyeSpacing + lx;
     float cy = kCenter + kEyeY + dy_.x + ly;
     growBox(box, cx - maxW / 2 - 30, cy - maxH / 2 - 34, cx + maxW / 2 + 30, cy + maxH / 2 + 60);
-    // wenkbrauwen, bril, vizier en monocle-kettinkje vallen buiten het oog zelf
+    // eyebrows, glasses, visor and monocle chain fall outside the eye itself
     if (look_.brows || look_.glasses || look_.eyes == (uint8_t)EyeStyle::Visor)
       growBox(box, cx - maxW / 2 - 50, cy - maxH / 2 - 90, cx + maxW / 2 + 50, cy + maxH / 2 + 110);
   }
@@ -510,7 +510,7 @@ void Face::draw(lv_layer_t* layer) {
     return;
   }
   if (hopSnap_) {
-    // Sprongetje: de momentopname verschoven tekenen, de vrijgekomen strook in de achtergrondkleur
+    // Hop: draw the shifted snapshot, the strip that was freed up in the background colour
     const lv_color_t bg = lv_color_hex(look_.face);
     if (offY_ < 0) fillRect(layer, 0, kSize + offY_, kSize, kSize, 0, bg);
     if (offY_ > 0) fillRect(layer, 0, 0, kSize, offY_, 0, bg);
@@ -528,7 +528,7 @@ void Face::draw(lv_layer_t* layer) {
   draw::oy = offY_;
   if (skin_ == Skin::Mascot) drawMascot(layer);
   else drawRobot(layer);
-  draw::ox = draw::oy = 0;  // effecten (tint, flits, deeltjes) staan vast op het scherm
+  draw::ox = draw::oy = 0;  // effects (tint, flash, particles) are fixed on the screen
   drawEffects(layer);
 }
 
@@ -549,7 +549,7 @@ void Face::drawZs(lv_layer_t* layer, lv_color_t color) {
   }
 }
 
-// Tranen: een plasje bij het ooglid en druppels die over de wang rollen (lus via t_).
+// Tears: a puddle at the eyelid and drops rolling down the cheek (loop via t_).
 void Face::drawTears(lv_layer_t* layer, float cx, float y0, int side) {
   const lv_color_t c = lv_color_hex(0x8FD3FF);
   fillEllipse(layer, cx + side * 8, y0 + 2, 40, 12, c, 210);
@@ -564,7 +564,7 @@ void Face::drawTears(lv_layer_t* layer, float cx, float y0, int side) {
   }
 }
 
-// Zweetdruppel (pijn)
+// Sweat drop (pain)
 void Face::drawSweat(lv_layer_t* layer, float x, float y) {
   const lv_color_t c = lv_color_hex(0x8FD3FF);
   fillTri(layer, x - 12, y - 4, x + 12, y - 4, x, y - 34, c);
@@ -572,23 +572,23 @@ void Face::drawSweat(lv_layer_t* layer, float x, float y) {
   fillEllipse(layer, x - 5, y, 8, 10, lv_color_white(), 200);
 }
 
-// Luister-oor: schuift vanaf de rand van het scherm naar binnen; geluidsgolfjes komen van buiten
-// (de rand) naar het oor toe.
+// Listening ear: slides in from the edge of the screen; sound waves come from outside
+// (the edge) towards the ear.
 void Face::drawEar(lv_layer_t* layer, bool mascot) {
-  const float k = 1 - (1 - earPop_) * (1 - earPop_);  // inglijden met een zachte rem
+  const float k = 1 - (1 - earPop_) * (1 - earPop_);  // slide in with a soft brake
   const int side = earSide_;
   const lv_color_t outline = lv_color_hex(0x111522);
   float x, y, w, h;
   if (mascot) {
     w = 44, h = 64;
-    x = kCenter + side * (232 - 64 * k);  // eindpunt ~168 px uit het midden, net naast de ogen
+    x = kCenter + side * (232 - 64 * k);  // end point ~168 px from the centre, just next to the eyes
     y = kCenter + 22;
     const lv_color_t skin = lv_color_hex(look_.face);
-    const lv_color_t inner = lv_color_mix(lv_color_black(), skin, 50);  // iets donkerder
+    const lv_color_t inner = lv_color_mix(lv_color_black(), skin, 50);  // slightly darker
     fillEllipse(layer, x, y, w + 8, h + 8, outline);
     fillEllipse(layer, x, y, w, h, skin);
-    fillEllipse(layer, x - side * 4, y + 4, w * 0.5f, h * 0.58f, inner);  // oorschelp
-    // rand van de oorschelp: een boogje aan de buitenkant
+    fillEllipse(layer, x - side * 4, y + 4, w * 0.5f, h * 0.58f, inner);  // auricle
+    // edge of the auricle: a small arc on the outside
     lv_draw_arc_dsc_t a;
     lv_draw_arc_dsc_init(&a);
     a.center = {ri(x - side * 2 + draw::ox), ri(y + 2 + draw::oy)};
@@ -609,19 +609,19 @@ void Face::drawEar(lv_layer_t* layer, bool mascot) {
     frame(layer, x - w / 2, y - h / 2, x + w / 2, y + h / 2, LV_RADIUS_CIRCLE, 6, col, col, 50);
     fillEllipse(layer, x - side * 2, y, 10, 24, col);
   }
-  // Golfjes: beginnen buiten (bij de rand), lopen naar het oor en vervagen vlak ervoor
+  // Waves: start outside (at the edge), travel to the ear and fade just before it
   lv_draw_arc_dsc_t wv;
   lv_draw_arc_dsc_init(&wv);
   wv.rounded = 1;
   wv.center = {ri(x + draw::ox), ri(y + draw::oy)};
-  wv.start_angle = side > 0 ? 325 : 145;  // alleen de kant van de schermrand
+  wv.start_angle = side > 0 ? 325 : 145;  // only the side of the screen edge
   wv.end_angle = side > 0 ? 395 : 215;
   for (int i = 0; i < 3; i++) {
-    float p = fmodf(listenT_ * 0.9f + i / 3.0f, 1.0f);  // 0 = ver weg, 1 = bij het oor
+    float p = fmodf(listenT_ * 0.9f + i / 3.0f, 1.0f);  // 0 = far away, 1 = at the ear
     lv_opa_t o = (lv_opa_t)(k * 230 * sinf(p * kPi));
     if (o < 10) continue;
     wv.radius = (uint16_t)(w / 2 + 12 + (1 - p) * 46);
-    wv.width = 8;  // donkere rand, dan licht: zichtbaar op elk haar en elke achtergrond
+    wv.width = 8;  // dark edge, then light: visible on any hair and any background
     wv.color = outline;
     wv.opa = (lv_opa_t)(o / 2);
     lv_draw_arc(layer, &wv);

@@ -1,44 +1,44 @@
-# Meerdere deskbuddies: op elkaar reageren en samen dingen doen
+# Multiple deskbuddies: reacting to each other and doing things together
 
-Status: **idee / ontwerpvoorstel** (2026-10-16). Nog niets gebouwd. Dit document beschrijft wat er
-kan, welke techniek daarbij past, en een voorstel voor de volgorde.
+Status: **idea / design proposal** (2026-10-16). Nothing built yet. This document describes what is
+possible, which technology fits, and a proposed order of work.
 
-## Wat willen we?
+## What do we want?
 
-Een paar voorbeelden, van simpel naar ambitieus:
+A few examples, from simple to ambitious:
 
-| Idee | Wat je ziet |
+| Idea | What you see |
 |---|---|
-| **Elkaar zien** | Het info-paneel toont welke buddies in de buurt zijn ("3 buddies in de buurt"). |
-| **Aanstekelijk gedrag** | Eén buddy geeuwt, en even later geeuwen de anderen ook. Lacht er één, dan lachen de buren mee. |
-| **Kijken naar wie iets doet** | Als een buddy ontploft of niest, kijken de andere ogen die kant op. |
-| **Kettingreactie** | Bij een rage van één buddy schrikken de anderen, en daarna ontploffen ze één voor één. |
-| **De wave** | Buddies op een rij springen na elkaar op, van links naar rechts. |
-| **Koor** | Samen fluiten: elke buddy speelt een andere stem van hetzelfde akkoord, precies tegelijk. |
-| **Groeps-pomodoro** | Iedereen focust tegelijk; op hetzelfde moment krijgen alle buddies een pauze-animatie. |
-| **Berichtje sturen** | Een tik op je buddy stuurt een hartje of kusje naar de buddy van een collega. |
-| **Samen vieren** | Een gelukte deploy of verjaardag (via Home Assistant of een webhook) laat alle buddies tegelijk feesten. |
+| **Seeing each other** | The info panel shows which buddies are nearby ("3 buddies nearby"). |
+| **Contagious behavior** | One buddy yawns, and a moment later the others yawn too. If one laughs, the neighbors laugh along. |
+| **Looking at whoever does something** | When a buddy explodes or sneezes, the other eyes look in that direction. |
+| **Chain reaction** | When one buddy throws a fit, the others get scared, and then they explode one by one. |
+| **The wave** | Buddies in a row jump up one after another, from left to right. |
+| **Choir** | Whistling together: each buddy plays a different voice of the same chord, exactly at the same time. |
+| **Group pomodoro** | Everyone focuses at once; at the same moment all buddies get a break animation. |
+| **Sending a message** | A tap on your buddy sends a heart or a kiss to a colleague's buddy. |
+| **Celebrating together** | A successful deploy or a birthday (via Home Assistant or a webhook) makes all buddies party at once. |
 
-## Techniek: hoe praten ze met elkaar?
+## Technology: how do they talk to each other?
 
-| Optie | Bereik | Snelheid | Voordelen | Nadelen |
+| Option | Range | Speed | Pros | Cons |
 |---|---|---|---|---|
-| **ESP-NOW** (direct radio, ESP32 ↔ ESP32) | zelfde ruimte/verdieping, ~10–50 m | ~1–5 ms | geen router nodig; werkt naast Wi-Fi; broadcast; heel weinig RAM | alleen dichtbij; zelfde Wi-Fi-kanaal als de router nodig; berichten max ~250 bytes |
-| **Wi-Fi LAN** (mDNS + UDP-multicast) | zelfde netwerk | ~5–50 ms | ontdekken via `_deskbuddy._tcp`; meerdere ruimtes | alleen op hetzelfde (thuis/kantoor)netwerk; gastnetwerken blokkeren multicast vaak |
-| **MQTT-broker** (bijv. Home Assistant of een cloudbroker) | overal met internet | ~50–300 ms | buddies op verschillende locaties; sluit aan bij fase 5 (HA) | broker nodig; TLS kost intern RAM |
-| **BLE** | ~10 m | traag (scannen) | afstand schatten via RSSI ("wie staat er naast me?") | scannen vraagt de observer-rol die we om RAM-redenen uit hebben gezet |
+| **ESP-NOW** (direct radio, ESP32 ↔ ESP32) | same room/floor, ~10–50 m | ~1–5 ms | no router needed; works alongside Wi-Fi; broadcast; very little RAM | only nearby; needs the same Wi-Fi channel as the router; messages max ~250 bytes |
+| **Wi-Fi LAN** (mDNS + UDP multicast) | same network | ~5–50 ms | discovery via `_deskbuddy._tcp`; multiple rooms | only on the same (home/office) network; guest networks often block multicast |
+| **MQTT broker** (e.g. Home Assistant or a cloud broker) | anywhere with internet | ~50–300 ms | buddies in different locations; fits phase 5 (HA) | broker needed; TLS costs internal RAM |
+| **BLE** | ~10 m | slow (scanning) | estimate distance via RSSI ("who is standing next to me?") | scanning needs the observer role, which we turned off to save RAM |
 
-**Voorstel:** combineer twee lagen met **hetzelfde berichtformaat**:
+**Proposal:** combine two layers with the **same message format**:
 
-1. **ESP-NOW** voor alles in dezelfde ruimte. Dat is snel genoeg voor kettingreacties en
-   gelijktijdige acties, en werkt ook als een buddy geen Wi-Fi heeft.
-2. **MQTT** voor buddies op afstand, zoals berichtjes naar collega's of een groepsfeest via Home
+1. **ESP-NOW** for everything in the same room. It is fast enough for chain reactions and
+   simultaneous actions, and also works when a buddy has no Wi-Fi.
+2. **MQTT** for remote buddies, such as messages to colleagues or a group party via Home
    Assistant.
 
-## Berichten (concept)
+## Messages (draft)
 
-Klein JSON, gelijk aan de bestaande commando's. Een buddy die iets doet, *meldt* dat (event). Een
-buddy die iets moet doen, krijgt een *verzoek* (cmd).
+Small JSON, matching the existing commands. A buddy that does something *reports* it (event). A
+buddy that has to do something receives a *request* (cmd).
 
 ```json
 {"v":1,"t":"event","from":"deskbuddy-A45C","name":"action","value":"laugh","seq":812}
@@ -46,45 +46,46 @@ buddy die iets moet doen, krijgt een *verzoek* (cmd).
 {"v":1,"t":"hello","from":"deskbuddy-B21F","skin":"mascot","pos":{"x":2,"y":0},"name":"Bob"}
 ```
 
-- **`hello`** (elke paar seconden): ik ben er, met naam, skin en positie. Zo weet elke buddy wie er
-  in de buurt is.
-- **`event`**: wat er gebeurde (emotie, actie, gebaar). Anderen beslissen zelf of en hoe ze reageren.
-- **`cmd` met `at`**: een gezamenlijke actie op een afgesproken tijdstip. Daarmee lopen koor, wave
-  en feest synchroon.
+- **`hello`** (every few seconds): I am here, with name, skin and position. This is how every buddy
+  knows who is nearby.
+- **`event`**: what happened (emotion, action, gesture). The others decide for themselves whether
+  and how to react.
+- **`cmd` with `at`**: a joint action at an agreed time. This keeps choir, wave and party in sync.
 
-## Belangrijke ontwerpkeuzes
+## Key design decisions
 
-- **Groepen en vertrouwen:** buddies reageren alleen op buddies uit hun eigen groep ("team").
-  Koppelen gaat via de webinterface met een groepscode of QR. ESP-NOW-berichten worden versleuteld
-  met de groepssleutel, zodat een vreemde buddy niet zomaar jouw buddy laat ontploffen.
-- **Geen eindeloze kettingreacties:** elk event krijgt een `seq`, een hop-telling en een cooldown.
-  Lachen is aanstekelijk, maar niet oneindig heen en weer.
-- **Persoonlijkheid:** elke buddy krijgt een paar instellingen, zoals hoe aanstekelijk, hoe snel
-  boos en of hij mee wil doen aan groepsacties. Zo reageert niet elke buddy hetzelfde, en dat maakt
-  het levendiger.
-- **Tijdsynchronisatie:** via NTP lopen de klokken al op een paar ms gelijk. Voor ESP-NOW-groepen
-  zonder internet stuurt een "leider" zijn tijd mee, en de anderen corrigeren hun afwijking.
-- **Ruimtelijk besef** (voor "kijk naar wie iets doet" en de wave): voorlopig handmatig. In de
-  webinterface sleep je de buddies op een bureaukaart (links/rechts). Later eventueel een schatting
-  via BLE-signaalsterkte.
-- **Geheugen en stroom:** ESP-NOW is licht (een paar KB). MQTT met TLS is zwaarder, maar mbedTLS
-  draait al in PSRAM. De radio staat voor Wi-Fi toch al aan, dus de extra stroom is beperkt.
+- **Groups and trust:** buddies only react to buddies from their own group ("team"). Pairing is done
+  through the web interface with a group code or QR. ESP-NOW messages are encrypted with the group
+  key, so a stranger's buddy cannot simply make your buddy explode.
+- **No endless chain reactions:** every event gets a `seq`, a hop count and a cooldown. Laughter is
+  contagious, but not back and forth forever.
+- **Personality:** every buddy gets a few settings, such as how contagious, how quickly annoyed and
+  whether it wants to take part in group actions. This way not every buddy reacts the same, which
+  makes it livelier.
+- **Time synchronization:** via NTP the clocks already agree to within a few ms. For ESP-NOW groups
+  without internet, a "leader" sends its time along, and the others correct their offset.
+- **Spatial awareness** (for "look at whoever does something" and the wave): manual for now. In the
+  web interface you drag the buddies onto a desk map (left/right). Later possibly an estimate
+  via BLE signal strength.
+- **Memory and power:** ESP-NOW is light (a few KB). MQTT with TLS is heavier, but mbedTLS already
+  runs in PSRAM. The radio is on for Wi-Fi anyway, so the extra power is limited.
 
-## Voorstel voor de volgorde
+## Proposed order
 
-1. **Elkaar zien:** ESP-NOW-`hello`, een lijst "buddies in de buurt" in het info-paneel en de
-   webinterface, en groepen koppelen met een code.
-2. **Aanstekelijk gedrag:** geeuwen, lachen en schrikken; kijken naar wie iets doet (met de
-   bureaukaart).
-3. **Samen doen:** gesynchroniseerde acties met `at`, zoals koor, wave, feest en groeps-pomodoro.
-4. **Op afstand:** MQTT-brug, zodat je berichtjes naar collega's kunt sturen en via Home Assistant
-   groepsfeesten kunt starten.
-5. **Slimmer:** persoonlijkheden, en buddies die "afspraken" maken (bijv. samen een kwartier stil als
-   iemand in een call zit).
+1. **Seeing each other:** ESP-NOW `hello`, a "buddies nearby" list in the info panel and the web
+   interface, and pairing groups with a code.
+2. **Contagious behavior:** yawning, laughing and getting scared; looking at whoever does something
+   (using the desk map).
+3. **Doing things together:** synchronized actions with `at`, such as choir, wave, party and group
+   pomodoro.
+4. **Remote:** MQTT bridge, so you can send messages to colleagues and start group parties via Home
+   Assistant.
+5. **Smarter:** personalities, and buddies that make "agreements" (e.g. staying quiet together for
+   fifteen minutes when someone is in a call).
 
-## Open vragen
+## Open questions
 
-- ~~Eén ruimte of verspreid?~~ **Eén ruimte** (2026-10-16): dus eerst ESP-NOW; MQTT pas later voor
-  buddies op afstand. Elke buddy kan zijn eigen look krijgen (zie "Uiterlijk" in `firmware.md`).
-- Wie mag een buddy aansturen: alleen buddies uit je eigen groep, of ook "publieke" berichtjes?
-- Moet een groepsactie altijd mogen, of wil je per buddy kunnen instellen "niet storen"?
+- ~~One room or spread out?~~ **One room** (2026-10-16): so ESP-NOW first; MQTT only later for
+  remote buddies. Each buddy can get its own look (see "Appearance" in `firmware.md`).
+- Who may control a buddy: only buddies from your own group, or also "public" messages?
+- Should a group action always be allowed, or do you want a per-buddy "do not disturb" setting?

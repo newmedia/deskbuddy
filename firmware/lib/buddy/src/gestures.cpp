@@ -12,7 +12,7 @@ constexpr uint32_t kDoubleMs = 320;
 constexpr uint32_t kLongMs = 650;
 constexpr int kSwipeMin = 90;         // px
 constexpr uint32_t kSwipeMs = 600;
-constexpr float kPetPath = 260;       // px heen-en-weer
+constexpr float kPetPath = 260;       // px back and forth
 constexpr float kHalf = 233;
 
 GestureEvent ev(Gesture g, int x, int y) {
@@ -102,7 +102,7 @@ GestureEvent MotionGestures::feed(float ax, float ay, float az, uint32_t now) {
   uint32_t dt = last_ ? now - last_ : 20;
   last_ = now;
   float mag0 = ax * ax + ay * ay + az * az;
-  if (!init_ && mag0 < 0.25f) return {};  // eerste metingen kunnen nul zijn
+  if (!init_ && mag0 < 0.25f) return {};  // first measurements can be zero
   if (!init_) {
     init_ = true;
     gx_ = rx_ = ax;
@@ -113,8 +113,8 @@ GestureEvent MotionGestures::feed(float ax, float ay, float az, uint32_t now) {
   gx_ += (ax - gx_) * a;
   gy_ += (ay - gy_) * a;
   gz_ += (az - gz_) * a;
-  // Rustpositie: eerste 1,5 s direct volgen (opstarten), daarna langzaam mee (~5 s als
-  // hij stil staat), zodat een scheve stand na een tijdje als "recht" geldt.
+  // Rest position: follow directly for the first 1.5 s (start-up), then slowly (~5 s when
+  // it stands still), so that a skewed position counts as "straight" after a while.
   if (warmup_ < 75) warmup_++;
   const float r = warmup_ < 75 ? 1.0f : (still_ > 1500 ? 0.004f : 0.0015f);
   rx_ += (gx_ - rx_) * r;
@@ -124,7 +124,7 @@ GestureEvent MotionGestures::feed(float ax, float ay, float az, uint32_t now) {
   float mag = sqrtf(ax * ax + ay * ay + az * az);
   float dev = fabsf(mag - 1.0f);
 
-  // Schudden: meerdere harde pieken binnen een kort venster.
+  // Shaking: several hard peaks within a short window.
   if (dev > 0.9f) {
     if (now - shakeWindow_ > 700) {
       shakeWindow_ = now;
@@ -140,7 +140,7 @@ GestureEvent MotionGestures::feed(float ax, float ay, float az, uint32_t now) {
     }
   }
 
-  // Oppakken: na een tijd stil liggen een duidelijke (maar geen schud-)beweging.
+  // Picking up: after lying still for a while, a clear (but not shake) movement.
   if (dev < 0.06f) {
     still_ += dt;
   } else if (dev > 0.22f && dev < 0.9f && still_ > 1500 && now - lastPick_ > 4000) {

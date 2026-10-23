@@ -1,5 +1,5 @@
 #pragma once
-// Waveshare ESP32-S3-Touch-AMOLED-1.75 (zie docs/hardware.md)
+// Waveshare ESP32-S3-Touch-AMOLED-1.75 (see docs/hardware.md)
 
 #define LCD_SDIO0 4
 #define LCD_SDIO1 5

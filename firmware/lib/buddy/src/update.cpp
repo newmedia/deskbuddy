@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "i18n.h"
+
 namespace buddy {
 
 namespace {
-const lv_color_t kAccent = LV_COLOR_MAKE(0x00, 0xFF, 0x66);  // matrix-groen
+const lv_color_t kAccent = LV_COLOR_MAKE(0x00, 0xFF, 0x66);  // matrix green
 const lv_color_t kTrack = LV_COLOR_MAKE(0x08, 0x2A, 0x14);
 const lv_color_t kText = LV_COLOR_MAKE(0xB8, 0xFF, 0xD0);
 
@@ -104,7 +106,7 @@ void UpdateView::update(bool installing, uint8_t pct, const char* version) {
   if (!visible_ || pct == lastPct_) return;
   lastPct_ = pct;
   lv_arc_set_value(arc_, pct);
-  lv_label_set_text_fmt(label_, "Bijwerken naar %s\n%u%%", version, (unsigned)pct);
+  lv_label_set_text_fmt(label_, tr("Updating to %s\n%u%%", "Bijwerken naar %s\n%u%%"), version, (unsigned)pct);
 }
 
 }  // namespace buddy

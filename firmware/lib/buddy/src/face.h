@@ -1,6 +1,6 @@
 #pragma once
-// Procedureel getekend gezicht: twee ogen met oogleden, blosjes, mond en Z'jes.
-// Alleen afhankelijk van LVGL, zodat dezelfde code op het apparaat en in de simulator draait.
+// Procedurally drawn face: two eyes with eyelids, blush, mouth and Z's.
+// Depends only on LVGL, so the same code runs on the device and in the simulator.
 
 #include <lvgl.h>
 
@@ -20,18 +20,18 @@ enum class Emotion : uint8_t {
   Love,
   Dizzy,
   Asleep,
-  Cry,    // huilen: tranen rollen over de wangen
-  Hyper,  // druk (ADHD): wijd open ogen, blik schiet alle kanten op, kleine sprongetjes
-  Pain,   // pijn: dichtgeknepen ogen, tanden op elkaar, zweetdruppel, af en toe een steek
+  Cry,    // crying: tears roll down the cheeks
+  Hyper,  // busy (ADHD): wide open eyes, gaze darts everywhere, little hops
+  Pain,   // pain: squeezed-shut eyes, clenched teeth, sweat drop, an occasional stab
   Count
 };
 
-// Uiterlijk. Classic = cyaan robotogen op zwart; Mascot = cartoongezicht met haar, bril en lach.
+// Appearance. Classic = cyan robot eyes on black; Mascot = cartoon face with hair, glasses and smile.
 enum class Skin : uint8_t { Classic, Mascot, Count };
 
-// Korte animaties bovenop de emotie; na afloop terug naar de vorige emotie.
+// Short animations on top of the emotion; afterwards back to the previous emotion.
 enum class Action : uint8_t { None, Whistle, Wink, Kiss, Rage, Explode, Sneeze, Laugh, EyeRoll, Hiccup, Count };
-// Geluidsmomenten binnen een actie (de App koppelt er een Sound aan).
+// Sound moments within an action (the App attaches a Sound to them).
 enum class Cue : uint8_t { None, Whistle, Wink, Kiss, Rage, Fuse, Boom, Inhale, Achoo, Laugh, Sigh, Hiccup };
 
 const char* actionName(Action a);
@@ -43,7 +43,7 @@ bool skinFromName(const char* name, Skin& out);
 const char* emotionName(Emotion e);
 bool emotionFromName(const char* name, Emotion& out);
 
-// Kritisch-ish gedempte veer: geeft beweging een beetje "overshoot" en voelt levendiger dan lerp.
+// Critically-ish damped spring: gives movement a bit of "overshoot" and feels livelier than lerp.
 struct Spring {
   float x = 0, v = 0, target = 0;
   float k = 180, d = 24;
@@ -53,7 +53,7 @@ struct Spring {
     x += v * dt;
   }
   void snap(float val) { x = target = val; v = 0; }
-  // Stilgevallen (en dan precies op het doel gezet, zodat het beeld niet meer verandert)?
+  // Settled (and then set exactly on the target, so the image no longer changes)?
   bool settle(float eps) {
     if (fabsf(x - target) < eps && fabsf(v) < eps * 4) {
       x = target;
@@ -74,22 +74,22 @@ class Face {
   void setEmotion(Emotion e);
   Emotion emotion() const { return emotion_; }
 
-  // Kijkrichting -1..1. hold=true houdt de blik vast tot releaseLook().
+  // Gaze direction -1..1. hold=true keeps the gaze until releaseLook().
   void lookAt(float x, float y, bool hold = true);
   void releaseLook();
   void blink();
-  void bounce(float amount = 1.0f);  // squash & stretch-impuls
-  void hop(float height = 48);       // sprongetje: omhoog in een boog, landen met een veer
-  // Luisteren: om en om links en rechts een oor met geluidsgolfjes, de ogen kijken mee.
+  void bounce(float amount = 1.0f);  // squash & stretch impulse
+  void hop(float height = 48);       // little hop: up in an arc, landing with a spring
+  // Listening: an ear with sound waves alternately on the left and right, the eyes look along.
   void setListening(bool on);
   bool listening() const { return listening_; }
   void setAutoBlink(bool on) { autoBlink_ = on; }
   void setSkin(Skin s);
-  // Matrix-gezicht tijdens firmware-updates: groene ogen met vallende code (alleen de ogen hertekenen).
+  // Matrix face during firmware updates: green eyes with falling code (only the eyes redraw).
   void setMatrix(bool on);
-  // Afgedekt door een ondoorzichtig paneel (klok, info, ...): dan niets hertekenen.
+  // Covered by an opaque panel (clock, info, ...): then redraw nothing.
   void setCovered(bool covered);
-  // Geluidsniveau 0..1 (voor de LED-equalizer-mond)
+  // Sound level 0..1 (for the LED equaliser mouth)
   void setSoundLevel(float l) { soundLevel_ = l; }
   bool matrix() const { return matrix_; }
   void play(Action a);
@@ -101,7 +101,7 @@ class Face {
     return c;
   }
   Skin skin() const { return skin_; }
-  // Volledig uiterlijk (basis, stijlen per onderdeel, kleuren); zie look.h
+  // Full appearance (base, styles per part, colours); see look.h
   void setLook(const Look& l);
   const Look& look() const { return look_; }
 
@@ -109,11 +109,11 @@ class Face {
 
  private:
   struct Pose {
-    float w, h, r;        // oogmaat en hoekradius
-    float lidTop;         // 0..1 bovenooglid dicht
-    float tilt;           // graden; + = binnenhoek omlaag (boos), - = binnenhoek omhoog (verdrietig)
-    float lidBottom;      // 0..1 onderooglid omhoog (blije "^ ^"-ogen)
-    float dy;             // verticale verschuiving van beide ogen
+    float w, h, r;        // eye size and corner radius
+    float lidTop;         // 0..1 upper eyelid closed
+    float tilt;           // degrees; + = inner corner down (angry), - = inner corner up (sad)
+    float lidBottom;      // 0..1 lower eyelid raised (happy "^ ^" eyes)
+    float dy;             // vertical offset of both eyes
     float blush;          // 0..1
     uint32_t color;
     uint8_t mouth;        // MouthType
@@ -130,9 +130,9 @@ class Face {
   void draw(lv_layer_t* layer);
   void drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale);
   void drawZs(lv_layer_t* layer, lv_color_t color);
-  void drawTears(lv_layer_t* layer, float cx, float y0, int side);  // y0 = onderkant van het oog
+  void drawTears(lv_layer_t* layer, float cx, float y0, int side);  // y0 = bottom of the eye
   void drawSweat(lv_layer_t* layer, float x, float y);
-  void drawEar(lv_layer_t* layer, bool mascot);  // luister-oor (zie setListening)
+  void drawEar(lv_layer_t* layer, bool mascot);  // listening ear (see setListening)
   void drawRobot(lv_layer_t* layer);  // face_robot.cpp
   void drawRobotBrows(lv_layer_t* layer, float cy);
   void drawRobotGlasses(lv_layer_t* layer, float cy);
@@ -142,7 +142,7 @@ class Face {
   void drawMascotMouth(lv_layer_t* layer, float cx, float cy);
   void drawHair(lv_layer_t* layer, float dy);
   void mascotTargets();
-  // Acties en effecten (face_fx.cpp)
+  // Actions and effects (face_fx.cpp)
   struct Particle {
     float x, y, vx, vy, life, maxLife, size, spin;
     uint8_t type;
@@ -156,9 +156,9 @@ class Face {
   void drawMatrix(lv_layer_t* layer);
   void drawPucker(lv_layer_t* layer, float cx, float cy, lv_color_t col, bool mascot);
   bool effectsActive() const;
-  bool settled();  // niets beweegt: dan hoeft er niets hertekend te worden (scheelt veel CPU)
+  bool settled();  // nothing moves: then nothing needs to be redrawn (saves a lot of CPU)
   bool stillExceptEar();
-  float eyeClosure(int side) const;  // knipper + knipoog/kus voor één oog
+  float eyeClosure(int side) const;  // blink + wink/kiss for one eye
   void drawMouth(lv_layer_t* layer, float cx, float cy);
   void applyPose(const Pose& p);
   void invalidate();
@@ -170,31 +170,31 @@ class Face {
   Look look_;
   uint32_t poseColor(Emotion e, uint32_t emotionColor) const;
   bool matrix_ = false;
-  int bobPx_ = 0, drawnBobPx_ = 0;  // ademhaling in hele pixels: alleen hertekenen als hij echt verschuift
+  int bobPx_ = 0, drawnBobPx_ = 0;  // breathing in whole pixels: only redraw when it really shifts
   bool wasSettled_ = false;
   bool covered_ = false;
   float soundLevel_ = 0;
-  float matrixHead_[2][7];  // per oog, per kolom: positie van de kop (in tekens)
+  float matrixHead_[2][7];  // per eye, per column: position of the head (in characters)
   float matrixSpeed_[2][7];
-  // Actie-status
+  // Action state
   Action action_ = Action::None;
   Cue cue_ = Cue::None;
   float actT_ = 0, actNext_ = 0;
   Emotion actPrevEmotion_ = Emotion::Neutral;
   int actStage_ = 0;
-  float wink_[2] = {0, 0};   // per oog extra sluiting (0 = links, 1 = rechts)
-  bool pucker_ = false;      // getuite mond (fluiten, kusje)
-  float swell_ = 1;          // opzwellen (ontploffen)
-  float shake_ = 0;          // trilamplitude in px
-  float tint_ = 0;           // rode gloed 0..1
-  float flash_ = 0;          // witte flits 0..1
-  float soot_ = 0;           // roetvlekken 0..1
+  float wink_[2] = {0, 0};   // per-eye extra closure (0 = left, 1 = right)
+  bool pucker_ = false;      // puckered mouth (whistling, kiss)
+  float swell_ = 1;          // swelling (exploding)
+  float shake_ = 0;          // shake amplitude in px
+  float tint_ = 0;           // red glow 0..1
+  float flash_ = 0;          // white flash 0..1
+  float soot_ = 0;           // soot stains 0..1
   static constexpr int kMaxParticles = 40;
   Particle particles_[kMaxParticles];
   int particleCount_ = 0;
   Skin skin_ = Skin::Classic;
   bool fullRedraw_ = true;
-  // Mascotte-specifiek
+  // Mascot-specific
   Spring browAngle_, browRaise_, mouthOpen_, mouthWidth_, hairY_;
   Emotion emotion_ = Emotion::Neutral;
   Pose pose_{};
@@ -206,18 +206,18 @@ class Face {
   bool heartShown_ = false;
   bool pendingHeart_ = false;
 
-  float t_ = 0;           // seconden sinds start
-  float blinkT_ = -1;     // -1 = geen knipper bezig, anders 0..1
+  float t_ = 0;           // seconds since start
+  float blinkT_ = -1;     // -1 = no blink in progress, otherwise 0..1
   float nextBlink_ = 2;
   float nextSaccade_ = 1;
-  float nextTwinge_ = 0;  // pijn: volgende steek
-  int16_t offX_ = 0, offY_ = 0;  // verschuiving van de tekening (stuiteren, trillen)
+  float nextTwinge_ = 0;  // pain: next stab
+  int16_t offX_ = 0, offY_ = 0;  // offset of the drawing (bouncing, shaking)
   float hopT_ = -1, hopH_ = 0;
   bool listening_ = false;
-  float listenT_ = 0;   // seconden sinds het begin van het luisteren
-  float earPop_ = 0;    // 0..1: hoe ver het oor uitsteekt
+  float listenT_ = 0;   // seconds since listening began
+  float earPop_ = 0;    // 0..1: how far the ear sticks out
   int earSide_ = 1;
-  lv_draw_buf_t* hopSnap_ = nullptr;  // momentopname van het gezicht tijdens een sprongetje (PSRAM)  // sprongetje: voortgang 0..1 (-1 = geen) en hoogte in px
+  lv_draw_buf_t* hopSnap_ = nullptr;  // snapshot of the face during a hop (PSRAM)  // hop: progress 0..1 (-1 = none) and height in px
   bool lookHeld_ = false;
   bool autoBlink_ = true;
   uint32_t seed_ = 0x1234567;

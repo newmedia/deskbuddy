@@ -1,17 +1,19 @@
 #pragma once
-// Wi-Fi-setupscherm: QR-code om met de telefoon op het setup-access-point te komen, plus uitleg.
+// Wi-Fi setup screen: QR code to reach the setup access point with the phone, plus instructions.
 
 #include <lvgl.h>
 #include <stdint.h>
+
+#include "i18n.h"
 
 namespace buddy {
 
 class SetupView {
  public:
   void create(lv_obj_t* parent);
-  // ssid = naam van het setup-AP, ip = adres van de setup-pagina
-  // Stap 1: QR om met het setup-AP te verbinden. Stap 2 (zodra een telefoon verbonden is): QR met de
-  // link naar de setup-pagina, omdat niet elke telefoon de captive-portal-pop-up vanzelf opent.
+  // ssid = name of the setup AP, ip = address of the setup page
+  // Step 1: QR to connect to the setup AP. Step 2 (once a phone is connected): QR with the
+  // link to the setup page, because not every phone opens the captive-portal pop-up by itself.
   void show(const char* ssid, const char* ip, uint32_t autoHideMs = 120000);
   void showLinkStep();
   void hide();
@@ -27,10 +29,13 @@ class SetupView {
   bool visible_ = false;
   bool linkStep_ = false;
   char ip_[16] = "";
+  char ssid_[33] = "";
+  Lang lang_ = Lang::En;
+  void retext();  // texts in the current language
   uint32_t hideIn_ = 0;
 };
 
-// Bluetooth-koppelcode: groot in beeld zolang de telefoon om de pincode vraagt.
+// Bluetooth pairing code: shown large while the phone asks for the PIN.
 class PairView {
  public:
   void create(lv_obj_t* parent);
@@ -41,6 +46,8 @@ class PairView {
  private:
   lv_obj_t* root_ = nullptr;
   lv_obj_t* code_ = nullptr;
+  lv_obj_t* title_ = nullptr;
+  lv_obj_t* hint_ = nullptr;
   bool visible_ = false;
 };
 

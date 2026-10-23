@@ -38,7 +38,7 @@ void Behaviour::onGesture(const GestureEvent& g) {
   bool sleeping = face_.emotion() == Emotion::Asleep || face_.emotion() == Emotion::Sleepy;
   idleMs_ = 0;
 
-  // Tikken telt op (venster van 1,2 s tussen tikken): 5x = boos, 9x = rage, nog 4x tijdens rage = boem.
+  // Tapping adds up (1.2 s window between taps): 5x = angry, 9x = rage, 4 more during rage = boom.
   if (g.type == Gesture::Tap || g.type == Gesture::DoubleTap) {
     taps_ += g.type == Gesture::DoubleTap ? 2 : 1;
     tapWindow_ = 1200;
@@ -48,7 +48,7 @@ void Behaviour::onGesture(const GestureEvent& g) {
       taps_ = 0;
       face_.play(Action::Explode);
     }
-    return;  // tijdens een actie verder niets
+    return;  // nothing else during an action
   }
   if (taps_ >= 9 && face_.emotion() == Emotion::Angry) {
     face_.play(Action::Rage);
@@ -81,7 +81,7 @@ void Behaviour::onGesture(const GestureEvent& g) {
         wake();
         break;
       }
-      // Kietelen: 3x aaien binnen 2,5 s = lachen
+      // Tickling: 3x petting within 2.5 s = laugh
       if (quickPetWindow_ == 0) quickPets_ = 0;
       quickPetWindow_ = 2500;
       if (++quickPets_ >= 3) {
@@ -103,7 +103,7 @@ void Behaviour::onGesture(const GestureEvent& g) {
       break;
     case Gesture::SwipeLeft:
     case Gesture::SwipeRight:
-      if (swipeWindow_) {  // twee keer snel heen en weer vegen = met de ogen rollen
+      if (swipeWindow_) {  // two quick back-and-forth swipes = roll the eyes
         swipeWindow_ = 0;
         face_.play(Action::EyeRoll);
         break;
@@ -128,24 +128,24 @@ void Behaviour::onSound(SoundEvent e) {
   if (e == SoundEvent::None) return;
   bool sleeping = face_.emotion() == Emotion::Asleep || face_.emotion() == Emotion::Sleepy;
   switch (e) {
-    case SoundEvent::Clap:  // schrikken, of wakker worden
+    case SoundEvent::Clap:  // startle, or wake up
       idleMs_ = 0;
       if (face_.busy() || dancing_) break;
       react(Emotion::Surprised, 1000, sleeping ? Emotion::Neutral : Emotion::Happy);
       face_.bounce(0.9f);
       break;
-    case SoundEvent::DoubleClap:  // blij sprongetje
+    case SoundEvent::DoubleClap:  // happy little hop
       idleMs_ = 0;
       if (face_.busy()) break;
       react(Emotion::Happy, 1500);
       face_.hop(36);
       break;
-    case SoundEvent::Loud:  // veel lawaai: ogen dichtknijpen
+    case SoundEvent::Loud:  // lots of noise: squeeze the eyes shut
       idleMs_ = 0;
       if (face_.busy() || dancing_) break;
       react(Emotion::Pain, 2200, Emotion::Neutral);
       break;
-    case SoundEvent::SpeechStart:  // iemand praat: oren spitsen (om en om links en rechts)
+    case SoundEvent::SpeechStart:  // someone is talking: prick up the ears (alternately left and right)
       if (!sleeping && !dancing_) face_.setListening(true);
       break;
     case SoundEvent::SpeechStop:
@@ -163,7 +163,7 @@ void Behaviour::onSound(SoundEvent e) {
       face_.releaseLook();
       if (!face_.busy()) react(Emotion::Happy, 1500);
       break;
-    case SoundEvent::Beat:  // op de maat: hupje en om en om opzij kijken
+    case SoundEvent::Beat:  // on the beat: little hop and look alternately to the sides
       idleMs_ = 0;
       if (!dancing_ || face_.busy()) break;
       if (face_.emotion() != Emotion::Happy && face_.emotion() != Emotion::Love) react(Emotion::Happy, 0);
@@ -181,7 +181,7 @@ void Behaviour::onGravity(float gx, float gy, float gz) {
   float tx = gx * tiltSignX, ty = gy * tiltSignY;
   bool tilted = fabsf(tx) > 0.17f || fabsf(ty) > 0.17f;  // ~10°
   if (tilted && !asleep()) {
-    // Kijk "bergafwaarts", net alsof de ogen meerollen.
+    // Look "downhill", as if the eyes roll along.
     face_.lookAt(LV_CLAMP(-1.f, tx * 2.2f, 1.f), LV_CLAMP(-1.f, ty * 2.2f, 1.f), true);
     tiltLook_ = true;
   } else if (tiltLook_) {
@@ -199,7 +199,7 @@ void Behaviour::update(uint32_t dtMs) {
     tapWindow_ = dtMs >= tapWindow_ ? 0 : tapWindow_ - dtMs;
     if (!tapWindow_) taps_ = 0;
   }
-  if (face_.busy()) return;  // acties regelen zelf hun emotie en tijd
+  if (face_.busy()) return;  // actions handle their own emotion and timing
 
   if (holding_) {
     if (dtMs >= holdLeft_) {
@@ -216,15 +216,15 @@ void Behaviour::update(uint32_t dtMs) {
   }
   if (manual_) return;
 
-  // Verveling -> slaperig -> slapen
+  // Boredom -> sleepy -> sleep
   if (idleMs_ >= asleepMs_) {
     face_.setEmotion(Emotion::Asleep);
   } else if (idleMs_ >= sleepyMs_) {
     face_.setEmotion(Emotion::Sleepy);
   } else if (idleMs_ >= nextIdleQuirk_) {
-    // Af en toe een kleine spontane expressie, zodat hij niet als een screensaver voelt.
+    // Occasionally a small spontaneous expression, so it doesn't feel like a screensaver.
     float r = rnd();
-    if (r < 0.25f) face_.play(Action::Whistle);  // af en toe een deuntje
+    if (r < 0.25f) face_.play(Action::Whistle);  // occasionally a little tune
     else if (r < 0.33f) face_.play(Action::Sneeze);
     else if (r < 0.40f) face_.play(Action::Hiccup);
     else react(r < 0.65f ? Emotion::Happy : (r < 0.85f ? Emotion::Surprised : Emotion::Love), 1200);

@@ -1,6 +1,6 @@
 #pragma once
-// Bluetooth LE: Nordic UART Service met hetzelfde commandoprotocol als serial/web.
-// Koppelen gaat met een pincode op het scherm; zonder koppeling geen toegang.
+// Bluetooth LE: Nordic UART Service with the same command protocol as serial/web.
+// Pairing uses a passkey on the screen; without pairing there is no access.
 
 #include <stdint.h>
 
@@ -16,8 +16,8 @@ void loop();
 void setEnabled(bool on);
 void forgetBonds();
 void fill(buddy::DeviceInfo& d);
-// Tijdelijk onzichtbaar en zonder verbindingen (bijv. tijdens een firmware-update). De controller
-// blijft aan: die afsluiten naast Wi-Fi liet het apparaat hangen. Geeft false als BLE niet draaide.
+// Temporarily invisible and without connections (e.g. during a firmware update). The controller
+// stays on: shutting it down alongside Wi-Fi left the device hanging. Returns false if BLE wasn't running.
 bool suspend();
 void resume();
 bool isConnected();

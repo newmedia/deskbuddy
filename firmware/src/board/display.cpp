@@ -1,9 +1,9 @@
-// CO5300 AMOLED via QSPI met ESP-IDF esp_lcd, asynchroon met DMA:
-// terwijl stuk N via DMA naar het panel gaat, tekent LVGL al stuk N+1.
+// CO5300 AMOLED via QSPI with ESP-IDF esp_lcd, asynchronous with DMA:
+// while chunk N goes to the panel via DMA, LVGL is already drawing chunk N+1.
 //
-// Pijplijn per stuk (40 regels):  LVGL tekent (PSRAM)  ->  90° draaien naar een vrije DMA-buffer
-// (intern)  ->  venster zetten + pixels async versturen  ->  LVGL mag meteen verder.
-// LVGL tekent direct in RGB565_SWAPPED (big-endian, wat het panel wil): geen aparte byteswap-pass.
+// Pipeline per chunk (40 lines):  LVGL draws (PSRAM)  ->  rotate 90° into a free DMA buffer
+// (internal)  ->  set window + send pixels async  ->  LVGL may continue immediately.
+// LVGL draws directly in RGB565_SWAPPED (big-endian, what the panel wants): no separate byteswap pass.
 
 #include <Arduino.h>
 #include <driver/spi_master.h>
@@ -17,34 +17,34 @@
 #include "pins.h"
 
 #ifndef DESKBUDDY_QSPI_HZ
-#define DESKBUDDY_QSPI_HZ 80000000  // terug naar 40000000 als het beeld niet goed is
+#define DESKBUDDY_QSPI_HZ 80000000  // back to 40000000 if the picture is not right
 #endif
 
 namespace board {
 
 namespace {
 
-// DMA-buffers: 466 x 10 x 2 = 9,3 KB per stuk, 2 = 18,6 KB intern. Groter past niet naast Wi-Fi + BLE
-// (de BT-controller houdt zelf al een flink deel van het interne RAM vast). De tekenbuffer van LVGL is
-// schermvullend en staat in PSRAM: dan tekent LVGL elk gewijzigd gebied in één keer, i.p.v. de hele
-// gezichtstekening per strook van 20 regels opnieuw te doorlopen.
+// DMA buffers: 466 x 10 x 2 = 9.3 KB per chunk, 2 = 18.6 KB internal. Larger doesn't fit next to Wi-Fi + BLE
+// (the BT controller itself already holds a good part of the internal RAM). LVGL's draw buffer is
+// full-screen and lives in PSRAM: then LVGL draws each changed area in one go, instead of walking the
+// whole face drawing again per strip of 20 lines.
 constexpr int kBufLines = 10;
 constexpr size_t kBufBytes = LCD_WIDTH * kBufLines * 2;
 constexpr size_t kDrawBufBytes = LCD_WIDTH * LCD_HEIGHT * 2;
-constexpr int kColOffset = 6;                          // het panel begint op kolom 6 (Waveshare)
-// Het bord zit 90° gedraaid in de behuizing: de fysieke bovenkant van het panel wijst naar links.
-// ROTATION_270 legt de logische bovenkant op de fysieke rechterkant, zodat het beeld rechtop staat.
+constexpr int kColOffset = 6;                          // the panel starts at column 6 (Waveshare)
+// The board sits rotated 90° in the enclosure: the physical top of the panel points left.
+// ROTATION_270 puts the logical top on the physical right side, so the picture stands upright.
 constexpr lv_display_rotation_t kRotation = LV_DISPLAY_ROTATION_270;
 
 esp_lcd_panel_io_handle_t io = nullptr;
-uint8_t* txBuf[2] = {nullptr, nullptr};  // DMA-buffers (intern), afwisselend gebruikt
+uint8_t* txBuf[2] = {nullptr, nullptr};  // DMA buffers (internal), used alternately
 int txCur = 0;
-SemaphoreHandle_t txFree = nullptr;       // telt vrije DMA-buffers
+SemaphoreHandle_t txFree = nullptr;       // counts free DMA buffers
 
-// Prestaties (zie takeFrameStats)
+// Performance (see takeFrameStats)
 volatile uint32_t frames = 0;
 volatile uint64_t renderUs = 0, rotateUs = 0, sendUs = 0;
-volatile uint32_t timeouts = 0;  // aantal keren dat een DMA-buffer niet op tijd vrijkwam
+volatile uint32_t timeouts = 0;  // number of times a DMA buffer was not free in time
 int64_t refrStart = 0;
 
 inline uint32_t cmdWord(uint8_t op, uint8_t cmd) { return ((uint32_t)op << 24) | ((uint32_t)cmd << 8); }
@@ -69,16 +69,16 @@ bool IRAM_ATTR onTxDone(esp_lcd_panel_io_handle_t, esp_lcd_panel_io_event_data_t
 }
 
 void flushCb(lv_display_t* disp, const lv_area_t* area, uint8_t* px) {
-  // LVGL tekent het hele gewijzigde gebied in één keer (tekenbuffer in PSRAM); wij draaien en versturen
-  // het in stroken van kBufLines regels via de twee interne DMA-buffers.
-  const lv_color_format_t cf = LV_COLOR_FORMAT_RGB565;  // zelfde pixelgrootte als RGB565_SWAPPED
+  // LVGL draws the whole changed area in one go (draw buffer in PSRAM); we rotate and send
+  // it in strips of kBufLines lines via the two internal DMA buffers.
+  const lv_color_format_t cf = LV_COLOR_FORMAT_RGB565;  // same pixel size as RGB565_SWAPPED
   const int32_t w = lv_area_get_width(area), h = lv_area_get_height(area);
   const uint32_t srcStride = lv_draw_buf_width_to_stride(w, cf);
   for (int32_t y = 0; y < h; y += kBufLines) {
     const int32_t sh = LV_MIN(kBufLines, h - y);
     int64_t t0 = esp_timer_get_time();
-    // Wacht tot een DMA-buffer vrij is, maar nooit eeuwig: gaat een "klaar"-melding verloren (bijv.
-    // tijdens flash-schrijven bij een OTA-update), dan na 50 ms gewoon door.
+    // Wait until a DMA buffer is free, but never forever: if a "done" notification is lost (e.g.
+    // during flash writes in an OTA update), continue after 50 ms anyway.
     if (xSemaphoreTake(txFree, pdMS_TO_TICKS(50)) != pdTRUE) timeouts++;
     int64_t t1 = esp_timer_get_time();
 
@@ -88,17 +88,17 @@ void flushCb(lv_display_t* disp, const lv_area_t* area, uint8_t* px) {
                       lv_draw_buf_width_to_stride(lv_area_get_width(&a), cf), kRotation, cf);
     int64_t t2 = esp_timer_get_time();
 
-    setWindow(a.x1, a.y1, a.x2, a.y2);  // wacht intern tot de vorige transfer klaar is
+    setWindow(a.x1, a.y1, a.x2, a.y2);  // waits internally until the previous transfer is done
     esp_lcd_panel_io_tx_color(io, cmdWord(0x32, 0x2C), txBuf[txCur], (size_t)w * sh * 2);  // async
     txCur ^= 1;
     int64_t t3 = esp_timer_get_time();
     rotateUs += (uint64_t)(t2 - t1);
-    sendUs += (uint64_t)((t1 - t0) + (t3 - t2));  // wachten op het panel (niet overlapt)
+    sendUs += (uint64_t)((t1 - t0) + (t3 - t2));  // waiting for the panel (not overlapped)
   }
   lv_display_flush_ready(disp);
 }
 
-// De CO5300 accepteert alleen vensters met even start- en oneven eindcoördinaten.
+// The CO5300 only accepts windows with even start and odd end coordinates.
 void rounderCb(lv_event_t* e) {
   auto* r = (lv_area_t*)lv_event_get_param(e);
   r->x1 &= ~1;
@@ -138,7 +138,7 @@ bool initPanel() {
   cfg.flags.quad_mode = 1;
   if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &cfg, &io) != ESP_OK) return false;
 
-  // Hardware-reset en init-reeks (overgenomen uit Arduino_GFX Arduino_CO5300)
+  // Hardware reset and init sequence (taken from Arduino_GFX Arduino_CO5300)
   pinMode(LCD_RESET, OUTPUT);
   digitalWrite(LCD_RESET, HIGH);
   delay(10);
@@ -150,15 +150,15 @@ bool initPanel() {
   delay(120);
   const uint8_t v00 = 0x00, v80 = 0x80, v55 = 0x55, v20 = 0x20, vFF = 0xFF;
   writeCmd(0xFE, &v00, 1);
-  writeCmd(0xC4, &v80, 1);  // SPI-modus
-  writeCmd(0x3A, &v55, 1);  // 16 bit per pixel
+  writeCmd(0xC4, &v80, 1);  // SPI mode
+  writeCmd(0x3A, &v55, 1);  // 16 bits per pixel
   writeCmd(0x53, &v20, 1);
-  writeCmd(0x63, &vFF, 1);  // helderheid HBM
-  writeCmd(0x36, &v00, 1);  // MADCTL: RGB, geen spiegeling
-  writeCmd(0x20);           // inversie uit
-  writeCmd(0x29);           // display aan
-  writeCmd(0x58, &v00, 1);  // high-contrast uit
-  setBrightness(0);         // eerst donker, LVGL tekent het eerste frame zwart
+  writeCmd(0x63, &vFF, 1);  // brightness HBM
+  writeCmd(0x36, &v00, 1);  // MADCTL: RGB, no mirroring
+  writeCmd(0x20);           // inversion off
+  writeCmd(0x29);           // display on
+  writeCmd(0x58, &v00, 1);  // high-contrast off
+  setBrightness(0);         // dark first, LVGL draws the first frame black
   delay(10);
   return true;
 }
@@ -168,12 +168,12 @@ bool initPanel() {
 bool beginDisplay() {
   txBuf[0] = (uint8_t*)heap_caps_malloc(kBufBytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
   txBuf[1] = (uint8_t*)heap_caps_malloc(kBufBytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-  void* drawBuf = heap_caps_malloc(kDrawBufBytes, MALLOC_CAP_SPIRAM);  // LVGL tekent hierin
+  void* drawBuf = heap_caps_malloc(kDrawBufBytes, MALLOC_CAP_SPIRAM);  // LVGL draws into this
   if (!txBuf[0] || !txBuf[1] || !drawBuf) return false;
   txFree = xSemaphoreCreateCounting(2, 2);
   if (!initPanel()) return false;
 
-  // Scherm leegmaken (zwart), in stukken
+  // Clear the screen (black), in chunks
   memset(txBuf[0], 0, kBufBytes);
   for (int y = 0; y < LCD_HEIGHT; y += kBufLines) {
     int y2 = LV_MIN(y + kBufLines, LCD_HEIGHT) - 1;

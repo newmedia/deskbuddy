@@ -1,9 +1,9 @@
 #pragma once
-// Automatische firmware-updates via GitHub Releases (newmedia/deskbuddy).
-// Bij opstarten en elke 12 uur: releases/latest opvragen, tag vergelijken met DESKBUDDY_VERSION en
-// afhankelijk van de instelling (auto|notify|off) melden of meteen firmware.bin installeren.
-// Controleren loopt in een eigen taak (stack in PSRAM); installeren op de hoofdlus, met pump()
-// zodat het gezicht en de voortgangsring blijven bewegen.
+// Automatic firmware updates via GitHub Releases (newmedia/deskbuddy).
+// At startup and every 12 hours: fetch releases/latest, compare the tag with DESKBUDDY_VERSION and,
+// depending on the setting (auto|notify|off), report it or install firmware.bin right away.
+// Checking runs in its own task (stack in PSRAM); installing on the main loop, with pump()
+// so the face and the progress ring keep moving.
 
 #include <stddef.h>
 
@@ -13,14 +13,13 @@ struct DeviceInfo;
 
 namespace net::updater {
 
-void begin(const char* currentVersion);  // laadt de instelling uit NVS
-// Wordt tijdens het installeren (blokkerend, op de hoofdlus) regelmatig aangeroepen om het scherm
-// bij te werken.
+void begin(const char* currentVersion);  // loads the setting from NVS
+// Called regularly during installation (blocking, on the main loop) to update the screen.
 void setPump(void (*pump)());
 void loop(bool online);
-// Rond een netwerkklus: prepare() maakt geheugen vrij (BLE tijdelijk uit) en mag een automatische
-// controle uitstellen (urgent = false) door false te geven; release() zet alles terug.
-void setHooks(bool (*prepare)(bool urgent), void (*release)());                  // planning; online = verbonden met het thuisnetwerk
+// Around a network job: prepare() frees memory (BLE temporarily off) and may postpone an automatic
+// check (urgent = false) by returning false; release() restores everything.
+void setHooks(bool (*prepare)(bool urgent), void (*release)());                  // scheduling; online = connected to the home network
 void fill(buddy::DeviceInfo& d);
 // action: status | check | install | auto | notify | off
 void action(const char* action, char* reply, size_t len);

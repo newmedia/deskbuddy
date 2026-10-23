@@ -1,7 +1,7 @@
 {
   "name": "deskbuddy.dev",
   "short_name": "deskbuddy.dev",
-  "description": "Bedien je deskbuddy.dev via Bluetooth",
+  "description": "Control your deskbuddy.dev over Bluetooth",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

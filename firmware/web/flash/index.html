@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b0f12">
-<title>deskbuddy.dev installeren</title>
+<title>Install deskbuddy.dev</title>
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <script type="module" src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js?module"></script>
@@ -41,53 +41,53 @@ code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0
   <div class="head">
     <img src="../icon.svg" alt="deskbuddy.dev">
     <div>
-      <h1>deskbuddy.dev installeren</h1>
-      <p class="muted" style="margin:2px 0 0">Zet de firmware op je Waveshare ESP32-S3-Touch-AMOLED-1.75, direct vanuit je browser. Je hebt alleen een USB-kabel nodig.</p>
+      <h1>Install deskbuddy.dev</h1>
+      <p class="muted" style="margin:2px 0 0">Put the firmware on your Waveshare ESP32-S3-Touch-AMOLED-1.75, straight from your browser. All you need is a USB cable.</p>
     </div>
   </div>
 
   <section id="nosupport">
-    <h2>Deze browser kan het niet</h2>
-    <p>Installeren via USB werkt met Web Serial, en dat bieden alleen <b>Chrome</b>, <b>Edge</b> en <b>Opera</b> op een computer (Windows, macOS, Linux of ChromeOS). Firefox, Safari en telefoons ondersteunen het niet.</p>
-    <p class="muted">Liever zelf flashen? Download <code>firmware.bin</code> van de <a href="https://github.com/newmedia/deskbuddy/releases/latest">releases</a> en gebruik <code>esptool</code>.</p>
+    <h2>This browser can't do it</h2>
+    <p>Installing over USB uses Web Serial, which only <b>Chrome</b>, <b>Edge</b> and <b>Opera</b> offer, on a computer (Windows, macOS, Linux or ChromeOS). Firefox, Safari and phones do not support it.</p>
+    <p class="muted">Prefer to flash it yourself? Download <code>firmware.bin</code> from the <a href="https://github.com/newmedia/deskbuddy/releases/latest">releases</a> and use <code>esptool</code>.</p>
   </section>
 
   <section>
-    <h2>Installeren</h2>
-    <label for="version" style="margin-top:0">Versie</label>
-    <select id="version" aria-label="Firmwareversie"><option>laden…</option></select>
+    <h2>Install</h2>
+    <label for="version" style="margin-top:0">Version</label>
+    <select id="version" aria-label="Firmware version"><option>loading…</option></select>
     <p class="note" id="vnote"></p>
     <div class="install" style="margin-top:14px">
       <esp-web-install-button id="btn">
-        <button slot="activate">Verbind en installeer</button>
-        <span slot="unsupported">Open deze pagina in Chrome of Edge op een computer.</span>
-        <span slot="not-allowed">Open deze pagina via https om te installeren.</span>
+        <button slot="activate">Connect and install</button>
+        <span slot="unsupported">Open this page in Chrome or Edge on a computer.</span>
+        <span slot="not-allowed">Open this page over https to install.</span>
       </esp-web-install-button>
       <span class="ver" id="ver"></span>
     </div>
     <ol style="margin-top:14px">
-      <li>Sluit de deskbuddy met een USB-C-kabel aan op je computer (een kabel die ook data kan, niet alleen laden).</li>
-      <li>Klik op <b>Verbind en installeer</b> en kies de poort <code>USB JTAG/serial debug unit</code>.</li>
-      <li>Wacht tot het klaar is (ongeveer een minuut). De deskbuddy start daarna vanzelf opnieuw op.</li>
+      <li>Connect the deskbuddy to your computer with a USB-C cable (one that carries data, not just charging).</li>
+      <li>Click <b>Connect and install</b> and pick the port <code>USB JTAG/serial debug unit</code>.</li>
+      <li>Wait until it finishes (about a minute). The deskbuddy then restarts by itself.</li>
     </ol>
   </section>
 
   <section class="warn">
-    <h2>Let op</h2>
-    <p>Hiermee <b>vervang je de firmware</b> op het apparaat. Staat er nog de originele firmware op en wil je die behouden, maak dan eerst een backup van de flash (zie <a href="https://github.com/newmedia/deskbuddy/blob/main/docs/hardware.md">docs</a>). Daarna kun je niet meer terug zonder die backup.</p>
-    <p>Je Wi-Fi-gegevens en instellingen blijven bewaard als er al een deskbuddy-firmware op stond.</p>
+    <h2>Note</h2>
+    <p>This <b>replaces the firmware</b> on the device. If the original firmware is still on it and you want to keep it, first make a backup of the flash (see the <a href="https://github.com/newmedia/deskbuddy/blob/main/docs/hardware.md">docs</a>). Afterwards you cannot go back without that backup.</p>
+    <p>Your Wi-Fi details and settings are kept if deskbuddy firmware was already on it.</p>
   </section>
 
   <section>
-    <h2>Lukt het niet?</h2>
+    <h2>Not working?</h2>
     <ul style="margin:0;padding-left:22px">
-      <li>Geen poort in de lijst: probeer een andere kabel of USB-poort. Houd anders <b>BOOT</b> ingedrukt terwijl je de USB-kabel aansluit en probeer opnieuw.</li>
-      <li>Linux: je gebruiker moet in de groep <code>dialout</code> zitten.</li>
-      <li>Daarna updaten? Dat kan vanzelf: de deskbuddy haalt nieuwe versies zelf van GitHub (zie <a href="https://github.com/newmedia/deskbuddy">de README</a>).</li>
+      <li>No port in the list: try another cable or USB port. Otherwise hold <b>BOOT</b> while plugging in the USB cable and try again.</li>
+      <li>Linux: your user must be in the <code>dialout</code> group.</li>
+      <li>Updating afterwards? That happens by itself: the deskbuddy fetches new versions from GitHub on its own (see <a href="https://github.com/newmedia/deskbuddy">the README</a>).</li>
     </ul>
   </section>
 
-  <p class="muted"><a href="https://deskbuddy.dev">deskbuddy.dev</a> · <a href="../">Web-app (PWA)</a> · <a href="https://github.com/newmedia/deskbuddy">Broncode</a> · <a href="https://github.com/newmedia/deskbuddy/releases">Alle versies</a></p>
+  <p class="muted"><a href="https://deskbuddy.dev">deskbuddy.dev</a> · <a href="../">Web app (PWA)</a> · <a href="https://github.com/newmedia/deskbuddy">Source code</a> · <a href="https://github.com/newmedia/deskbuddy/releases">All versions</a></p>
 </main>
 <script>
 if (!("serial" in navigator)) document.getElementById("nosupport").style.display = "block";
@@ -102,16 +102,16 @@ function pick(v) {
   ver.textContent = `v${e.version}`;
   const latest = e === list[0];
   note.innerHTML = (e.note ? e.note.replace(/[<>&]/g, c => ({"<": "&lt;", ">": "&gt;", "&": "&amp;"}[c])) + " " : "") +
-    `<a href="https://github.com/newmedia/deskbuddy/releases/tag/v${e.version}">Release-notities</a>` +
-    (latest ? "" : " · <b>Dit is niet de nieuwste versie</b>: oudere versies kunnen bekende problemen hebben.");
+    `<a href="https://github.com/newmedia/deskbuddy/releases/tag/v${e.version}">Release notes</a>` +
+    (latest ? "" : " · <b>This is not the latest version</b>: older versions may have known issues.");
   history.replaceState(null, "", latest ? location.pathname : `?v=${e.version}`);
 }
 fetch("versions.json").then(r => r.json()).then(j => {
   list = j.versions;
   sel.innerHTML = "";
-  list.forEach((e, i) => sel.add(new Option(`v${e.version}${i === 0 ? " (nieuwste)" : ""} · ${e.date}`, e.version)));
+  list.forEach((e, i) => sel.add(new Option(`v${e.version}${i === 0 ? " (latest)" : ""} · ${e.date}`, e.version)));
   pick(new URLSearchParams(location.search).get("v"));
-}).catch(() => { sel.innerHTML = "<option>kon de versielijst niet laden</option>"; });
+}).catch(() => { sel.innerHTML = "<option>could not load the version list</option>"; });
 sel.onchange = () => pick(sel.value);
 </script>
 </body>

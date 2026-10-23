@@ -1,8 +1,8 @@
-// Headless simulator: draait de echte buddy-code met LVGL op de PC en schrijft frames als PPM.
-// Gebruik via tools/sim.sh (zet PPM om naar PNG/GIF).
+// Headless simulator: runs the real buddy code with LVGL on the PC and writes frames as PPM.
+// Use via tools/sim.sh (converts PPM to PNG/GIF).
 //
-//   sim <outdir> emotions   -> één snapshot per emotie + klok
-//   sim <outdir> demo       -> frames van een gescript demo-scenario (30 fps)
+//   sim <outdir> emotions   -> one snapshot per emotion + clock
+//   sim <outdir> demo       -> frames of a scripted demo scenario (30 fps)
 
 #include <lvgl.h>
 #include <stdio.h>
@@ -57,7 +57,7 @@ static void savePpm(const std::string& path) {
       float dx = x + 0.5f - r, dy = y + 0.5f - r;
       uint8_t rgb[3];
       if (dx * dx + dy * dy > r * r) {
-        rgb[0] = rgb[1] = rgb[2] = 0x30;  // buiten het ronde scherm
+        rgb[0] = rgb[1] = rgb[2] = 0x30;  // outside the round screen
       } else {
         uint16_t c = fb[y * W + x];
         rgb[0] = ((c >> 11) & 0x1f) * 255 / 31;
@@ -96,11 +96,11 @@ struct Sim {
     app.create(lv_screen_active());
   }
 
-  std::vector<int16_t> audio;  // 16 kHz mono, synchroon met de frames
+  std::vector<int16_t> audio;  // 16 kHz mono, in sync with the frames
 
   void step(uint32_t ms) {
     for (uint32_t t = 0; t < ms;) {
-      uint32_t dt = ms - t < 10 ? ms - t : 10;  // exact ms vooruit, zodat beeld en geluid synchroon blijven
+      uint32_t dt = ms - t < 10 ? ms - t : 10;  // advance exactly ms, so picture and sound stay in sync
       t += dt;
       simMs += dt;
       app.update(dt);
@@ -116,7 +116,7 @@ struct Sim {
 
 int main(int argc, char** argv) {
   if (argc < 3) {
-    fprintf(stderr, "gebruik: %s <outdir> emotions|demo|check\n", argv[0]);
+    fprintf(stderr, "usage: %s <outdir> emotions|demo|check\n", argv[0]);
     return 2;
   }
   std::string out = argv[1];
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
   s.step(500);
 
   if (mode == "check") {
-    // Controle: elk personage in elke emotie en tijdens elke actie (check_<pp>_<tag>.ppm)
+    // Check: every character in every emotion and during every action (check_<pp>_<tag>.ppm)
     struct Shot { Action a; uint32_t ms; const char* tag; };
     const Shot shots[] = {{Action::Whistle, 1300, "whistle"}, {Action::Wink, 350, "wink"},
                           {Action::Kiss, 1300, "kiss"},       {Action::Rage, 1500, "rage"},
@@ -191,7 +191,7 @@ int main(int argc, char** argv) {
     s.face.lookAt(-0.9f, -0.6f);
     s.step(800);
     savePpm(out + "/look_mascot.ppm");
-    // Personages (looks): elk in een paar emoties
+    // Characters (looks): each in a few emotions
     for (int i = 0; i < presetCount(); i++) {
       s.app.setLook(preset(i));
       const Emotion emos[] = {Emotion::Neutral, Emotion::Happy, Emotion::Angry};
@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
     s.behaviour.command(Emotion::Neutral);
     s.step(800);
 
-    // Acties: momentopnames op kenmerkende tijdstippen, voor beide skins
+    // Actions: snapshots at characteristic moments, for both skins
     struct Shot { Action a; uint32_t ms; const char* tag; };
     const Shot shots[] = {{Action::Whistle, 1300, "whistle"}, {Action::Wink, 350, "wink"},
                           {Action::Kiss, 1300, "kiss"},       {Action::Rage, 1500, "rage"},
@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
       s.behaviour.command(Emotion::Neutral);
       s.step(1200);
       for (const Shot& sh : shots) {
-        // explode2/3 lopen door op de vorige (zelfde actie), de rest start opnieuw
+        // explode2/3 continue on the previous one (same action), the rest start anew
         if (strcmp(sh.tag, "explode2") && strcmp(sh.tag, "explode3") && strcmp(sh.tag, "sneeze2")) {
           s.step(2500);
           s.face.play(sh.a);
@@ -246,7 +246,7 @@ int main(int argc, char** argv) {
     savePpm(out + "/info_offline.ppm");
     auto& d = s.platform.dev;
     d.wifi = DeviceInfo::WifiMode::Station;
-    snprintf(d.ssid, sizeof(d.ssid), "Thuisnetwerk");
+    snprintf(d.ssid, sizeof(d.ssid), "HomeNetwork");
     snprintf(d.ip, sizeof(d.ip), "192.168.1.42");
     d.rssi = -58;
     d.bleEnabled = true;
@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // Demo: gescript scenario
+  // Demo: scripted scenario
   struct Step { uint32_t at; const char* what; };
   std::vector<Step> script = {
       {0, "neutral"},   {2500, "tap"},     {4500, "pet"},    {5200, "pet"},       {5900, "pet"},
@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
       std::string w = script[next].what;
       GestureEvent g;
       if (w == "end") {
-        // Audio vanaf het eerste demo-frame (de opwarmtijd en snapshots niet meenemen).
+        // Audio from the first demo frame (don't include the warm-up and snapshots).
         std::vector<int16_t> a(s.audio.begin() + demoAudioStart, s.audio.end());
         saveWav(out + "/demo.wav", a);
         return 0;

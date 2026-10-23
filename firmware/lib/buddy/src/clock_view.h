@@ -1,8 +1,10 @@
 #pragma once
-// Klok-overlay: tijd, datum en een accuring langs de rand van het ronde scherm.
+// Clock overlay: time, date and a battery ring along the edge of the round screen.
 
 #include <lvgl.h>
 #include <time.h>
+
+#include "i18n.h"
 
 namespace buddy {
 
@@ -12,7 +14,7 @@ class ClockView {
   void show(uint32_t autoHideMs = 6000);
   void hide();
   bool visible() const { return visible_; }
-  // batteryPct < 0 = geen accu aanwezig
+  // batteryPct < 0 = no battery present
   void update(const struct tm& now, int batteryPct, bool charging, uint32_t dtMs);
 
  private:
@@ -24,6 +26,7 @@ class ClockView {
   bool visible_ = false;
   uint32_t hideIn_ = 0;
   int lastMin_ = -1, lastPct_ = -2;
+  Lang lang_ = Lang::En;
   bool lastCharging_ = false;
 };
 

@@ -1,6 +1,6 @@
 #pragma once
-// Tekstcommando's ("emotion happy 3000", "look 0.5 -0.2", ...). Wordt nu via serial gebruikt en
-// later via WebSocket/BLE/MQTT (dan als JSON vertaald naar dezelfde aanroepen).
+// Text commands ("emotion happy 3000", "look 0.5 -0.2", ...). Now used via serial and
+// later via WebSocket/BLE/MQTT (then translated as JSON into the same calls).
 
 #include <stddef.h>
 #include <stdint.h>
@@ -24,22 +24,22 @@ struct CommandHost {
   virtual void setSleep(uint8_t) {}
   virtual void ble(const char* action, char* reply, size_t len) {
     (void)action;
-    snprintf(reply, len, "ble niet beschikbaar");
+    snprintf(reply, len, "ble not available");
   }
-  // action: status | setup | off | join (dan ssid + pass)
+  // action: status | setup | off | join (then ssid + pass)
   virtual void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) {
     (void)action; (void)ssid; (void)pass;
-    snprintf(reply, len, "wifi niet beschikbaar");
+    snprintf(reply, len, "wifi not available");
   }
   // action: status | check | install | auto | notify | off
   virtual void firmwareUpdate(const char* action, char* reply, size_t len) {
     (void)action;
-    snprintf(reply, len, "updates niet beschikbaar");
+    snprintf(reply, len, "updates not available");
   }
   virtual void status(char* out, size_t len) { (void)len; out[0] = 0; }
 };
 
-// Voert één regel uit; schrijft antwoord in reply. Geeft false bij een onbekend commando.
+// Executes one line; writes the reply into reply. Returns false for an unknown command.
 bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost& host, char* reply, size_t len);
 
 }  // namespace buddy

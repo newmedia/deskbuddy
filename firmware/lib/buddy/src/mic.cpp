@@ -18,7 +18,7 @@ const char* soundEventName(SoundEvent e) {
 void MicListener::push(SoundEvent e) {
   uint8_t h = head_.load(std::memory_order_relaxed);
   uint8_t next = (uint8_t)((h + 1) % 16);
-  if (next == tail_.load(std::memory_order_acquire)) return;  // vol: laat vallen
+  if (next == tail_.load(std::memory_order_acquire)) return;  // full: drop it
   ring_[h] = e;
   head_.store(next, std::memory_order_release);
 }
@@ -34,7 +34,7 @@ SoundEvent MicListener::poll() {
 void MicListener::feed(const int16_t* s, size_t n) {
   if (!enabled()) return;
   for (size_t i = 0; i < n; i++) {
-    if (holdSamples_) {  // eigen geluid: overslaan, maar de tijd loopt door
+    if (holdSamples_) {  // own sound: skip, but time keeps running
       holdSamples_--;
       if (++accN_ >= kFrame) {
         accN_ = 0;
@@ -60,34 +60,34 @@ void MicListener::frame(float e) {
   if (e < -90) e = -90;
   db_.store(e, std::memory_order_relaxed);
 
-  // Gemiddelde van de vorige frames (zonder dit frame)
+  // Average of the previous frames (excluding this frame)
   float prev = 0;
   for (float h : hist_) prev += powf(10, h / 10);
   prev = 10 * log10f(prev / 8 + 1e-12f);
 
-  // Achtergrondniveau = de mediaan van het geluid (vaste stapjes van 0,03 dB per frame omhoog of
-  // omlaag, ~3 dB/s). Een ventilator of pc die continu wat ruist, telt zo als achtergrond; alleen
-  // wat daar duidelijk bovenuit komt (stem, klap, muziek) telt.
+  // Background level = the median of the sound (fixed steps of 0.03 dB per frame up or
+  // down, ~3 dB/s). A fan or PC that hums continuously thus counts as background; only
+  // what clearly rises above it (voice, clap, music) counts.
   floorF_ += e > floorF_ ? 0.03f : -0.03f;
-  if (e < floorF_ - 20) floorF_ -= 0.3f;  // na iets hards (galm weg) sneller terug naar de rust
+  if (e < floorF_ - 20) floorF_ -= 0.3f;  // after something loud (reverb gone) return to quiet faster
   if (floorF_ < -80) floorF_ = -80;
   floor_.store(floorF_, std::memory_order_relaxed);
   const float above = e - floorF_;
 
-  // Niveau voor de mond: snel aan, langzaam uit
+  // Level for the mouth: fast attack, slow release
   float target = above < 4 ? 0 : (above - 4) / 30;
   if (target > 1) target = 1;
   lvl_ += (target > lvl_ ? 0.5f : 0.06f) * (target - lvl_);
   level_.store(lvl_, std::memory_order_relaxed);
 
-  // Klap: een plotse piek ver boven het achtergrondniveau die binnen ~120 ms weer weg is.
+  // Clap: a sudden peak far above the background level that is gone again within ~120 ms.
   if (clapFrames_ < 0) {
-    // ...en duidelijk harder dan wat er de laatste seconden klonk (lettergrepen in een gesprek niet)
+    // ...and clearly louder than what sounded in the last seconds (not syllables in a conversation)
     if (above > 24 && e > -48 && e - prev > 16 && (e > peakHold_ + 6 || clapPending_)) clapFrames_ = 0;
   } else {
     clapFrames_++;
     if (above < 12) {
-      if (clapFrames_ <= 7) {  // een klap is kort: hooguit ~70 ms (galm meegerekend)
+      if (clapFrames_ <= 7) {  // a clap is short: at most ~70 ms (reverb included)
         uint32_t since = t_ - lastClap_;
         if (clapPending_ && since >= 12 && since <= 70) {
           push(SoundEvent::DoubleClap);
@@ -99,19 +99,19 @@ void MicListener::frame(float e) {
       }
       clapFrames_ = -1;
     } else if (clapFrames_ > 7) {
-      clapFrames_ = -1;  // te lang voor een klap: gewoon geluid (spraak, muziek)
+      clapFrames_ = -1;  // too long for a clap: just sound (speech, music)
     }
   }
-  if (clapPending_ && t_ - lastClap_ > 70) {  // geen tweede klap gekomen
+  if (clapPending_ && t_ - lastClap_ > 70) {  // no second clap came
     push(SoundEvent::Clap);
     clapPending_ = false;
   }
 
   peakHold_ = e > peakHold_ ? e : peakHold_ - 0.08f;
 
-  // Hard lawaai: ~1,5 s aanhoudend ver boven het achtergrondniveau (of gewoon heel hard)
+  // Loud noise: ~1.5 s sustained far above the background level (or just very loud)
   if (loudCooldown_) loudCooldown_--;
-  // (zonder beats: muziek is ook hard, maar daar dansen we op)
+  // (without beats: music is loud too, but we dance to that)
   int beats = 0;
   for (int i = 0; i < onsetN_; i++)
     if (t_ - onsets_[i] <= 150) beats++;
@@ -124,9 +124,9 @@ void MicListener::frame(float e) {
     loudFrames_ = 0;
   }
 
-  busy_ += ((above > 6 ? 1.0f : 0.0f) - busy_) * 0.004f;  // ~2,5 s
+  busy_ += ((above > 6 ? 1.0f : 0.0f) - busy_) * 0.004f;  // ~2.5 s
 
-  // Beats: duidelijke energiesprong boven het recente niveau, minstens 250 ms na de vorige
+  // Beats: clear energy jump above the recent level, at least 250 ms after the previous one
   bool onset = e - prev > 6 && above > 9 && t_ - lastOnset_ >= 25;
   if (onset) {
     lastOnset_ = t_;
@@ -136,8 +136,8 @@ void MicListener::frame(float e) {
       onsets_[11] = t_;
     }
   }
-  // Muziek: minstens 8 regelmatige beats (330-1000 ms uit elkaar, 60-180 bpm) in de laatste 5 s,
-  // en bijna continu geluid. Spraak heeft ook ritme, maar met pauzes en onregelmatige lettergrepen.
+  // Music: at least 8 regular beats (330-1000 ms apart, 60-180 bpm) in the last 5 s,
+  // and almost continuous sound. Speech has rhythm too, but with pauses and irregular syllables.
   int recent = 0;
   for (int i = 0; i < onsetN_; i++)
     if (t_ - onsets_[i] <= 500) recent++;
@@ -156,7 +156,7 @@ void MicListener::frame(float e) {
   }
   bool was = music();
   if (isMusic != was) {
-    // Uit pas na 2 s zonder beats (een korte pauze in een nummer telt niet)
+    // Off only after 2 s without beats (a short pause in a song doesn't count)
     if (isMusic || t_ - lastOnset_ > 200) {
       music_.store(isMusic, std::memory_order_relaxed);
       push(isMusic ? SoundEvent::MusicStart : SoundEvent::MusicStop);
@@ -164,8 +164,8 @@ void MicListener::frame(float e) {
   }
   if (onset && music()) push(SoundEvent::Beat);
 
-  // Praten: een flink deel van de tijd stem-achtig geluid (boven het achtergrondniveau, niet keihard),
-  // maar met pauzes en zonder vaste beat. Aan boven 30%, uit onder 12% (~2 s naloop).
+  // Talking: a good part of the time voice-like sound (above the background level, not very loud),
+  // but with pauses and without a fixed beat. On above 30%, off below 12% (~2 s tail).
   voice_ += ((above > 10 && e < -15 ? 1.0f : 0.0f) - voice_) * 0.005f;
   bool talking = speech();
   if (!talking && voice_ > 0.3f && !music()) {

@@ -1,10 +1,10 @@
-// Interactieve emulator (SDL2): dezelfde App als op het apparaat, in een venster op de PC.
+// Interactive emulator (SDL2): the same App as on the device, in a window on the PC.
 //
-// Muis = vinger: klik = tik, vasthouden = lang drukken, heen en weer slepen = aaien, vegen = swipe.
-// Toetsen: 1-9 emoties · S schudden · P oppakken · pijltjes kantelen · B knipperen
-//          C klok · I info · W Wi-Fi-status wisselen · L BLE aan/uit · M geluid aan/uit · K skin
-//          F fluiten · N knipoog · J kusje · R rage · E ontploffen · H niezen · G lachen · O ogen rollen
-//          U hik · +/- accu · Esc stoppen
+// Mouse = finger: click = tap, hold = long press, drag back and forth = pet, swipe = swipe.
+// Keys: 1-9 emotions · S shake · P pick up · arrows tilt · B blink
+//          C clock · I info · W toggle Wi-Fi status · L BLE on/off · M sound on/off · K skin
+//          F whistle · N wink · J kiss · R rage · E explode · H sneeze · G laugh · O roll eyes
+//          U hiccup · +/- battery · Esc quit
 
 #include <SDL.h>
 #include <lvgl.h>
@@ -52,7 +52,7 @@ void cycleWifi(DeviceInfo& d) {
   switch (d.wifi) {
     case M::Off:
       d.wifi = M::Connecting;
-      snprintf(d.ssid, sizeof(d.ssid), "Thuisnetwerk");
+      snprintf(d.ssid, sizeof(d.ssid), "HomeNetwork");
       d.ip[0] = 0;
       break;
     case M::Connecting:
@@ -86,7 +86,7 @@ int main(int, char**) {
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
   SDL_Texture* tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, W, H);
 
-  // Rond scherm: alles buiten de cirkel grijs maken via een overlay-textuur.
+ // Round screen: make everything outside the circle grey via an overlay texture.
   SDL_Texture* mask = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STATIC, W, H);
   {
     static uint32_t px[W * H];
@@ -94,7 +94,7 @@ int main(int, char**) {
     for (int y = 0; y < H; y++)
       for (int x = 0; x < W; x++) {
         float dx = x + 0.5f - r, dy = y + 0.5f - r;
-        float d = sqrtf(dx * dx + dy * dy) - r;  // >0 = buiten
+        float d = sqrtf(dx * dx + dy * dy) - r;  // >0 = outside
         uint8_t a = d <= -1 ? 0 : (d >= 0 ? 255 : (uint8_t)((d + 1) * 255));
         px[y * W + x] = 0x30303000u | a;
       }
@@ -125,7 +125,7 @@ int main(int, char**) {
   };
   SDL_AudioDeviceID audio = SDL_OpenAudioDevice(nullptr, 0, &want, &have, 0);
   if (audio) SDL_PauseAudioDevice(audio, 0);
-  else fprintf(stderr, "geen audio: %s\n", SDL_GetError());
+  else fprintf(stderr, "no audio: %s\n", SDL_GetError());
 
   bool mouseDown = false;
   int mx = 0, my = 0;
@@ -220,7 +220,7 @@ int main(int, char**) {
     if (dirty) {
       dirty = false;
       SDL_UpdateTexture(tex, nullptr, fb, W * 2);
-      // 200 = normale helderheid; slapen (40) wordt zichtbaar donkerder
+      // 200 = normal brightness; sleeping (40) becomes visibly darker
       uint8_t b = (uint8_t)LV_CLAMP(40, platform.brightness * 255 / 200, 255);
       SDL_SetTextureColorMod(tex, b, b, b);
       SDL_RenderClear(ren);

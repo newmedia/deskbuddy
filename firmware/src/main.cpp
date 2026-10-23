@@ -1,5 +1,5 @@
-// deskbuddy-firmware voor de Waveshare ESP32-S3-Touch-AMOLED-1.75.
-// Fase 1: procedureel gezicht, touch- en bewegingsgebaren, klok en info-paneel (offline).
+// deskbuddy firmware for the Waveshare ESP32-S3-Touch-AMOLED-1.75.
+// Phase 1: procedural face, touch and motion gestures, clock and info panel (offline).
 
 #include <Arduino.h>
 #include <Preferences.h>
@@ -25,7 +25,7 @@ namespace {
 
 Preferences prefs;
 
-// Prestatiemeting, elke seconde bijgewerkt in loop()
+// Performance measurement, updated every second in loop()
 struct {
   float fps = 0, renderMs = 0, load = 0, rotateMs = 0, sendMs = 0;
   uint64_t busyUs = 0;
@@ -34,7 +34,7 @@ struct {
 
 struct EspPlatform : Platform {
   void loadSettings(Settings& s) override {
-    prefs.begin("deskbuddy", false);  // rw: maakt de namespace aan bij de eerste start
+    prefs.begin("deskbuddy", false);  // rw: creates the namespace on first start
     s.sound = prefs.getBool("sound", s.sound);
     s.volume = prefs.getUChar("volume", s.volume);
     s.brightness = prefs.getUChar("bright", s.brightness);
@@ -44,11 +44,12 @@ struct EspPlatform : Platform {
       l.name[sizeof(l.name) - 1] = 0;
       s.look = l;
     } else if (prefs.isKey("skin")) {
-      s.look = preset(prefs.getUChar("skin", 0) == 1 ? 1 : 0);  // oude instelling (alleen skin)
+      s.look = preset(prefs.getUChar("skin", 0) == 1 ? 1 : 0);  // old setting (skin only)
     }
     s.sleepMin = prefs.getUChar("sleep", s.sleepMin);
     s.ble = prefs.getBool("ble", s.ble);
     s.mic = prefs.getBool("mic", s.mic);
+    s.lang = prefs.getUChar("lang", s.lang);
     prefs.end();
   }
   size_t loadBlob(const char* key, void* buf, size_t max) override {
@@ -71,6 +72,7 @@ struct EspPlatform : Platform {
     prefs.putUChar("sleep", s.sleepMin);
     prefs.putBool("ble", s.ble);
     prefs.putBool("mic", s.mic);
+    prefs.putUChar("lang", s.lang);
     prefs.end();
   }
   void localTime(struct tm& out) override {
@@ -118,7 +120,7 @@ void handleSerial() {
     if (c == '\n' || lineLen == sizeof(line) - 1) {
       line[lineLen] = 0;
       lineLen = 0;
-      static char* reply = (char*)heap_caps_malloc(700, MALLOC_CAP_SPIRAM);  // PSRAM: intern RAM is krap
+      static char* reply = (char*)heap_caps_malloc(700, MALLOC_CAP_SPIRAM);  // PSRAM: internal RAM is tight
       app.command(line, reply, 700);
       if (reply[0]) Serial.println(reply);
     } else {
@@ -130,11 +132,11 @@ void handleSerial() {
 }  // namespace
 
 void setup() {
-  // Gewone malloc/new vanaf 256 bytes naar PSRAM (standaard pas vanaf 4 KB). Intern RAM is het krapst
-  // (Wi-Fi + BLE); wat echt intern moet (DMA, ISR) vraagt dat zelf met heap_caps-vlaggen.
+  // Plain malloc/new from 256 bytes up goes to PSRAM (default only from 4 KB). Internal RAM is the
+  // scarcest (Wi-Fi + BLE); what really must be internal (DMA, ISR) asks for that itself with heap_caps flags.
   net::updateMemory(false);
   Serial.begin(115200);
-  Wire.begin(I2C_SDA, I2C_SCL, 400000);  // fast mode: touch/IMU-polling kost minder tijd
+  Wire.begin(I2C_SDA, I2C_SCL, 400000);  // fast mode: touch/IMU polling takes less time
 
   bool pmu = board::beginPmu();
   bool disp = board::beginDisplay();
@@ -145,24 +147,24 @@ void setup() {
 
   app.create(lv_screen_active());
   app.showSplash();
-  Serial.printf("[mem] na display/sensoren: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
+  Serial.printf("[mem] after display/sensors: %u KB internal free\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
   bool audio = board::beginAudio(app.sound, app.mic);
   net::updater::begin(DESKBUDDY_VERSION);
-  // Tijdens een update-installatie staat loop() stil; dan houdt dit het gezicht en de ring in beweging.
-  // Max ~10 fps tijdens een (blokkerende) update: de download/upload krijgt voorrang op tekenen.
+  // During an update installation loop() is stalled; this keeps the face and the ring moving.
+  // Max ~10 fps during a (blocking) update: the download/upload gets priority over drawing.
   static void (*const pump)() = [] {
     static uint32_t last = millis();
     uint32_t now = millis();
     if (now - last < 100) return;
-    board::setRefreshPeriod(33);  // tijdens een update nooit de trage slaap-verversing
+    board::setRefreshPeriod(33);  // never the slow sleep refresh during an update
     app.update(LV_MIN(now - last, 100u));
     last = now;
     lv_timer_handler();
   };
   net::updater::setPump(pump);
   net::setPump(pump);
-  // BLE houdt ~64 KB intern RAM vast; TLS naar GitHub past dan niet. Tijdens een update-klus even uit,
-  // maar een automatische controle niet doen terwijl er een telefoon verbonden is.
+  // BLE holds ~64 KB of internal RAM; TLS to GitHub doesn't fit then. Off during an update job,
+  // but skip an automatic check while a phone is connected.
   net::updater::setHooks(
       [](bool urgent) {
         if (!urgent && ble::isConnected()) return false;
@@ -175,19 +177,19 @@ void setup() {
     uint64_t mac = ESP.getEfuseMac();
     char name[24];
     snprintf(name, sizeof(name), "deskbuddy-%02X%02X", (unsigned)((mac >> 32) & 0xff), (unsigned)((mac >> 40) & 0xff));
-    Serial.printf("[mem] na Wi-Fi: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
+    Serial.printf("[mem] after Wi-Fi: %u KB internal free\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
     ble::begin(app, app.settings().ble, name);
-    Serial.printf("[mem] na BLE: %u KB intern vrij\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
+    Serial.printf("[mem] after BLE: %u KB internal free\n", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
   }
-  Serial.printf("deskbuddy %s  display=%d touch=%d imu=%d pmu=%d rtc=%d audio=%d  psram=%u KB vrij\n",
+  Serial.printf("deskbuddy %s  display=%d touch=%d imu=%d pmu=%d rtc=%d audio=%d  psram=%u KB free\n",
                 DESKBUDDY_VERSION, disp, touch, imu, pmu, rtc, audio, (unsigned)(ESP.getFreePsram() / 1024));
-  static const char* const reasons[] = {"onbekend", "aan", "extern", "software", "PANIC", "int-watchdog",
+  static const char* const reasons[] = {"unknown", "power-on", "external", "software", "PANIC", "int-watchdog",
                                         "task-watchdog", "watchdog", "deepsleep", "BROWNOUT", "sdio", "usb",
-                                        "jtag", "efuse", "stroomdip", "cpu-lockup"};
+                                        "jtag", "efuse", "brown-out dip", "cpu-lockup"};
   int rr = (int)esp_reset_reason();
-  Serial.printf("reset-reden: %s  heap vrij: %u KB (intern)\n", rr < 16 ? reasons[rr] : "?",
+  Serial.printf("reset reason: %s  heap free: %u KB (internal)\n", rr < 16 ? reasons[rr] : "?",
                 (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
-  Serial.println("typ 'help' voor commando's");
+  Serial.println("type 'help' for commands");
 }
 
 void loop() {
@@ -216,7 +218,7 @@ void loop() {
       if (app.info.visible()) app.info.hide();
       else app.showInfo();
     }
-    // BOOT-knop: emoties doorlopen (handig om te testen).
+    // BOOT button: cycle through emotions (handy for testing).
     bool boot = digitalRead(BOOT_BUTTON) == LOW;
     if (boot && !bootWas) {
       bootEmotion = (bootEmotion + 1) % (uint8_t)Emotion::Count;
@@ -229,14 +231,14 @@ void loop() {
   net::loop();
   ble::loop();
   app.update(dt);
-  // Slaperig of slapend: alleen trage animaties (Z'jes, oogleden), dus ~8-10 fps; wakker: 30 fps.
+  // Sleepy or asleep: only slow animations (Zzz, eyelids), so ~8-10 fps; awake: 30 fps.
   Emotion e = app.face.emotion();
-  // Rustige animaties hoeven geen 30 fps: slapen ~8, slaperig ~10, luisteren (golfjes) ~15
+  // Calm animations don't need 30 fps: asleep ~8, sleepy ~10, listening (ripples) ~15
   const bool calm = !app.face.busy() && !app.behaviour.dancing();
   board::setRefreshPeriod(e == Emotion::Asleep ? 125 : e == Emotion::Sleepy && calm ? 100 : app.face.listening() && calm ? 66 : 33);
   uint32_t idleMs = lv_timer_handler();
 
-  // Belasting: tijd dat deze lus bezig was (alles behalve de delay hieronder)
+  // Load: time this loop was busy (everything except the delay below)
   perf.busyUs += (uint64_t)(micros() - loopStartUs);
   if (now - perf.windowStart >= 1000) {
     uint32_t frames;
@@ -251,6 +253,6 @@ void loop() {
     perf.busyUs = 0;
     perf.windowStart = now;
   }
-  // Echt wachten tot er werk is (LVGL-timer, touch-poll elke 15 ms) i.p.v. rondjes draaien.
+  // Really wait until there is work (LVGL timer, touch poll every 15 ms) instead of spinning.
   delay(LV_CLAMP(1u, idleMs, 10u));
 }

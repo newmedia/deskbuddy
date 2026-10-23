@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -97,149 +97,154 @@ label.check input{width:20px;height:20px;accent-color:var(--accent)}
 .status.ok{border-color:var(--ok);color:var(--ok)}
 .status.bad{border-color:var(--bad);color:var(--bad)}
 a{color:var(--accent)}
+.langs{display:inline-flex;gap:2px;margin-left:6px;vertical-align:middle}
+.langs button{min-height:0;padding:2px 7px;border-radius:999px;font-size:12px;background:none;color:var(--dim)}
+.langs button.on{background:var(--accent);color:#04151a;border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
 <main class="off">
   <header>
     <svg class="logo" viewBox="0 0 512 512" role="img" aria-label="deskbuddy.dev"><rect width="512" height="512" rx="112" fill="#0b0f12"/><circle cx="256" cy="256" r="200" fill="#000" stroke="#6ee7f7" stroke-width="18"/><rect x="150" y="170" width="78" height="120" rx="30" fill="#6ee7f7"/><rect x="284" y="170" width="78" height="120" rx="30" fill="#6ee7f7"/><path d="M206 340q50 40 100 0" stroke="#6ee7f7" stroke-width="16" fill="none" stroke-linecap="round"/></svg>
-    <div style="flex:1;min-width:0"><h1>deskbuddy.dev</h1><div id="sub">verbinden…</div></div>
+    <div style="flex:1;min-width:0"><h1>deskbuddy.dev</h1><div id="sub"></div></div>
     <div class="chips">
-      <div id="conn" class="conn off" title="Verbinding"><span class="dot"></span><span id="conn-t">Geen verbinding</span></div>
-      <div id="power" class="conn" title="Stroom" hidden><span id="power-t"></span></div>
+      <div id="conn" class="conn off" data-tt="Connection"><span class="dot"></span><span id="conn-t"></span></div>
+      <div id="power" class="conn" data-tt="Power" hidden><span id="power-t"></span></div>
     </div>
-    <button id="ble-connect" hidden>Verbind via Bluetooth</button>
-    <button id="look-open" class="icon" aria-label="Uiterlijk aanpassen" title="Uiterlijk">
+    <button id="ble-connect" data-t hidden>Connect via Bluetooth</button>
+    <button id="look-open" class="icon" data-ta="Customize appearance" data-tt="Appearance">
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.5-1.1.2-2.2 1.4-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z"/>
         <circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7.2" r="1.2"/><circle cx="15" cy="7.4" r="1.2"/><circle cx="17.4" cy="11" r="1.2"/>
       </svg>
     </button>
   </header>
-  <nav class="tabs" role="tablist" aria-label="Onderdelen">
-    <button role="tab" data-tab="control">Bediening</button>
-    <button role="tab" data-tab="settings">Instellingen</button>
-    <button role="tab" data-tab="wifi">Wi-Fi</button>
-    <button role="tab" data-tab="system">Systeem</button>
+  <nav class="tabs" role="tablist" data-ta="Sections">
+    <button role="tab" data-tab="control" data-t>Control</button>
+    <button role="tab" data-tab="settings" data-t>Settings</button>
+    <button role="tab" data-tab="wifi" data-t>Wi-Fi</button>
+    <button role="tab" data-tab="system" data-t>System</button>
   </nav>
   <section id="ble-info" hidden>
-    <p class="muted" id="ble-msg">Deze app praat via Bluetooth met je deskbuddy. Tik op <b>Verbind via Bluetooth</b>; bij de
-      eerste keer vraagt je telefoon om de koppelcode die op het scherm van de deskbuddy verschijnt.</p>
+    <p class="muted" id="ble-msg" data-th>This app talks to your deskbuddy over Bluetooth. Tap <b>Connect via Bluetooth</b>; the first time, your phone asks for the pairing code that appears on the deskbuddy's screen.</p>
   </section>
 
   <section data-tab="control">
-    <h2>Emotie</h2>
+    <h2 data-t>Emotion</h2>
     <div class="grid" id="emotions"></div>
-    <h2 style="margin-top:14px">Acties</h2>
+    <h2 style="margin-top:14px" data-t>Actions</h2>
     <div class="grid">
-      <button data-cmd="play whistle">Fluiten</button>
-      <button data-cmd="play wink">Knipoog</button>
-      <button data-cmd="play kiss">Kusje</button>
-      <button data-cmd="play rage">Rage</button>
-      <button data-cmd="play explode">Ontploffen</button>
-      <button data-cmd="play sneeze">Niezen</button>
-      <button data-cmd="play laugh">Lachen</button>
-      <button data-cmd="play eyeroll">Ogen rollen</button>
-      <button data-cmd="play hiccup">Hik</button>
-      <button data-cmd="blink">Knipper</button>
-      <button data-cmd="bounce">Stuiter</button>
-      <button data-cmd="gesture shake">Schud</button>
+      <button data-cmd="play whistle" data-t>Whistle</button>
+      <button data-cmd="play wink" data-t>Wink</button>
+      <button data-cmd="play kiss" data-t>Kiss</button>
+      <button data-cmd="play rage" data-t>Rage</button>
+      <button data-cmd="play explode" data-t>Explode</button>
+      <button data-cmd="play sneeze" data-t>Sneeze</button>
+      <button data-cmd="play laugh" data-t>Laugh</button>
+      <button data-cmd="play eyeroll" data-t>Eye roll</button>
+      <button data-cmd="play hiccup" data-t>Hiccup</button>
+      <button data-cmd="blink" data-t>Blink</button>
+      <button data-cmd="bounce" data-t>Bounce</button>
+      <button data-cmd="gesture shake" data-t>Shake</button>
     </div>
   </section>
 
 
   <section data-tab="settings">
-    <h2>Geluid &amp; scherm</h2>
+    <h2 data-t>Sound &amp; screen</h2>
     <div class="row" style="margin-top:8px">
-      <button id="sound-btn">Geluid</button>
-      <button data-cmd="sound happy">Test geluid</button>
+      <button id="sound-btn">Sound</button>
+      <button data-cmd="sound happy" data-t>Test sound</button>
     </div>
     <div class="row" style="margin-top:8px">
-      <button id="mic-btn">Microfoon</button>
+      <button id="mic-btn">Microphone</button>
     </div>
-    <p class="muted" style="margin:6px 0 0">Hij reageert op klappen, hard lawaai en muziek (dan danst hij mee). Alleen het
-      geluidsniveau wordt gemeten; er wordt niets opgenomen of verstuurd.</p>
-    <label for="volume">Volume <span id="volume-v"></span></label>
+    <p class="muted" style="margin:6px 0 0" data-t>It reacts to clapping, loud noise and music (then it dances along). Only the sound level is measured; nothing is recorded or sent.</p>
+    <label for="volume"><span data-t>Volume</span> <span id="volume-v"></span></label>
     <input type="range" id="volume" min="0" max="100">
-    <label for="brightness">Helderheid <span id="brightness-v"></span></label>
+    <label for="brightness"><span data-t>Brightness</span> <span id="brightness-v"></span></label>
     <input type="range" id="brightness" min="10" max="255">
-    <label for="sleep">In slaap vallen na</label>
+    <label for="sleep" data-t>Fall asleep after</label>
     <select id="sleep">
-      <option value="1">1 minuut</option><option value="3">3 minuten</option><option value="5">5 minuten</option>
-      <option value="10">10 minuten</option><option value="30">30 minuten</option><option value="0">Nooit</option>
+      <option value="1" data-t>1 minute</option><option value="3" data-t>3 minutes</option><option value="5" data-t>5 minutes</option>
+      <option value="10" data-t>10 minutes</option><option value="30" data-t>30 minutes</option><option value="0" data-t>Never</option>
+    </select>
+    <label for="lang" data-t>Language</label>
+    <select id="lang">
+      <option value="en">English</option><option value="nl">Nederlands</option>
     </select>
   </section>
 
   <section data-tab="system" id="install-section">
-    <h2>Firmware installeren via USB</h2>
-    <p class="muted" style="margin-top:0">Een nieuw bord instellen, of een bepaalde versie kiezen (ook een oudere)? Dat kan vanuit de browser met een USB-kabel, zonder iets te bouwen.</p>
-    <a class="btn" href="https://newmedia.github.io/deskbuddy/flash/" target="_blank" rel="noopener">Naar de installatiepagina</a>
+    <h2 data-t>Install firmware via USB</h2>
+    <p class="muted" style="margin-top:0" data-t>Setting up a new board, or picking a specific version (including an older one)? You can do that from the browser with a USB cable, without building anything.</p>
+    <a class="btn" href="https://newmedia.github.io/deskbuddy/flash/" target="_blank" rel="noopener" data-t>Go to the install page</a>
   </section>
 
   <section data-tab="system">
-    <h2>Status</h2>
+    <h2 data-t>Status</h2>
     <div class="stat" id="stat"></div>
-    <p class="muted" id="pwa-hint" hidden>Bediening via Bluetooth (ook zonder Wi-Fi):
+    <p class="muted" id="pwa-hint" hidden><span data-t>Control over Bluetooth (also without Wi-Fi):</span>
       <a href="https://newmedia.github.io/deskbuddy/" style="color:var(--accent)">newmedia.github.io/deskbuddy</a></p>
   </section>
 
   <section data-tab="wifi">
     <h2>Wi-Fi</h2>
     <p class="muted" id="wifi-now"></p>
-    <button id="scan">Netwerken zoeken</button>
+    <button id="scan" data-t>Search networks</button>
     <div class="nets" id="nets"></div>
-    <label for="ssid">Netwerk</label>
+    <label for="ssid" data-t>Network</label>
     <input type="text" id="ssid" autocomplete="off" autocapitalize="none">
-    <label for="pass">Wachtwoord</label>
+    <label for="pass" data-t>Password</label>
     <input type="password" id="pass" autocomplete="off">
-    <label class="check"><input type="checkbox" id="showpass"> Wachtwoord tonen</label>
+    <label class="check"><input type="checkbox" id="showpass"> <span data-t>Show password</span></label>
     <div class="row" style="margin-top:10px">
-      <button id="join" class="on">Verbinden</button>
-      <button data-cmd="wifi forget">Vergeten</button>
+      <button id="join" class="on" data-t>Connect</button>
+      <button data-cmd="wifi forget" data-t>Forget</button>
     </div>
     <p id="join-status" class="status" hidden></p>
   </section>
 
   <section id="fw-section" data-tab="system">
-    <h2>Firmware bijwerken</h2>
+    <h2 data-t>Update firmware</h2>
     <p id="upd-now" class="status" hidden></p>
     <div class="row" style="margin-top:8px">
-      <button data-cmd="update check">Nu controleren</button>
-      <button id="upd-install" class="on" hidden>Installeren</button>
+      <button data-cmd="update check" data-t>Check now</button>
+      <button id="upd-install" class="on" data-t hidden>Install</button>
     </div>
-    <label for="updates">Nieuwe versies van GitHub</label>
+    <label for="updates" data-t>New versions from GitHub</label>
     <select id="updates">
-      <option value="notify">Melden (zelf installeren)</option>
-      <option value="auto">Automatisch installeren</option>
-      <option value="off">Niet controleren</option>
+      <option value="notify" data-t>Notify (install yourself)</option>
+      <option value="auto" data-t>Install automatically</option>
+      <option value="off" data-t>Don't check</option>
     </select>
     <progress id="upd-p" value="0" max="100" hidden></progress>
-    <p class="muted" style="margin-top:14px">Of handmatig: download <code>firmware.bin</code> van de <a href="https://github.com/newmedia/deskbuddy/releases/latest" target="_blank" rel="noopener">nieuwste release op GitHub</a> (of een <a href="https://github.com/newmedia/deskbuddy/releases" target="_blank" rel="noopener">oudere versie</a>) en kies dat bestand hieronder.</p>
+    <p class="muted" style="margin-top:14px" data-th>Or manually: download <code>firmware.bin</code> from the <a href="https://github.com/newmedia/deskbuddy/releases/latest" target="_blank" rel="noopener">latest release on GitHub</a> (or an <a href="https://github.com/newmedia/deskbuddy/releases" target="_blank" rel="noopener">older version</a>) and pick that file below.</p>
     <input type="file" id="fw" accept=".bin">
     <progress id="fw-p" value="0" max="100" hidden></progress>
   </section>
 
   <section data-tab="system">
-    <h2>Commando</h2>
-    <div class="row"><input type="text" id="cmd" placeholder="help" autocapitalize="none"><button id="send" style="flex:0 0 90px">Stuur</button></div>
+    <h2 data-t>Command</h2>
+    <div class="row"><input type="text" id="cmd" placeholder="help" autocapitalize="none"><button id="send" style="flex:0 0 90px" data-t>Send</button></div>
     <div id="log"></div>
   </section>
   <section id="look-panel" aria-labelledby="look-title" hidden>
     <div class="sheet-head">
-      <div><h2 id="look-title">Uiterlijk</h2><div class="look-now" id="look-name"></div></div>
-      <button id="look-close" class="done">Klaar</button>
+      <div><h2 id="look-title" data-t>Appearance</h2><div class="look-now" id="look-name"></div></div>
+      <button id="look-close" class="done" data-t>Done</button>
     </div>
     <div class="seg" role="tablist" id="look-tabs">
-      <button role="tab" data-ltab="pick">Kiezen</button>
-      <button role="tab" data-ltab="make">Zelf maken</button>
+      <button role="tab" data-ltab="pick" data-t>Pick</button>
+      <button role="tab" data-ltab="make" data-t>Make your own</button>
     </div>
 
     <div data-lpane="pick">
-      <label>Personages</label>
+      <label data-t>Characters</label>
       <div class="opts" id="presets"></div>
-      <label>Mijn profielen</label>
+      <label data-t>My profiles</label>
       <div class="opts" id="profiles"></div>
-      <button id="look-random" class="wide">🎲 Verras me</button>
+      <button id="look-random" class="wide" data-t>🎲 Surprise me</button>
     </div>
 
     <div data-lpane="make" hidden>
@@ -247,30 +252,165 @@ a{color:var(--accent)}
         <button data-base="robot">Robot</button>
         <button data-base="cartoon">Cartoon</button>
       </div>
-      <p class="muted hint">Elke keuze zie je meteen op je deskbuddy.</p>
+      <p class="muted hint" data-t>You see every choice right away on your deskbuddy.</p>
       <div id="groups"></div>
-      <label class="check"><input type="checkbox" id="look-emo"> Kleuren veranderen mee met de emotie (boos = rood, verliefd = roze)</label>
+      <label class="check"><input type="checkbox" id="look-emo"> <span data-t>Colors change with the emotion (angry = red, in love = pink)</span></label>
       <div class="row save">
-        <input type="text" id="profile-name" maxlength="12" placeholder="Naam, bijv. Mijn buddy" aria-label="Profielnaam">
-        <button id="profile-save">Bewaar</button>
+        <input type="text" id="profile-name" maxlength="12" data-tp="Name, e.g. My buddy" data-ta="Profile name">
+        <button id="profile-save" data-t>Save</button>
       </div>
     </div>
   </section>
 <footer class="foot">
     <a href="https://deskbuddy.dev" target="_blank" rel="noopener">deskbuddy.dev</a> ·
-    <a href="https://newmedia.github.io/deskbuddy/flash/" target="_blank" rel="noopener">Firmware installeren</a> ·
-    <a href="https://github.com/newmedia/deskbuddy/releases" target="_blank" rel="noopener">Versies</a> ·
-    <a href="https://github.com/newmedia/deskbuddy" target="_blank" rel="noopener">Broncode</a>
+    <a href="https://newmedia.github.io/deskbuddy/flash/" target="_blank" rel="noopener" data-t>Install firmware</a> ·
+    <a href="https://github.com/newmedia/deskbuddy/releases" target="_blank" rel="noopener" data-t>Versions</a> ·
+    <a href="https://github.com/newmedia/deskbuddy" target="_blank" rel="noopener" data-t>Source code</a>
+    <span class="langs" role="group" data-ta="Language"><button data-lang="en">EN</button><button data-lang="nl">NL</button></span>
   </footer>
 </main>
 
 <script>
 const $ = s => document.querySelector(s);
-const EMO = [["neutral","Neutraal"],["happy","Blij"],["sad","Verdrietig"],["angry","Boos"],["surprised","Verrast"],["sleepy","Slaperig"],["love","Verliefd"],["dizzy","Duizelig"],["asleep","Slapen"],["cry","Huilen"],["hyper","Druk (ADHD)"],["pain","Pijn"]];
+
+// ---------- Language: English (base) or Dutch ----------
+// Static text: data-t (text), data-th (HTML), data-tp (placeholder), data-ta (aria-label), data-tt (title);
+// the English original is the key. Dynamic text: t("English {name}", {name}).
+const NL = {
+  // header, tabs, Bluetooth
+  "Connection": "Verbinding", "Power": "Stroom", "Connect via Bluetooth": "Verbind via Bluetooth",
+  "Customize appearance": "Uiterlijk aanpassen", "Appearance": "Uiterlijk", "Sections": "Onderdelen",
+  "Control": "Bediening", "Settings": "Instellingen", "Wi-Fi": "Wi-Fi", "System": "Systeem",
+  "This app talks to your deskbuddy over Bluetooth. Tap <b>Connect via Bluetooth</b>; the first time, your phone asks for the pairing code that appears on the deskbuddy's screen.":
+    "Deze app praat via Bluetooth met je deskbuddy. Tik op <b>Verbind via Bluetooth</b>; bij de eerste keer vraagt je telefoon om de koppelcode die op het scherm van de deskbuddy verschijnt.",
+  "This browser doesn't support Web Bluetooth (e.g. iPhone/Safari). Use Chrome on Android or desktop, or open the deskbuddy over Wi-Fi at its IP address.":
+    "Deze browser ondersteunt geen Web Bluetooth (bijvoorbeeld iPhone/Safari). Gebruik Chrome op Android of desktop, of open de deskbuddy via Wi-Fi op zijn IP-adres.",
+  "connecting…": "verbinden…", "not connected ({e})": "niet verbonden ({e})", "no connection": "geen verbinding",
+  "No connection": "Geen verbinding", "Not connected": "Niet verbonden", "Setup network": "Setup-netwerk",
+  "signal {n} of 4": "signaal {n} van 4", "error": "fout",
+  // control
+  "Emotion": "Emotie", "Actions": "Acties", "Whistle": "Fluiten", "Wink": "Knipoog", "Kiss": "Kusje", "Rage": "Rage",
+  "Explode": "Ontploffen", "Sneeze": "Niezen", "Laugh": "Lachen", "Eye roll": "Ogen rollen", "Hiccup": "Hik",
+  "Blink": "Knipper", "Bounce": "Stuiter", "Shake": "Schud",
+  "Neutral": "Neutraal", "Happy": "Blij", "Sad": "Verdrietig", "Angry": "Boos", "Surprised": "Verrast", "Sleepy": "Slaperig",
+  "In love": "Verliefd", "Dizzy": "Duizelig", "Asleep": "Slapen", "Crying": "Huilen", "Hyper (ADHD)": "Druk (ADHD)", "Pain": "Pijn",
+  // settings
+  "Sound & screen": "Geluid & scherm", "Test sound": "Test geluid", "Sound on": "Geluid aan", "Sound off": "Geluid uit",
+  "Microphone on": "Microfoon aan", "Microphone off": "Microfoon uit",
+  "It reacts to clapping, loud noise and music (then it dances along). Only the sound level is measured; nothing is recorded or sent.":
+    "Hij reageert op klappen, hard lawaai en muziek (dan danst hij mee). Alleen het geluidsniveau wordt gemeten; er wordt niets opgenomen of verstuurd.",
+  "Volume": "Volume", "Brightness": "Helderheid", "Fall asleep after": "In slaap vallen na", "1 minute": "1 minuut",
+  "3 minutes": "3 minuten", "5 minutes": "5 minuten", "10 minutes": "10 minuten", "30 minutes": "30 minuten", "Never": "Nooit",
+  "Language": "Taal",
+  // system
+  "Install firmware via USB": "Firmware installeren via USB",
+  "Setting up a new board, or picking a specific version (including an older one)? You can do that from the browser with a USB cable, without building anything.":
+    "Een nieuw bord instellen, of een bepaalde versie kiezen (ook een oudere)? Dat kan vanuit de browser met een USB-kabel, zonder iets te bouwen.",
+  "Go to the install page": "Naar de installatiepagina", "Status": "Status",
+  "Control over Bluetooth (also without Wi-Fi):": "Bediening via Bluetooth (ook zonder Wi-Fi):",
+  "Signal": "Signaal", "Battery": "Accu", "Idle": "Inactief", "connected": "verbonden", "on": "aan", "off": "uit",
+  "connected to {ssid}": "verbonden met {ssid}", "setup network {ssid}": "setup-netwerk {ssid}",
+  "connecting to {ssid}…": "verbinden met {ssid}…", "Now: {wifi}": "Nu: {wifi}",
+  "USB power": "USB-stroom", "Battery {p}%": "Accu {p}%", " · charging": " · laden", "{p}% (charging)": "{p}% (laden)",
+  "Update firmware": "Firmware bijwerken", "Check now": "Nu controleren", "Install": "Installeren",
+  "New versions from GitHub": "Nieuwe versies van GitHub", "Notify (install yourself)": "Melden (zelf installeren)",
+  "Install automatically": "Automatisch installeren", "Don't check": "Niet controleren",
+  "Or manually: download <code>firmware.bin</code> from the <a href=\"https://github.com/newmedia/deskbuddy/releases/latest\" target=\"_blank\" rel=\"noopener\">latest release on GitHub</a> (or an <a href=\"https://github.com/newmedia/deskbuddy/releases\" target=\"_blank\" rel=\"noopener\">older version</a>) and pick that file below.":
+    "Of handmatig: download <code>firmware.bin</code> van de <a href=\"https://github.com/newmedia/deskbuddy/releases/latest\" target=\"_blank\" rel=\"noopener\">nieuwste release op GitHub</a> (of een <a href=\"https://github.com/newmedia/deskbuddy/releases\" target=\"_blank\" rel=\"noopener\">oudere versie</a>) en kies dat bestand hieronder.",
+  "Update available: {latest} (now v{version}).": "Update beschikbaar: {latest} (nu v{version}).", "What's new?": "Wat is er nieuw?",
+  "Installing {latest}… {p}%. The deskbuddy restarts afterwards.": "Bezig met installeren van {latest}… {p}%. Daarna herstart de deskbuddy.",
+  "Up to date (v{version}).": "Up-to-date (v{version}).", "Checking…": "Controleren…",
+  "Checking or installing failed; try again later (details: command <code>update</code>).":
+    "Controleren of installeren mislukt; probeer het later opnieuw (details: commando <code>update</code>).",
+  "update: connection lost (is it restarting?)": "update: verbinding verbroken (herstart hij?)",
+  "Command": "Commando", "Send": "Stuur",
+  // Wi-Fi
+  "Search networks": "Netwerken zoeken", "Searching…": "Zoeken…", "search failed: {e}": "zoeken mislukt: {e}",
+  "Network": "Netwerk", "Password": "Wachtwoord", "Show password": "Wachtwoord tonen", "Connect": "Verbinden", "Forget": "Vergeten",
+  "Pick or type a network first.": "Kies of typ eerst een netwerk.", "Connecting to {ssid}…": "Verbinden met {ssid}…",
+  "Connecting to {ssid}… ({n} s)": "Verbinden met {ssid}… ({n} s)",
+  " In {s} s the deskbuddy switches over; then reconnect your phone to your home network and open http://{ip}.":
+    " Over {s} s schakelt de deskbuddy over; verbind je telefoon dan weer met je thuisnetwerk en open http://{ip}.",
+  "Connected to {ssid}! IP address: {ip}.": "Verbonden met {ssid}! IP-adres: {ip}.",
+  "Didn't work: {reason}. Check the password and try again.": "Niet gelukt: {reason}. Controleer het wachtwoord en probeer opnieuw.",
+  "unknown error": "onbekende fout",
+  // Wi-Fi failure reasons from the device (/api/wifi/state)
+  "wrong password": "verkeerd wachtwoord", "network not found": "netwerk niet gevonden",
+  "network not found (only 2.4 GHz is supported)": "netwerk niet gevonden (alleen 2.4 GHz wordt ondersteund)",
+  "connection failed": "verbinding mislukt", "connection lost": "verbinding verbroken",
+  "no response from the network": "geen antwoord van het netwerk",
+  "No connection made. Check the network name and password (2.4 GHz only).":
+    "Geen verbinding gekregen. Controleer netwerknaam en wachtwoord (alleen 2.4 GHz).",
+  // appearance
+  "Done": "Klaar", "Pick": "Kiezen", "Make your own": "Zelf maken", "Characters": "Personages", "My profiles": "Mijn profielen",
+  "🎲 Surprise me": "🎲 Verras me", "You see every choice right away on your deskbuddy.": "Elke keuze zie je meteen op je deskbuddy.",
+  "Colors change with the emotion (angry = red, in love = pink)": "Kleuren veranderen mee met de emotie (boos = rood, verliefd = roze)",
+  "Name, e.g. My buddy": "Naam, bijv. Mijn buddy", "Profile name": "Profielnaam", "Save": "Bewaar",
+  "color {c}": "kleur {c}", "Custom color": "Eigen kleur", "Delete {n}": "{n} verwijderen", "Delete profile \"{n}\"?": "Profiel \"{n}\" verwijderen?",
+  "No custom profiles yet. Make one under <b>Make your own</b>.": "Nog geen eigen profielen. Maak er een bij <b>Zelf maken</b>.",
+  "Eyes": "Ogen", "Eyebrows": "Wenkbrauwen", "Mouth": "Mond", "Cheeks": "Wangen", "Glasses": "Bril", "Hair": "Haar",
+  "Lashes": "Wimpers", "Lips": "Lippen", "Earrings": "Oorbellen", "In the hair": "In het haar",
+  "Eye and mouth color": "Kleur ogen en mond", "Eyebrow color": "Kleur wenkbrauwen", "Mouth and cheeks": "Mond en wangen",
+  "Frame color": "Kleur montuur", "Background": "Achtergrond", "Background color": "Kleur achtergrond", "Skin": "Huid",
+  "Skin color": "Huidskleur", "Hair color (or cap)": "Haarkleur (of petje)", "Accessory and earring color": "Kleur accessoire en oorbellen",
+  "Iris color": "Kleur iris", "Eyebrows and mouth": "Wenkbrauwen en mond", "Lipstick color": "Kleur lippenstift",
+  "Glasses and jewelry": "Bril en sieraden",
+  "Block": "Blok", "Round": "Rond", "Pill": "Pil", "Ring + pupil": "Ring + pupil", "LED pixels": "LED-pixels", "Visor": "Vizier",
+  "None": "Geen", "Bar": "Balk", "Thick": "Dik", "Thin": "Dun", "Pixels": "Pixels", "Per emotion": "Per emotie", "Line": "Lijn",
+  "Zigzag": "Zigzag", "LED equalizer": "LED-equalizer", "Blush": "Blosjes", "Stripes": "Streepjes", "Square": "Vierkant",
+  "Shades": "Zonnebril", "Monocle": "Monocle", "Spiky": "Stekels", "Neat": "Netjes", "Curly": "Krullen", "Mohawk": "Hanenkam",
+  "Bald": "Kaal", "Cap": "Petje", "Long": "Lang", "Long curls": "Lange krullen", "Ponytail": "Paardenstaart", "Bun": "Knotje",
+  "Bob": "Bob", "Pigtails": "Staartjes", "Normal": "Normaal", "Dots": "Stipjes", "Straight": "Recht", "Closed smile": "Gesloten glimlach",
+  "Freckles": "Sproeten", "Eyeliner": "Eyeliner", "Lipstick": "Lippenstift", "Studs": "Knopjes", "Hoops": "Ringen",
+  "Bow": "Strik", "Headband": "Haarband", "Flower": "Bloem",
+  // footer
+  "Install firmware": "Firmware installeren", "Versions": "Versies", "Source code": "Broncode",
+};
+let lang = "en";
+try { lang = localStorage.getItem("deskbuddy-lang") || (/^nl\b/i.test(navigator.language) ? "nl" : "en"); } catch {}
+function t(s, vars) {
+  let r = s;
+  if (lang === "nl") {
+    if (s in NL) r = NL[s];
+    else console.warn("i18n: no Dutch for", JSON.stringify(s));
+  }
+  return vars ? r.replace(/\{(\w+)\}/g, (m, k) => k in vars ? vars[k] : m) : r;
+}
+const norm = s => s.replace(/\s+/g, " ").trim();
+function applyStatic() {
+  document.documentElement.lang = lang;
+  for (const e of document.querySelectorAll("[data-t]")) { e.dataset.t ||= norm(e.textContent); e.textContent = t(e.dataset.t); }
+  for (const e of document.querySelectorAll("[data-th]")) { e.dataset.th ||= norm(e.innerHTML); e.innerHTML = t(e.dataset.th); }
+  for (const e of document.querySelectorAll("[data-tp]")) e.placeholder = t(e.dataset.tp);
+  for (const e of document.querySelectorAll("[data-ta]")) e.setAttribute("aria-label", t(e.dataset.ta));
+  for (const e of document.querySelectorAll("[data-tt]")) e.title = t(e.dataset.tt);
+  document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
+  $("#lang").value = lang;
+}
+// Show a language; the device setting wins once it is known (st.lang), a choice here also sets the device.
+function setLang(l, fromDevice) {
+  if (l !== "en" && l !== "nl") return;
+  const changed = l !== lang;
+  lang = l;
+  try { localStorage.setItem("deskbuddy-lang", l); } catch {}
+  if (!fromDevice && api.ready && st.lang && st.lang !== l) { st.lang = l; cmd(`lang ${l}`); }
+  if (!changed && fromDevice) return;
+  applyStatic();
+  renderEmotions();
+  renderLook();
+  if (loadPresets.done) renderProfiles();
+  ui();
+}
+document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => setLang(b.dataset.lang));
+$("#lang").onchange = e => setLang(e.target.value);
+
+const EMO = [["neutral", "Neutral"], ["happy", "Happy"], ["sad", "Sad"], ["angry", "Angry"], ["surprised", "Surprised"],
+  ["sleepy", "Sleepy"], ["love", "In love"], ["dizzy", "Dizzy"], ["asleep", "Asleep"], ["cry", "Crying"], ["hyper", "Hyper (ADHD)"], ["pain", "Pain"]];
+const emoLabel = k => { const e = EMO.find(x => x[0] === k); return e ? t(e[1]) : k; };
 let st = {};
 
-// ---------- Transport: HTTP (pagina komt van de deskbuddy zelf) of Web Bluetooth (PWA via https) ----------
-// ?pwa: Bluetooth-modus forceren (de web-emulator biedt dan een nagebootste Bluetooth-koppeling aan)
+// ---------- Transport: HTTP (page served by the deskbuddy itself) or Web Bluetooth (PWA over https) ----------
+// ?pwa: force Bluetooth mode (the web emulator then offers an emulated Bluetooth link)
 const ON_DEVICE = location.protocol === "http:" && !new URLSearchParams(location.search).has("pwa");
 const NUS = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
@@ -308,20 +448,20 @@ const ble = {
         const w = ble.waiting.shift(); if (w) w(line);
       }
     });
-    await tx.startNotifications();  // hier vraagt de telefoon bij de eerste keer om de koppelcode
+    await tx.startNotifications();  // the first time, the phone asks for the pairing code here
     ble.ready = true;
     ui();
   },
-  raw(c) {  // commando's achter elkaar, elk wacht op zijn eigen antwoordregel
+  raw(c) {  // commands one after another, each waits for its own reply line
     const p = ble.chain.then(() => new Promise(async (res, rej) => {
-      const t = setTimeout(() => { ble.waiting.shift(); rej(new Error("geen antwoord")); }, 8000);
+      const t = setTimeout(() => { ble.waiting.shift(); rej(new Error("no reply")); }, 8000);
       ble.waiting.push(line => { clearTimeout(t); res(line); });
       try { await ble.rx.writeValueWithResponse(new TextEncoder().encode(c)); } catch (e) { clearTimeout(t); ble.waiting.pop(); rej(e); }
     }));
     ble.chain = p.catch(() => {});
     return p;
   },
-  async cmd(c) { const r = await ble.raw(c); return {ok: !/^(onbekend|gebruik)/.test(r), reply: r}; },
+  async cmd(c) { const r = await ble.raw(c); return {ok: !/^(unknown|usage)/.test(r), reply: r}; },
   async status() { return JSON.parse(await ble.raw("json")); },
   async scan() { return JSON.parse(await ble.raw("wifi scan")).networks; },
   async join(ssid, pass) { await ble.raw(`wifi join "${ssid}" ${pass}`); },
@@ -340,29 +480,34 @@ function ui() {
   $("#fw-section").hidden = !ON_DEVICE;
   $("#pwa-hint").hidden = !ON_DEVICE;
   if (!ON_DEVICE && !navigator.bluetooth) {
-    $("#ble-msg").textContent = "Deze browser ondersteunt geen Web Bluetooth (bijvoorbeeld iPhone/Safari). Gebruik Chrome op Android of desktop, of open de deskbuddy via Wi-Fi op zijn IP-adres.";
+    $("#ble-msg").textContent = t("This browser doesn't support Web Bluetooth (e.g. iPhone/Safari). Use Chrome on Android or desktop, or open the deskbuddy over Wi-Fi at its IP address.");
     $("#ble-connect").hidden = true;
   }
   if (api.ready) refresh();
+  else setConn("off", ON_DEVICE ? t("No connection") : t("Not connected"));
 }
 $("#ble-connect").onclick = async () => {
-  try { $("#sub").textContent = "verbinden…"; await ble.connect(); }
-  catch (e) { $("#sub").textContent = `niet verbonden (${e.message})`; }
+  try { $("#sub").textContent = t("connecting…"); await ble.connect(); }
+  catch (e) { $("#sub").textContent = t("not connected ({e})", {e: e.message}); }
 };
 
-// ---------- Bediening ----------
+// ---------- Control ----------
 async function cmd(c) {
   if (!api.ready) return;
   try { const j = await api.cmd(c); log(`> ${c}\n${j.reply}`); refresh(); return j; }
-  catch (e) { log(`> ${c}\n(fout: ${e.message || e})`); }
+  catch (e) { log(`> ${c}\n(${t("error")}: ${e.message || e})`); }
 }
-function log(t) { const l = $("#log"); l.textContent = (t + "\n" + l.textContent).slice(0, 2000); }
+function log(s) { const l = $("#log"); l.textContent = (s + "\n" + l.textContent).slice(0, 2000); }
 
-const eg = $("#emotions");
-for (const [k, n] of EMO) {
-  const b = document.createElement("button");
-  b.textContent = n; b.dataset.emo = k; b.onclick = () => cmd(`emotion ${k} 6000`);
-  eg.append(b);
+function renderEmotions() {
+  const eg = $("#emotions");
+  eg.innerHTML = "";
+  for (const [k, n] of EMO) {
+    const b = document.createElement("button");
+    b.textContent = t(n); b.dataset.emo = k; b.onclick = () => cmd(`emotion ${k} 6000`);
+    b.classList.toggle("on", k === st.emotion);
+    eg.append(b);
+  }
 }
 document.addEventListener("click", e => { const c = e.target.closest("[data-cmd]"); if (c) cmd(c.dataset.cmd); });
 $("#sound-btn").onclick = () => cmd(`sound ${st.sound ? "off" : "on"}`);
@@ -379,57 +524,60 @@ $("#send").onclick = () => { const c = $("#cmd").value.trim(); if (c) cmd(c); };
 $("#cmd").onkeydown = e => { if (e.key === "Enter") $("#send").click(); };
 
 let busy = false;
-// Verbindingslabel in de bovenbalk: hoe praat deze pagina nu met de buddy?
+// Connection label in the top bar: how does this page talk to the buddy right now?
 function setConn(state, text, rssi) {
   const c = $("#conn");
   c.className = "conn" + (state === "off" ? " off" : state === "warn" ? " warn" : "");
   let bars = "";
   if (rssi) {
     const n = rssi > -60 ? 4 : rssi > -70 ? 3 : rssi > -80 ? 2 : 1;
-    bars = ` <span class="bars" aria-label="signaal ${n} van 4">${[4, 6, 8, 10].map((h, i) => `<i class="${i < n ? "on" : ""}" style="height:${h}px"></i>`).join("")}</span>`;
+    bars = ` <span class="bars" aria-label="${esc(t("signal {n} of 4", {n}))}">${[4, 6, 8, 10].map((h, i) => `<i class="${i < n ? "on" : ""}" style="height:${h}px"></i>`).join("")}</span>`;
   }
   $("#conn-t").innerHTML = esc(text) + bars;
 }
 async function refresh() {
-  if (!api.ready || busy) { if (!api.ready) setConn("off", ON_DEVICE ? "Geen verbinding" : "Niet verbonden"); return; }
+  if (!api.ready || busy) { if (!api.ready) setConn("off", ON_DEVICE ? t("No connection") : t("Not connected")); return; }
   busy = true;
-  try { st = await api.status(); } catch { $("#sub").textContent = "geen verbinding"; setConn("off", "Geen verbinding"); busy = false; return; }
+  try { st = await api.status(); } catch { $("#sub").textContent = t("no connection"); setConn("off", t("No connection")); busy = false; return; }
   busy = false;
+  if (st.lang && st.lang !== lang) setLang(st.lang, true);
   if (!ON_DEVICE) setConn("on", "Bluetooth");
-  else if (st.wifi === "ap") setConn("warn", "Setup-netwerk");
+  else if (st.wifi === "ap") setConn("warn", t("Setup network"));
   else setConn("on", "Wi-Fi", st.rssi);
-  const wifi = {sta: `verbonden met ${st.ssid}`, ap: `setup-netwerk ${st.ssid}`, connecting: `verbinden met ${st.ssid}…`, off: "uit"}[st.wifi];
-  $("#sub").textContent = `${st.look || "-"} · ${st.emotion} · v${st.version}`;
-  // Stroom: USB (geen accu) of accuniveau, eventueel aan het laden
+  const wifi = {sta: t("connected to {ssid}", {ssid: st.ssid}), ap: t("setup network {ssid}", {ssid: st.ssid}),
+    connecting: t("connecting to {ssid}…", {ssid: st.ssid}), off: t("off")}[st.wifi];
+  $("#sub").textContent = `${st.look || "-"} · ${emoLabel(st.emotion)} · v${st.version}`;
+  // Power: USB (no battery) or battery level, possibly charging
   const pw = $("#power");
   pw.hidden = false;
-  if (st.battery < 0) $("#power-t").textContent = "USB-stroom";
-  else $("#power-t").textContent = `Accu ${st.battery}%${st.charging ? " · laden" : ""}`;
+  if (st.battery < 0) $("#power-t").textContent = t("USB power");
+  else $("#power-t").textContent = t("Battery {p}%", {p: st.battery}) + (st.charging ? t(" · charging") : "");
   pw.className = "conn" + (st.battery >= 0 && st.battery <= 15 && !st.charging ? " off" : "");
   document.querySelectorAll("[data-emo]").forEach(b => b.classList.toggle("on", b.dataset.emo === st.emotion));
-  const sb = $("#sound-btn"); sb.classList.toggle("on", st.sound); sb.textContent = st.sound ? "Geluid aan" : "Geluid uit";
-  const mb = $("#mic-btn"); mb.classList.toggle("on", !!st.mic); mb.textContent = st.mic ? "Microfoon aan" : "Microfoon uit";
+  const sb = $("#sound-btn"); sb.classList.toggle("on", st.sound); sb.textContent = st.sound ? t("Sound on") : t("Sound off");
+  const mb = $("#mic-btn"); mb.classList.toggle("on", !!st.mic); mb.textContent = st.mic ? t("Microphone on") : t("Microphone off");
   for (const id of ["volume", "brightness"]) {
     const el = $("#" + id);
     if (document.activeElement !== el) { el.value = st[id]; $(`#${id}-v`).textContent = st[id]; }
   }
   if (document.activeElement !== $("#sleep")) $("#sleep").value = String(st.sleep);
-  const batt = st.battery < 0 ? "USB" : `${st.battery}%${st.charging ? " (laden)" : ""}`;
-  $("#stat").innerHTML = [["Wi-Fi", wifi], ["IP", st.ip || "-"], ["Signaal", st.wifi === "sta" ? `${st.rssi} dBm` : "-"],
-    ["Bluetooth", st.ble ? (st.bleConnected ? "verbonden" : "aan") : "uit"], ["Accu", batt], ["Inactief", `${st.idle} s`]]
-    .map(([k, v]) => `<span>${k}</span><span>${esc(v)}</span>`).join("");
-  $("#wifi-now").textContent = `Nu: ${wifi}`;
+  const batt = st.battery < 0 ? "USB" : st.charging ? t("{p}% (charging)", {p: st.battery}) : `${st.battery}%`;
+  $("#stat").innerHTML = [["Wi-Fi", wifi], ["IP", st.ip || "-"], [t("Signal"), st.wifi === "sta" ? `${st.rssi} dBm` : "-"],
+    ["Bluetooth", st.ble ? (st.bleConnected ? t("connected") : t("on")) : t("off")], [t("Battery"), batt], [t("Idle"), `${st.idle} s`]]
+    .map(([k, v]) => `<span>${esc(k)}</span><span>${esc(v)}</span>`).join("");
+  $("#wifi-now").textContent = t("Now: {wifi}", {wifi});
   updateUi();
 }
 function updateUi() {
   if (document.activeElement !== $("#updates")) $("#updates").value = st.updates;
   const rel = `https://github.com/newmedia/deskbuddy/releases/tag/${encodeURIComponent(st.latest)}`;
   const txt = {
-    available: [`Update beschikbaar: ${esc(st.latest)} (nu v${esc(st.version)}). <a href="${rel}" target="_blank" rel="noopener">Wat is er nieuw?</a>`, "ok"],
-    installing: [`Bezig met installeren van ${esc(st.latest)}… ${st.progress}%. Daarna herstart de deskbuddy.`, ""],
-    uptodate: [`Up-to-date (v${esc(st.version)}).`, ""],
-    checking: ["Controleren…", ""],
-    failed: ["Controleren of installeren mislukt; probeer het later opnieuw (details: commando <code>update</code>).", "bad"],
+    available: [esc(t("Update available: {latest} (now v{version}).", {latest: st.latest, version: st.version})) +
+      ` <a href="${rel}" target="_blank" rel="noopener">${esc(t("What's new?"))}</a>`, "ok"],
+    installing: [esc(t("Installing {latest}… {p}%. The deskbuddy restarts afterwards.", {latest: st.latest, p: st.progress})), ""],
+    uptodate: [esc(t("Up to date (v{version}).", {version: st.version})), ""],
+    checking: [esc(t("Checking…")), ""],
+    failed: [t("Checking or installing failed; try again later (details: command <code>update</code>)."), "bad"],
   }[st.update];
   const p = $("#upd-now"); p.hidden = !txt;
   if (txt) { p.innerHTML = txt[0]; p.className = "status " + txt[1]; }
@@ -440,7 +588,7 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": 
 
 $("#scan").onclick = async () => {
   if (!api.ready) return;
-  $("#scan").textContent = "Zoeken…";
+  $("#scan").textContent = t("Searching…");
   try {
     const nets = await api.scan();
     const seen = new Set();
@@ -453,8 +601,8 @@ $("#scan").onclick = async () => {
       b.onclick = () => { $("#ssid").value = n.ssid; $("#pass").focus(); };
       $("#nets").append(b);
     }
-  } catch (e) { log(`zoeken mislukt: ${e.message || e}`); }
-  $("#scan").textContent = "Netwerken zoeken";
+  } catch (e) { log(t("search failed: {e}", {e: e.message || e})); }
+  $("#scan").textContent = t("Search networks");
 };
 
 $("#showpass").onchange = e => $("#pass").type = e.target.checked ? "text" : "password";
@@ -464,26 +612,26 @@ function joinStatus(text, cls) {
 }
 $("#join").onclick = async () => {
   const ssid = $("#ssid").value.trim(), pass = $("#pass").value;
-  if (!ssid) { joinStatus("Kies of typ eerst een netwerk.", "bad"); return; }
+  if (!ssid) { joinStatus(t("Pick or type a network first."), "bad"); return; }
   $("#join").disabled = true;
-  joinStatus(`Verbinden met ${ssid}…`);
+  joinStatus(t("Connecting to {ssid}…", {ssid}));
   try { await api.join(ssid, pass); } catch {}
   for (let i = 0; i < 32; i++) {
     await new Promise(r => setTimeout(r, 1000));
     let j;
     try { j = await api.wifiState(); } catch { continue; }
     if (j.sta === "connected") {
-      const extra = ON_DEVICE && j.switchIn > 0 ? ` Over ${j.switchIn} s schakelt de deskbuddy over; verbind je telefoon dan weer met je thuisnetwerk en open http://${j.ip}.` : "";
-      joinStatus(`Verbonden met ${j.ssid}! IP-adres: ${j.ip}.${extra}`, "ok");
+      const extra = ON_DEVICE && j.switchIn > 0 ? t(" In {s} s the deskbuddy switches over; then reconnect your phone to your home network and open http://{ip}.", {s: j.switchIn, ip: j.ip}) : "";
+      joinStatus(t("Connected to {ssid}! IP address: {ip}.", {ssid: j.ssid, ip: j.ip}) + extra, "ok");
       if (!ON_DEVICE || j.switchIn <= 1) break;
       continue;
     }
-    if (j.sta === "failed" && (j.reason.includes("wachtwoord") || i > 25)) {
-      joinStatus(`Niet gelukt: ${j.reason || "onbekende fout"}. Controleer het wachtwoord en probeer opnieuw.`, "bad");
+    if (j.sta === "failed" && (j.reason.includes("password") || i > 25)) {
+      joinStatus(t("Didn't work: {reason}. Check the password and try again.", {reason: j.reason ? t(j.reason) : t("unknown error")}), "bad");
       break;
     }
-    if (i === 31) joinStatus("Geen verbinding gekregen. Controleer netwerknaam en wachtwoord (alleen 2.4 GHz).", "bad");
-    else joinStatus(`Verbinden met ${ssid}… (${i + 1} s)`);
+    if (i === 31) joinStatus(t("No connection made. Check the network name and password (2.4 GHz only)."), "bad");
+    else joinStatus(t("Connecting to {ssid}… ({n} s)", {ssid, n: i + 1}));
   }
   $("#join").disabled = false;
 };
@@ -495,11 +643,11 @@ $("#fw").onchange = () => {
   const x = new XMLHttpRequest();
   x.upload.onprogress = e => { if (e.lengthComputable) p.value = e.loaded / e.total * 100; };
   x.onload = () => { log(`update: ${x.responseText}`); setTimeout(() => location.reload(), 8000); };
-  x.onerror = () => log("update: verbinding verbroken (herstart hij?)");
+  x.onerror = () => log(t("update: connection lost (is it restarting?)"));
   x.open("POST", "/update"); x.send(fd);
 };
 
-// ---------- Tabbladen + Uiterlijk-paneel ----------
+// ---------- Tabs + appearance panel ----------
 function showTab(name) {
   document.querySelectorAll(".tabs button").forEach(b => {
     const on = b.dataset.tab === name;
@@ -514,7 +662,7 @@ let startTab = "control";
 try { startTab = localStorage.getItem("deskbuddy-tab") || startTab; } catch {}
 showTab(startTab);
 
-// Editor-modus: het uiterlijk bewerken in plaats van de gewone tabbladen (wisselen met het palet-icoon).
+// Editor mode: edit the appearance instead of the regular tabs (toggle with the palette icon).
 function setEditing(on) {
   $("main").classList.toggle("editing", on);
   $("#look-panel").hidden = !on;
@@ -526,46 +674,46 @@ function setEditing(on) {
 $("#look-open").onclick = () => setEditing($("#look-panel").hidden);
 $("#look-close").onclick = () => setEditing(false);
 
-// ---------- Uiterlijk (look) ----------
+// ---------- Appearance (look) ----------
 const PARTS = {
   robot: {
-    eyes: [["block", "Blok"], ["round", "Rond"], ["pill", "Pil"], ["ring", "Ring + pupil"], ["pixel", "LED-pixels"], ["visor", "Vizier"]],
-    brows: [["none", "Geen"], ["bar", "Balk"], ["thick", "Dik"], ["thin", "Dun"], ["pixel", "Pixels"]],
-    mouth: [["auto", "Per emotie"], ["line", "Lijn"], ["zigzag", "Zigzag"], ["equalizer", "LED-equalizer"], ["pixel", "Pixels"]],
-    cheeks: [["none", "Geen"], ["blush", "Blosjes"], ["stripes", "Streepjes"], ["pixel", "Pixels"]],
-    glasses: [["none", "Geen"], ["square", "Vierkant"], ["round", "Rond"], ["shades", "Zonnebril"], ["monocle", "Monocle"]],
+    eyes: [["block", "Block"], ["round", "Round"], ["pill", "Pill"], ["ring", "Ring + pupil"], ["pixel", "LED pixels"], ["visor", "Visor"]],
+    brows: [["none", "None"], ["bar", "Bar"], ["thick", "Thick"], ["thin", "Thin"], ["pixel", "Pixels"]],
+    mouth: [["auto", "Per emotion"], ["line", "Line"], ["zigzag", "Zigzag"], ["equalizer", "LED equalizer"], ["pixel", "Pixels"]],
+    cheeks: [["none", "None"], ["blush", "Blush"], ["stripes", "Stripes"], ["pixel", "Pixels"]],
+    glasses: [["none", "None"], ["square", "Square"], ["round", "Round"], ["shades", "Shades"], ["monocle", "Monocle"]],
   },
   cartoon: {
-    hair: [["spiky", "Stekels"], ["neat", "Netjes"], ["curly", "Krullen"], ["mohawk", "Hanenkam"], ["bald", "Kaal"], ["cap", "Petje"],
-      ["long", "Lang"], ["longcurly", "Lange krullen"], ["ponytail", "Paardenstaart"], ["bun", "Knotje"], ["bob", "Bob"], ["pigtails", "Staartjes"]],
-    eyes: [["block", "Normaal"], ["round", "Stipjes"]],
-    brows: [["thick", "Dik"], ["bar", "Recht"], ["thin", "Dun"], ["none", "Geen"]],
-    mouth: [["auto", "Per emotie"], ["line", "Gesloten glimlach"]],
-    cheeks: [["blush", "Blosjes"], ["freckles", "Sproeten"], ["none", "Geen"]],
-    glasses: [["square", "Vierkant"], ["round", "Rond"], ["shades", "Zonnebril"], ["monocle", "Monocle"], ["none", "Geen"]],
-    lashes: [["none", "Geen"], ["lashes", "Wimpers"], ["liner", "Eyeliner"]],
-    lips: [["none", "Geen"], ["lipstick", "Lippenstift"]],
-    earrings: [["none", "Geen"], ["studs", "Knopjes"], ["hoops", "Ringen"]],
-    accessory: [["none", "Geen"], ["bow", "Strik"], ["headband", "Haarband"], ["flower", "Bloem"]],
+    hair: [["spiky", "Spiky"], ["neat", "Neat"], ["curly", "Curly"], ["mohawk", "Mohawk"], ["bald", "Bald"], ["cap", "Cap"],
+      ["long", "Long"], ["longcurly", "Long curls"], ["ponytail", "Ponytail"], ["bun", "Bun"], ["bob", "Bob"], ["pigtails", "Pigtails"]],
+    eyes: [["block", "Normal"], ["round", "Dots"]],
+    brows: [["thick", "Thick"], ["bar", "Straight"], ["thin", "Thin"], ["none", "None"]],
+    mouth: [["auto", "Per emotion"], ["line", "Closed smile"]],
+    cheeks: [["blush", "Blush"], ["freckles", "Freckles"], ["none", "None"]],
+    glasses: [["square", "Square"], ["round", "Round"], ["shades", "Shades"], ["monocle", "Monocle"], ["none", "None"]],
+    lashes: [["none", "None"], ["lashes", "Lashes"], ["liner", "Eyeliner"]],
+    lips: [["none", "None"], ["lipstick", "Lipstick"]],
+    earrings: [["none", "None"], ["studs", "Studs"], ["hoops", "Hoops"]],
+    accessory: [["none", "None"], ["bow", "Bow"], ["headband", "Headband"], ["flower", "Flower"]],
   },
 };
-const PART_LABEL = {eyes: "Ogen", brows: "Wenkbrauwen", mouth: "Mond", cheeks: "Wangen", glasses: "Bril", hair: "Haar",
-  lashes: "Wimpers", lips: "Lippen", earrings: "Oorbellen", accessory: "In het haar"};
-// Per basis: groepjes met de onderdelen en de kleuren die erbij horen.
+const PART_LABEL = {eyes: "Eyes", brows: "Eyebrows", mouth: "Mouth", cheeks: "Cheeks", glasses: "Glasses", hair: "Hair",
+  lashes: "Lashes", lips: "Lips", earrings: "Earrings", accessory: "In the hair"};
+// Per base: groups with their parts and the colors that belong to them.
 const GROUPS = {
   robot: [
-    {title: "Ogen", parts: ["eyes"], colors: [["primary", "Kleur ogen en mond"]]},
-    {title: "Wenkbrauwen", parts: ["brows"], colors: [["accent", "Kleur wenkbrauwen"]]},
-    {title: "Mond en wangen", parts: ["mouth", "cheeks"]},
-    {title: "Bril", parts: ["glasses"], colors: [["frame", "Kleur montuur"]]},
-    {title: "Achtergrond", parts: [], colors: [["face", "Kleur achtergrond"]]},
+    {title: "Eyes", parts: ["eyes"], colors: [["primary", "Eye and mouth color"]]},
+    {title: "Eyebrows", parts: ["brows"], colors: [["accent", "Eyebrow color"]]},
+    {title: "Mouth and cheeks", parts: ["mouth", "cheeks"]},
+    {title: "Glasses", parts: ["glasses"], colors: [["frame", "Frame color"]]},
+    {title: "Background", parts: [], colors: [["face", "Background color"]]},
   ],
   cartoon: [
-    {title: "Huid", parts: ["cheeks"], colors: [["face", "Huidskleur"]]},
-    {title: "Haar", parts: ["hair", "accessory"], colors: [["accent", "Haarkleur (of petje)"], ["extra", "Kleur accessoire en oorbellen"]]},
-    {title: "Ogen", parts: ["eyes", "lashes"], colors: [["primary", "Kleur iris"]]},
-    {title: "Wenkbrauwen en mond", parts: ["brows", "mouth", "lips"], colors: [["lip", "Kleur lippenstift"]]},
-    {title: "Bril en sieraden", parts: ["glasses", "earrings"], colors: [["frame", "Kleur montuur"]]},
+    {title: "Skin", parts: ["cheeks"], colors: [["face", "Skin color"]]},
+    {title: "Hair", parts: ["hair", "accessory"], colors: [["accent", "Hair color (or cap)"], ["extra", "Accessory and earring color"]]},
+    {title: "Eyes", parts: ["eyes", "lashes"], colors: [["primary", "Iris color"]]},
+    {title: "Eyebrows and mouth", parts: ["brows", "mouth", "lips"], colors: [["lip", "Lipstick color"]]},
+    {title: "Glasses and jewelry", parts: ["glasses", "earrings"], colors: [["frame", "Frame color"]]},
   ],
 };
 const SWATCH = {
@@ -580,7 +728,7 @@ const SWATCH = {
     extra: ["#ff6fa8", "#ffd54a", "#6ee7f7", "#ffffff", "#5be37d", "#d4af37"],
     frame: ["#15171c", "#8a5a2b", "#c0c0c0", "#d4af37", "#ff6fa8", "#3f7fd8"]},
 };
-let look = null, lookTab = "pick", openGroup = null;
+let look = null, lookTab = "pick", openGroup = null, profiles = [];
 
 async function lookCmd(c) {
   if (!api.ready) return;
@@ -588,15 +736,15 @@ async function lookCmd(c) {
     const j = await api.cmd(c);
     if (j.ok && j.reply.startsWith("{")) { look = JSON.parse(j.reply); renderLook(); }
     else if (!j.ok) log(`> ${c}\n${j.reply}`);
-  } catch (e) { log(`> ${c}\n(fout: ${e.message || e})`); }
+  } catch (e) { log(`> ${c}\n(${t("error")}: ${e.message || e})`); }
 }
-function showLookTab(t) {
-  lookTab = t;
-  document.querySelectorAll("#look-tabs button").forEach(b => b.classList.toggle("on", b.dataset.ltab === t));
-  document.querySelectorAll("[data-lpane]").forEach(p => p.hidden = p.dataset.lpane !== t);
+function showLookTab(name) {
+  lookTab = name;
+  document.querySelectorAll("#look-tabs button").forEach(b => b.classList.toggle("on", b.dataset.ltab === name));
+  document.querySelectorAll("[data-lpane]").forEach(p => p.hidden = p.dataset.lpane !== name);
 }
 document.querySelectorAll("#look-tabs button").forEach(b => b.onclick = () => showLookTab(b.dataset.ltab));
-const optName = (part, v) => (PARTS[look.base][part].find(o => o[0] === v) || [, v])[1];
+const optName = (part, v) => t((PARTS[look.base][part].find(o => o[0] === v) || [, v])[1]);
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function renderLook() {
   if (!look) return;
@@ -617,20 +765,20 @@ function renderLook() {
       groups.querySelectorAll("details").forEach(o => { if (o !== d) o.open = false; });
     };
     const sum = el("summary");
-    sum.append(el("span", "", g.title), el("span", "sum", g.parts.map(p => optName(p, look[p])).join(" · ")));
+    sum.append(el("span", "", t(g.title)), el("span", "sum", g.parts.map(p => optName(p, look[p])).join(" · ")));
     const body = el("div", "grp-body");
     for (const part of g.parts) {
-      body.append(el("label", "", PART_LABEL[part]));
+      body.append(el("label", "", t(PART_LABEL[part])));
       const opts = el("div", "opts");
       for (const [v, n] of PARTS[look.base][part]) {
-        const b = el("button", v === look[part] ? "on" : "", n);
+        const b = el("button", v === look[part] ? "on" : "", t(n));
         b.onclick = () => lookCmd(`look ${part} ${v}`);
         opts.append(b);
       }
       body.append(opts);
     }
     for (const [key, label] of g.colors || []) {
-      body.append(el("label", "", label));
+      body.append(el("label", "", t(label)));
       const sw = el("div", "sw");
       const cur = (look[key] || "").toLowerCase();
       const pal = SWATCH[look.base][key] || [];
@@ -638,17 +786,17 @@ function renderLook() {
         const b = el("button", c === cur ? "on" : "");
         b.style.background = c;
         b.title = c;
-        b.setAttribute("aria-label", `kleur ${c}`);
+        b.setAttribute("aria-label", t("color {c}", {c}));
         b.onclick = () => lookCmd(`look color ${key} ${c}`);
         sw.append(b);
       }
       const custom = el("span", "custom" + (pal.includes(cur) ? "" : " on"));
-      custom.title = "Eigen kleur";
+      custom.title = t("Custom color");
       if (!pal.includes(cur)) custom.style.background = cur;
       const inp = el("input");
       inp.type = "color";
       inp.value = cur || "#000000";
-      inp.setAttribute("aria-label", "Eigen kleur");
+      inp.setAttribute("aria-label", t("Custom color"));
       inp.onchange = () => lookCmd(`look color ${key} ${inp.value}`);
       custom.append(inp);
       sw.append(custom);
@@ -657,6 +805,26 @@ function renderLook() {
     d.append(sum, body);
     groups.append(d);
   }
+}
+function renderProfiles() {
+  const own = $("#profiles");
+  own.innerHTML = "";
+  for (const n of profiles) {
+    const b = el("button", "prof", n);
+    b.dataset.name = n;
+    b.onclick = () => lookCmd(`look preset ${n}`);
+    const x = el("span", "x", "✕");
+    x.title = t("Delete {n}", {n});
+    x.onclick = async e => {
+      e.stopPropagation();
+      if (!confirm(t("Delete profile \"{n}\"?", {n}))) return;
+      await api.cmd(`look delete ${n}`);
+      loadPresets();
+    };
+    b.append(x);
+    own.append(b);
+  }
+  if (!profiles.length) own.innerHTML = `<p class="muted" style="margin:0">${t("No custom profiles yet. Make one under <b>Make your own</b>.")}</p>`;
 }
 async function loadPresets() {
   try {
@@ -670,24 +838,9 @@ async function loadPresets() {
       b.onclick = () => lookCmd(`look preset ${n}`);
       pre.append(b);
     }
-    const own = $("#profiles");
-    own.innerHTML = "";
-    for (const n of list.profiles) {
-      const b = el("button", "prof", n);
-      b.dataset.name = n;
-      b.onclick = () => lookCmd(`look preset ${n}`);
-      const x = el("span", "x", "✕");
-      x.title = `${n} verwijderen`;
-      x.onclick = async e => {
-        e.stopPropagation();
-        if (!confirm(`Profiel "${n}" verwijderen?`)) return;
-        await api.cmd(`look delete ${n}`);
-        loadPresets();
-      };
-      b.append(x);
-      own.append(b);
-    }
-    if (!list.profiles.length) own.innerHTML = '<p class="muted" style="margin:0">Nog geen eigen profielen. Maak er een bij <b>Zelf maken</b>.</p>';
+    profiles = list.profiles;
+    renderProfiles();
+    loadPresets.done = true;
   } catch {}
   lookCmd("look");
 }
@@ -698,17 +851,20 @@ $("#profile-save").onclick = async () => {
   $("#profile-name").value = "";
   await loadPresets();
   showLookTab("pick");
-try { if (localStorage.getItem("deskbuddy-edit")) setEditing(true); } catch {}
 };
 $("#profile-name").onkeydown = e => { if (e.key === "Enter") $("#profile-save").click(); };
 $("#look-random").onclick = () => lookCmd("look random");
 document.querySelectorAll("#look-base button").forEach(b => b.onclick = () => lookCmd(`look base ${b.dataset.base}`));
 $("#look-emo").onchange = e => lookCmd(`look emotioncolors ${e.target.checked ? "on" : "off"}`);
 showLookTab("pick");
+try { if (localStorage.getItem("deskbuddy-edit")) setEditing(true); } catch {}
 let lookLoaded = false;
 setInterval(() => { if (api.ready && !lookLoaded) { lookLoaded = true; loadPresets(); } }, 500);
 
 if (location.protocol === "https:" && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+applyStatic();
+renderEmotions();
+$("#sub").textContent = t("connecting…");
 ui();
 setInterval(refresh, 2500);
 </script>

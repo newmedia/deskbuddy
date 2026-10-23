@@ -1,6 +1,6 @@
 #pragma once
-// Netwerk: Wi-Fi (station + setup-access-point met captive portal), mDNS, NTP, web-API en OTA.
-// Alles is optioneel: zonder Wi-Fi blijft de buddy gewoon offline werken.
+// Network: Wi-Fi (station + setup access point with captive portal), mDNS, NTP, web API and OTA.
+// Everything is optional: without Wi-Fi the buddy simply keeps working offline.
 
 #include <stddef.h>
 
@@ -13,11 +13,11 @@ namespace net {
 
 void begin(buddy::App& app);
 void loop();
-void setPump(void (*pump)());  // tijdens web-/ArduinoOTA-upload aangeroepen om het scherm bij te werken
+void setPump(void (*pump)());  // called during web/ArduinoOTA upload to update the screen
 void fill(buddy::DeviceInfo& d);
-// Gewone malloc vanaf 256 bytes gaat naar PSRAM (meer vrij intern RAM). Tijdens een firmware-update
-// terug naar intern: flash schrijven vanuit PSRAM-buffers en netwerkbuffers in PSRAM maken de upload
-// vele malen trager.
+// Plain malloc from 256 bytes up goes to PSRAM (more free internal RAM). During a firmware update
+// switch back to internal: writing flash from PSRAM buffers and keeping network buffers in PSRAM make
+// the upload many times slower.
 void updateMemory(bool updating);
 
 void startSetupAp();

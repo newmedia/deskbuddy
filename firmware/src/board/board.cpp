@@ -27,7 +27,7 @@ bool touchOk = false, imuOk = false, pmuOk = false, rtcOk = false;
 volatile bool touchIrq = false;
 void IRAM_ATTR onTouchIrq() { touchIrq = true; }
 
-// Dagen sinds 1970-01-01 (proleptische Gregoriaanse kalender), voor UTC <-> time_t zonder timegm.
+// Days since 1970-01-01 (proleptic Gregorian calendar), for UTC <-> time_t without timegm.
 int64_t daysFromCivil(int y, unsigned m, unsigned d) {
   y -= m <= 2;
   const int era = (y >= 0 ? y : y - 399) / 400;
@@ -58,8 +58,8 @@ bool beginTouch() {
 
 bool readTouch(int& x, int& y) {
   if (!touchOk) return false;
-  // Alleen via I2C uitlezen als de touch-chip iets meldt (interrupt), vlak na een aanraking, of als
-  // vangnet elke 100 ms. Scheelt het meeste I2C-verkeer als niemand het scherm aanraakt.
+  // Only read via I2C when the touch chip signals something (interrupt), right after a touch, or as
+  // a safety net every 100 ms. Saves most of the I2C traffic when nobody touches the screen.
   static uint32_t lastActive = 0, lastPoll = 0;
   uint32_t now = millis();
   bool irq = touchIrq;
@@ -67,10 +67,10 @@ bool readTouch(int& x, int& y) {
   touchIrq = false;
   lastPoll = now;
   const TouchPoints& p = touch.getTouchPoints();
-  if (p.getPointCount() == 0) return false;  // hasPoints() kan true zijn zonder geldig punt
+  if (p.getPointCount() == 0) return false;  // hasPoints() can be true without a valid point
   lastActive = now;
   int px = p.getPoint(0).x, py = p.getPoint(0).y;
-  // Fysiek -> logisch (inverse van ROTATION_270: logisch (x,y) -> fysiek (W-1-y, x))
+  // Physical -> logical (inverse of ROTATION_270: logical (x,y) -> physical (W-1-y, x))
   x = py;
   y = LCD_WIDTH - 1 - px;
   return true;
@@ -89,9 +89,9 @@ bool readAccel(float& ax, float& ay, float& az) {
   if (!imuOk || !imu.getDataReady()) return false;
   float x, y;
   if (!imu.getAccelerometer(x, y, az)) return false;
-  // IMU-assen -> schermassen, gemeten met tools/imu-measure.py: rechtop staand wijst de
-  // zwaartekracht langs IMU-y (= omlaag op het scherm), rechts kantelen geeft +x, en de bovenkant
-  // naar je toe kantelen geeft +z.
+  // IMU axes -> screen axes, measured with tools/imu-measure.py: standing upright, gravity
+  // points along IMU-y (= down on the screen), tilting right gives +x, and tilting the top
+  // towards you gives +z.
   ax = x;
   ay = y;
   return true;
@@ -100,7 +100,7 @@ bool readAccel(float& ax, float& ay, float& az) {
 bool beginPmu() {
   pmuOk = pmu.begin(Wire, AXP2101_SLAVE_ADDRESS, I2C_SDA, I2C_SCL);
   if (!pmuOk) return false;
-  // Alleen metingen en de PWR-knop aanzetten; spanningsrails en laadinstellingen blijven zoals ze zijn.
+  // Only enable the measurements and the PWR button; voltage rails and charge settings stay as they are.
   pmu.enableBattDetection();
   pmu.enableBattVoltageMeasure();
   pmu.enableVbusVoltageMeasure();
@@ -127,7 +127,7 @@ bool pwrKeyPressed() {
 }
 
 bool beginRtc() {
-  // Nederlandse tijdzone; de RTC zelf loopt op UTC.
+  // Dutch time zone; the RTC itself runs on UTC.
   setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
   tzset();
   rtcOk = rtc.begin(Wire, I2C_SDA, I2C_SCL);
@@ -138,8 +138,8 @@ bool beginRtc() {
                  d.getMinute() * 60 + d.getSecond());
   }
   if (t < 1700000000) {
-    // RTC leeg of ongeldig: begin bij de bouwtijd (lokale tijd van de build-PC).
-    // __DATE__ = "Oct 15 2026", __TIME__ = "23:52:01" (zonder sscanf: dat trekt ~16 KB scanf-code mee)
+    // RTC empty or invalid: start at the build time (local time of the build PC).
+    // __DATE__ = "Oct 15 2026", __TIME__ = "23:52:01" (without sscanf: that pulls in ~16 KB of scanf code)
     struct tm b = {};
     static const char months[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
     const char* d = __DATE__;

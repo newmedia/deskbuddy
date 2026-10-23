@@ -30,7 +30,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
   if (!strcmp(cmd, "emotion") && a1) {
     Emotion e;
     if (!emotionFromName(a1, e)) {
-      snprintf(reply, len, "onbekende emotie: %s", a1);
+      snprintf(reply, len, "unknown emotion: %s", a1);
       return false;
     }
     behaviour.command(e, a2 ? (uint32_t)atoi(a2) : 0);
@@ -38,7 +38,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
   } else if (!strcmp(cmd, "play") && a1) {
     Action a;
     if (!actionFromName(a1, a)) {
-      snprintf(reply, len, "gebruik: play whistle|wink|kiss|rage|explode|sneeze|laugh|eyeroll|hiccup");
+      snprintf(reply, len, "usage: play whistle|wink|kiss|rage|explode|sneeze|laugh|eyeroll|hiccup");
       return false;
     }
     face.play(a);
@@ -57,7 +57,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     GestureEvent g;
     g.type = gestureFromName(a1);
     if (g.type == Gesture::None) {
-      snprintf(reply, len, "onbekend gebaar: %s", a1);
+      snprintf(reply, len, "unknown gesture: %s", a1);
       return false;
     }
     behaviour.onGesture(g);
@@ -79,21 +79,21 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     } else if (soundFromName(a1, s)) {
       host.playSound(s);
     } else {
-      snprintf(reply, len, "gebruik: sound on|off|<naam>");
+      snprintf(reply, len, "usage: sound on|off|<name>");
       return false;
     }
     snprintf(reply, len, "ok sound %s", a1);
   } else if (!strcmp(cmd, "skin") && a1) {
     Skin s;
     if (!skinFromName(a1, s)) {
-      snprintf(reply, len, "gebruik: skin classic|mascot");
+      snprintf(reply, len, "usage: skin classic|mascot");
       return false;
     }
     host.setSkin(s);
     snprintf(reply, len, "ok skin=%s", a1);
   } else if (!strcmp(cmd, "wifi")) {
-    // wifi status | setup | on | off | forget | scan | join <ssid> <wachtwoord>
-    // De ssid mag tussen aanhalingstekens staan (voor namen met spaties); wachtwoord = rest van de regel.
+    // wifi status | setup | on | off | forget | scan | join <ssid> <password>
+    // The ssid may be quoted (for names with spaces); password = rest of the line.
     const char* action = a1 ? a1 : "status";
     if (!strcmp(action, "join")) {
       const char* p = strstr(line, "join");
@@ -115,7 +115,7 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
       size_t pl = strlen(pass);
       while (pl && (pass[pl - 1] == '\r' || pass[pl - 1] == '\n')) pass[--pl] = 0;
       if (!ssid[0]) {
-        snprintf(reply, len, "gebruik: wifi join \"<ssid>\" <wachtwoord>");
+        snprintf(reply, len, "usage: wifi join \"<ssid>\" <password>");
         return false;
       }
       host.wifi("join", ssid, pass, reply, len);
@@ -128,15 +128,15 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
     const char* action = a1 ? a1 : "status";
     if (strcmp(action, "status") && strcmp(action, "check") && strcmp(action, "install") && strcmp(action, "auto") &&
         strcmp(action, "notify") && strcmp(action, "off")) {
-      snprintf(reply, len, "gebruik: update [status|check|install|auto|notify|off]");
+      snprintf(reply, len, "usage: update [status|check|install|auto|notify|off]");
       return false;
     }
     host.firmwareUpdate(action, reply, len);
   } else if (!strcmp(cmd, "sleep") && a1) {
     int m = !strcmp(a1, "off") || !strcmp(a1, "never") ? 0 : LV_CLAMP(0, atoi(a1), 120);
     host.setSleep((uint8_t)m);
-    if (m) snprintf(reply, len, "ok slapen na %d min", m);
-    else snprintf(reply, len, "ok slapen uit");
+    if (m) snprintf(reply, len, "ok sleep after %d min", m);
+    else snprintf(reply, len, "ok sleep off");
   } else if (!strcmp(cmd, "volume") && a1) {
     int v = LV_CLAMP(0, atoi(a1), 100);
     host.setVolume((uint8_t)v);
@@ -148,11 +148,11 @@ bool runCommand(const char* line, Face& face, Behaviour& behaviour, CommandHost&
              (unsigned long)(behaviour.idleMs() / 1000), extra);
   } else if (!strcmp(cmd, "help")) {
     snprintf(reply, len,
-             "emotion <naam> [ms] | play whistle|wink|kiss|rage|explode|sneeze|laugh|eyeroll|hiccup | look <x> <y>|off | blink | bounce | gesture <naam> | brightness <0-255> | "
-             "clock | info | sound on|off|<naam> | volume <0-100> | skin classic|mascot | sleep <min>|off | "
-             "wifi status|setup|scan|off|join \"<ssid>\" <pw> | ble on|off|forget | update check|install|auto|notify|off | perf | reboot | status");
+             "emotion <name> [ms] | play whistle|wink|kiss|rage|explode|sneeze|laugh|eyeroll|hiccup | look <x> <y>|off | blink | bounce | gesture <name> | brightness <0-255> | "
+             "clock | info | sound on|off|<name> | volume <0-100> | skin classic|mascot | sleep <min>|off | "
+             "wifi status|setup|scan|off|join \"<ssid>\" <pw> | ble on|off|forget | update check|install|auto|notify|off | lang en|nl | perf | reboot | status");
   } else {
-    snprintf(reply, len, "onbekend commando (probeer 'help')");
+    snprintf(reply, len, "unknown command (try 'help')");
     return false;
   }
   return true;

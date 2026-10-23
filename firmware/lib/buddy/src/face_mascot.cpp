@@ -1,5 +1,5 @@
-// Mascotte-skin: cartoongezicht met stekelhaar, dikke wenkbrauwen, bril, witte ogen met iris en
-// een grote open lach. Gebruikt dezelfde veren/emoties als de classic-skin (face.cpp).
+// Mascot skin: cartoon face with spiky hair, thick eyebrows, glasses, white eyes with iris and
+// a big open smile. Uses the same springs/emotions as the classic skin (face.cpp).
 
 #include <math.h>
 
@@ -15,12 +15,12 @@ namespace {
 constexpr float C = Face::kSize / 2.0f;
 constexpr float kPi = 3.14159265f;
 constexpr float kEyeDx = 82, kEyeY = 246;
-constexpr float kHairUp = 44;  // haar hoger zodat de wenkbrauwen vrij blijven
-constexpr float kLookX = 58, kLookY = 42;  // gelijk aan face.cpp
+constexpr float kHairUp = 44;  // hair higher so the eyebrows stay clear
+constexpr float kLookX = 58, kLookY = 42;  // same as face.cpp
 
 inline lv_color_t hex(uint32_t c) { return lv_color_hex(c); }
-// Kleuren komen uit de look (huid, haar, iris, montuur); de rest is vast.
-inline lv_color_t shade(uint32_t c, int toWhite) {  // >0 lichter, <0 donkerder (0..255)
+// Colours come from the look (skin, hair, iris, frame); the rest is fixed.
+inline lv_color_t shade(uint32_t c, int toWhite) {  // >0 lighter, <0 darker (0..255)
   return toWhite >= 0 ? lv_color_mix(lv_color_white(), lv_color_hex(c), (uint8_t)toWhite)
                       : lv_color_mix(lv_color_black(), lv_color_hex(c), (uint8_t)(-toWhite));
 }
@@ -39,9 +39,9 @@ inline lv_color_t shade(uint32_t c, int toWhite) {  // >0 lichter, <0 donkerder 
 #define HEART hex(0xFF4F8B)
 
 struct MascotPose {
-  float browAngle;  // graden, + = binnenkant omlaag (boos)
-  float browRaise;  // px omhoog
-  float mouthOpen;  // 0 = dicht, 1 = wijd open
+  float browAngle;  // degrees, + = inside down (angry)
+  float browRaise;  // px up
+  float mouthOpen;  // 0 = closed, 1 = wide open
   float mouthWidth;
 };
 
@@ -82,13 +82,13 @@ void Face::mascotTargets() {
 }
 
 void Face::drawMascot(lv_layer_t* layer) {
-  // Geen ademhalings-deining: dan staan haar, achtergrond en bril stil en hoeven we per frame alleen
-  // ogen, wenkbrauwen en mond te hertekenen (zie Face::invalidate). Scheelt veel CPU.
+  // No breathing sway: then hair, background and glasses stand still and per frame we only
+  // need to redraw eyes, eyebrows and mouth (see Face::invalidate). Saves a lot of CPU.
   const float bob = 0;
   float sq = LV_CLAMP(-0.6f, squash_.x, 0.6f);
 
   {
-    NoShift ns;  // de huid vult altijd het hele scherm
+    NoShift ns;  // the skin always fills the whole screen
     fillRect(layer, 0, 0, kSize, kSize, 0, SKIN);
   }
 
@@ -106,20 +106,20 @@ void Face::drawMascot(lv_layer_t* layer) {
   float cy = kEyeY + bob + dy_.x * 0.3f;
   for (int side = -1; side <= 1; side += 2) drawMascotEye(layer, side, C + side * kEyeDx, cy);
 
-  // Bril (stijl uit de look): glazen, brug en poten
+  // Glasses (style from the look): lenses, bridge and temples
   const GlassesStyle gs = (GlassesStyle)look_.glasses;
   if (gs == GlassesStyle::Monocle) {
     float ex = C + kEyeDx;
     frame(layer, ex - 62, cy - 58, ex + 62, cy + 58, LV_RADIUS_CIRCLE, 8, GLASS, WHITE, 22);
     line(layer, ex - 30, cy - 34, ex - 14, cy - 44, 5, WHITE, 110);
-    line(layer, ex + 44, cy + 44, ex + 70, cy + 150, 4, GLASS);  // kettinkje
+    line(layer, ex + 44, cy + 44, ex + 70, cy + 150, 4, GLASS);  // little chain
   } else if (gs != GlassesStyle::None) {
     bool round = gs == GlassesStyle::Round, shades = gs == GlassesStyle::Shades;
     for (int side = -1; side <= 1; side += 2) {
       float ex = C + side * kEyeDx;
       if (round) frame(layer, ex - 60, cy - 56, ex + 60, cy + 56, LV_RADIUS_CIRCLE, 8, GLASS, WHITE, 22);
       else frame(layer, ex - 66, cy - 50, ex + 66, cy + 48, 22, 9, GLASS, shades ? hex(0x101010) : WHITE, shades ? 215 : 22);
-      line(layer, ex - 44, cy - 30, ex - 28, cy - 40, 5, WHITE, shades ? 140 : 110);  // glinstering
+      line(layer, ex - 44, cy - 30, ex - 28, cy - 40, 5, WHITE, shades ? 140 : 110);  // sparkle
       line(layer, ex + side * (round ? 58 : 62), cy - 30, C + side * 222, cy - 44, 9, GLASS);
     }
     line(layer, C - kEyeDx + (round ? 56 : 62), cy - 14, C + kEyeDx - (round ? 56 : 62), cy - 14, 9, GLASS);
@@ -127,15 +127,15 @@ void Face::drawMascot(lv_layer_t* layer) {
 
   drawMascotMouth(layer, C + lookX_.x * 0.25f, 340 + bob + dy_.x * 0.4f + sq * 6);
 
-  // Wenkbrauwen: dikke balken met outline, kantelen en bewegen mee met de emotie.
+  // Eyebrows: thick bars with outline, tilt and move along with the emotion.
   float a = browAngle_.x * kPi / 180.0f;
-  // Wenkbrauwen in de haarkleur; met een petje (haarkleur = petkleur) een donkere tint van de huid.
+  // Eyebrows in the hair colour; with a cap (hair colour = cap colour) a dark tint of the skin.
   const lv_color_t browCol = (HairStyle)look_.hair == HairStyle::Cap ? shade(look_.face, -150) : HAIR;
   for (int side = -1; side <= 1; side += 2) {
     float bx = C + side * 86, by = cy - 78 - browRaise_.x;
     float dx = 46 * cosf(a), dy = 46 * sinf(a);
-    float ix = bx - side * dx, iy = by + dy;  // binnenkant
-    float ox = bx + side * dx, oy = by - dy;  // buitenkant
+    float ix = bx - side * dx, iy = by + dy;  // inside
+    float ox = bx + side * dx, oy = by - dy;  // outside
     const BrowStyle bs = (BrowStyle)look_.brows;
     if (bs == BrowStyle::None) continue;
     if (bs == BrowStyle::Thin) {
@@ -150,9 +150,9 @@ void Face::drawMascot(lv_layer_t* layer) {
 
   drawHair(layer, hairY_.x);
 
-  if (earPop_ > 0.01f) drawEar(layer, true);  // luisteren: oor steekt uit (oorbel hangt eraan)
+  if (earPop_ > 0.01f) drawEar(layer, true);  // listening: ear sticks out (earring hangs on it)
 
-  // Oorbellen (onder het haar zichtbaar bij de oren)
+  // Earrings (visible below the hair at the ears)
   const EarringStyle er = (EarringStyle)look_.earrings;
   if (er != EarringStyle::None) {
     for (int side = -1; side <= 1; side += 2) {
@@ -166,7 +166,7 @@ void Face::drawMascot(lv_layer_t* layer) {
       }
     }
   }
-  // Haaraccessoire
+  // Hair accessory
   const lv_color_t ac = hex(look_.extra);
   float hy = hairY_.x - kHairUp;
   switch ((AccessoryStyle)look_.accessory) {
@@ -212,13 +212,13 @@ void Face::drawMascot(lv_layer_t* layer) {
     default:
       break;
   }
-  // Tranen als laatste: lang haar valt anders over de wangen heen
+  // Tears last: long hair would otherwise fall over the cheeks
   if (emotion_ == Emotion::Cry) {
     float sh = LV_CLAMP(44.f, eye_.h.x * 0.60f, 92.f) * swell_;
     for (int side = -1; side <= 1; side += 2) drawTears(layer, C + side * kEyeDx, cy + sh / 2 - 6, side);
   }
   if (emotion_ == Emotion::Pain) drawSweat(layer, C + 172, 196);
-  // Z'jes in een vaste lichte kleur: in de haarkleur verdwenen ze tegen het haar
+  // Z's in a fixed light colour: in the hair colour they vanished against the hair
   if (emotion_ == Emotion::Sleepy || emotion_ == Emotion::Asleep) drawZs(layer, hex(0xB8A6FF));
 }
 
@@ -227,13 +227,13 @@ void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
   float sh = LV_CLAMP(44.f, eye_.h.x * 0.60f, 92.f) * swell_;
   float hw = sw / 2, hh = sh / 2;
 
-  const bool dots = (EyeStyle)look_.eyes == EyeStyle::Round;  // stipjes-ogen: geen oogwit
+  const bool dots = (EyeStyle)look_.eyes == EyeStyle::Round;  // dots eyes: no eye white
   if (!dots) {
     fillEllipse(layer, cx, cy, sw + 7, sh + 7, OUTLINE);
     fillEllipse(layer, cx, cy, sw, sh, WHITE);
   }
 
-  // Iris blijft binnen het oogwit
+  // Iris stays within the eye white
   float ir = LV_MIN(hh - 4, 25.0f);
   float ox = lookX_.x / kLookX * (hw - ir - 6);
   float oy = lookY_.x / kLookY * (hh - ir - 2);
@@ -258,7 +258,7 @@ void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
     fillEllipse(layer, ix - ir * 0.38f, iy - ir * 0.38f, ir * 0.42f, ir * 0.42f, WHITE);
   }
 
-  // Bovenooglid in huidkleur (emotie-lid of knipper, wat het verst dicht is) met een wimperlijn.
+  // Upper eyelid in skin colour (emotion lid or blink, whichever is closed furthest) with a lash line.
   float c = eyeClosure(side);
   float lid = LV_MAX(LV_CLAMP(0.f, eye_.lidTop.x, 1.f), c);
   float tilt = eye_.tilt.x * 0.8f;
@@ -274,10 +274,10 @@ void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
     fillRect(layer, xl, top, xr, LV_MIN(yl, yr) + 2, 0, SKIN);
     if (yl < yr) fillTri(layer, xl, yl, xr, yl, xr, yr, SKIN);
     else if (yr < yl) fillTri(layer, xl, yr, xr, yr, xl, yl, SKIN);
-    // wimperlijn alleen binnen de ooromtrek
+    // lash line only within the ear outline
     float wl = ellipseHalfWidth(hw + 3, hh + 3, yl - cy), wr = ellipseHalfWidth(hw + 3, hh + 3, yr - cy);
     if (lid > 0.97f) {
-      // Helemaal dicht: een gesloten-oog-boogje in het midden (onderaan viel de lijn weg tegen de bril)
+      // Fully closed: a closed-eye arc in the middle (at the bottom the line vanished against the glasses)
       lv_draw_arc_dsc_t d;
       lv_draw_arc_dsc_init(&d);
       d.center = {ri(cx + ox), ri(cy - hw * 0.55f + oy)};
@@ -295,21 +295,21 @@ void Face::drawMascotEye(lv_layer_t* layer, int side, float cx, float cy) {
     }
   }
 
-  // Onderooglid (blije "^"-ogen)
+  // Lower eyelid (happy "^" eyes)
   float lidB = LV_CLAMP(0.f, eye_.lidBottom.x, 1.f);
   if (lidB > 0.01f) {
     float ew = sw * 1.7f, eh = sh * 1.3f;
     float topY = cy + hh - lidB * sh;
     fillEllipse(layer, cx, topY + eh / 2, ew, eh, SKIN);
   }
-  // Wimpers of eyeliner aan de buitenkant (alleen als het oog open genoeg is)
+  // Lashes or eyeliner on the outside (only if the eye is open enough)
   const LashStyle ls = (LashStyle)look_.lashes;
   if (ls != LashStyle::None && LV_MAX(c, LV_CLAMP(0.f, eye_.lidTop.x, 1.f)) < 0.55f) {
     if (ls == LashStyle::Liner) {
       line(layer, cx + side * hw * 0.35f, cy - hh * 0.95f, cx + side * (hw + 4), cy - hh * 0.55f, 7, OUTLINE);
       line(layer, cx + side * (hw + 2), cy - hh * 0.55f, cx + side * (hw + 20), cy - hh * 0.95f, 7, OUTLINE);
     } else {
-      static const float ang[] = {0.45f, 0.8f, 1.15f};  // radialen vanaf horizontaal, aan de buitenkant
+      static const float ang[] = {0.45f, 0.8f, 1.15f};  // radians from horizontal, on the outside
       for (float a : ang) {
         float px = cx + side * (hw + 2) * cosf(a), py = cy - (hh + 2) * sinf(a);
         line(layer, px, py, px + side * 13 * cosf(a), py - 13 * sinf(a), 5, OUTLINE);
@@ -326,11 +326,11 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
     return;
   }
   float o = LV_CLAMP(0.f, mouthOpen_.x, 1.2f);
-  if ((MouthStyle)look_.mouth == MouthStyle::Line) o = 0;  // altijd een gesloten glimlach
+  if ((MouthStyle)look_.mouth == MouthStyle::Line) o = 0;  // always a closed smile
   float mw = mouthWidth_.x;
 
   if (emotion_ == Emotion::Pain) {
-    // Grimas: tanden op elkaar in een smalle balk, mondhoeken omlaag
+    // Grimace: teeth clenched in a narrow bar, mouth corners down
     float w = mw * 0.78f, h = 30, y = my + 6;
     fillRect(layer, cx - w / 2 - 5, y - h / 2 - 5, cx + w / 2 + 5, y + h / 2 + 5, 14, lipCol);
     fillRect(layer, cx - w / 2, y - h / 2, cx + w / 2, y + h / 2, 10, WHITE);
@@ -373,7 +373,7 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
     return;
   }
 
-  // Open "D"-lach: alleen de onderste helft van ellipsen tekenen (clip-gebied vanaf de bovenlip).
+  // Open "D" smile: draw only the lower half of ellipses (clip area from the upper lip).
   float h = 16 + 70 * o;
   lv_area_t saved = layer->_clip_area;
   lv_area_t clip = saved;
@@ -389,7 +389,7 @@ void Face::drawMascotMouth(lv_layer_t* layer, float cx, float my) {
     layer->_clip_area = saved;
   }
   line(layer, cx - mw / 2 - 4, my, cx + mw / 2 + 4, my, lipstick ? 11 : 7, lipCol);
-  // mondhoekjes
+  // mouth corners
   line(layer, cx - mw / 2 - 4, my, cx - mw / 2 - 14, my - 10, 6, lipCol);
   line(layer, cx + mw / 2 + 4, my, cx + mw / 2 + 14, my - 10, 6, lipCol);
 }
@@ -399,19 +399,19 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
   const HairStyle hs = (HairStyle)look_.hair;
   switch (hs) {
     case HairStyle::Neat: {
-      // Glad, met een zijscheiding en een lok die over het voorhoofd zwiept
+      // Smooth, with a side parting and a lock that sweeps across the forehead
       fillEllipse(layer, C, -24 + dy, 640, 316, OUTLINE);
       fillEllipse(layer, C, -24 + dy, 628, 304, HAIR);
       fillTri(layer, 90, 96 + dy, 380, 100 + dy, 130, 176 + dy, OUTLINE);
       fillTri(layer, 96, 92 + dy, 374, 96 + dy, 134, 168 + dy, HAIR);
-      fillTri(layer, 30, 110 + dy, 92, 100 + dy, 52, 210 + dy, HAIR);    // bakkebaarden
+      fillTri(layer, 30, 110 + dy, 92, 100 + dy, 52, 210 + dy, HAIR);    // sideburns
       fillTri(layer, 374, 100 + dy, 436, 110 + dy, 414, 210 + dy, HAIR);
-      line(layer, 300, 30 + dy, 272, 100 + dy, 6, shade(look_.accent, -60), 200);  // scheiding
+      line(layer, 300, 30 + dy, 272, 100 + dy, 6, shade(look_.accent, -60), 200);  // parting
       line(layer, 160, 48 + dy, 220, 98 + dy, 9, HAIR_HI, 190);
       break;
     }
     case HairStyle::Curly: {
-      // Krullen: rijen rondjes langs de bovenkant
+      // Curls: rows of circles along the top
       static const float curls[][3] = {
           {70, 150, 40},  {110, 104, 42}, {165, 76, 44}, {225, 64, 46}, {285, 70, 44}, {340, 92, 42}, {390, 132, 40},
           {120, 150, 34}, {180, 128, 36}, {240, 120, 38}, {300, 126, 36}, {350, 150, 34}, {40, 200, 34}, {426, 200, 34},
@@ -424,7 +424,7 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
       break;
     }
     case HairStyle::Mohawk: {
-      // Kale zijkanten (iets donkerder: stoppels), een kam in het midden
+      // Bald sides (slightly darker: stubble), a crest in the middle
       static const float sp[][6] = {{180, 120, 286, 120, 200, -10}, {178, 80, 288, 80, 250, -40},
                                     {182, 40, 284, 40, 300, -20}, {196, 130, 270, 130, 226, 172}};
       fillRect(layer, 186, -20 + dy, 280, 132 + dy, 24, OUTLINE);
@@ -435,7 +435,7 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
       break;
     }
     case HairStyle::Bald: {
-      // Kaal met een glans, en plukjes boven de oren
+      // Bald with a shine, and tufts above the ears
       fillEllipse(layer, C - 70, 66 + dy + kHairUp, 120, 50, WHITE, 70);
       for (int side = -1; side <= 1; side += 2) {
         float x = C + side * 198;
@@ -446,7 +446,7 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
       break;
     }
     case HairStyle::Cap: {
-      // Petje: koepel in de haarkleur, klep naar voren-links, knoopje bovenop
+      // Cap: dome in the hair colour, brim to the front-left, button on top
       fillEllipse(layer, C, -10 + dy, 600, 300, OUTLINE);
       fillEllipse(layer, C, -10 + dy, 588, 288, HAIR);
       fillRect(layer, 30, 118 + dy, 330, 146 + dy, 14, OUTLINE);
@@ -458,15 +458,15 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
     }
     case HairStyle::Long:
     case HairStyle::LongCurly: {
-      // Lang haar: kap + zachte pony + lange, ronde zijlokken langs de rand tot onderaan
+      // Long hair: hood + soft fringe + long, round side locks along the edge down to the bottom
       bool curly = hs == HairStyle::LongCurly;
       for (int pass = 0; pass < 2; pass++) {
         lv_color_t c = pass ? HAIR : OUTLINE;
         float g = pass ? 0 : 7;
         fillEllipse(layer, C, -20 + dy, 630 + g, 310 + g, c);
-        fillEllipse(layer, 30, 280, 190 + g, 470 + g, c);    // zijlokken
+        fillEllipse(layer, 30, 280, 190 + g, 470 + g, c);    // side locks
         fillEllipse(layer, 436, 280, 190 + g, 470 + g, c);
-        fillEllipse(layer, C - 40, 70 + dy, 300 + g, 150 + g, c);  // pony, iets naar links
+        fillEllipse(layer, C - 40, 70 + dy, 300 + g, 150 + g, c);  // fringe, slightly to the left
         if (curly)
           for (int i = 0; i < 6; i++) {
             fillEllipse(layer, 74, 150 + i * 56, 66 + g, 66 + g, c);
@@ -479,22 +479,22 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
       break;
     }
     case HairStyle::Ponytail: {
-      // Strak naar achteren met een paardenstaart rechts
+      // Slicked back with a ponytail on the right
       fillEllipse(layer, C, -20 + dy, 630, 310, OUTLINE);
       fillEllipse(layer, C, -20 + dy, 618, 298, HAIR);
       fillEllipse(layer, 420, 300, 86, 230, OUTLINE);
       fillEllipse(layer, 420, 300, 74, 218, HAIR);
-      fillRect(layer, 396, 164, 444, 186, 8, hex(look_.extra));  // elastiekje
+      fillRect(layer, 396, 164, 444, 186, 8, hex(look_.extra));  // hair tie
       fillTri(layer, 100, 96 + dy, 300, 96 + dy, 120, 132 + dy, HAIR);
       line(layer, 170, 40 + dy, 230, 90 + dy, 9, HAIR_HI, 180);
       line(layer, 412, 200, 418, 360, 7, HAIR_HI, 140);
       break;
     }
     case HairStyle::Bun: {
-      // Knotje bovenop + gladde kap met kleine pony
+      // Bun on top + smooth cap with small fringe
       fillEllipse(layer, C, -20 + dy, 630, 310, OUTLINE);
       fillEllipse(layer, C, -20 + dy, 618, 298, HAIR);
-      fillEllipse(layer, C, 52, 150, 120, OUTLINE);  // knotje: vast in beeld bovenop
+      fillEllipse(layer, C, 52, 150, 120, OUTLINE);  // bun: fixed in view on top
       fillEllipse(layer, C, 52, 138, 108, HAIR);
       line(layer, C - 52, 54, C + 52, 54, 5, shade(look_.accent, -50), 200);
       fillTri(layer, 30, 110 + dy, 92, 100 + dy, 56, 200 + dy, HAIR);
@@ -503,20 +503,20 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
       break;
     }
     case HairStyle::Bob: {
-      // Bob tot de kaaklijn (ronde zijkanten) met een rechte pony
+      // Bob to the jawline (round sides) with a straight fringe
       for (int pass = 0; pass < 2; pass++) {
         lv_color_t c = pass ? HAIR : OUTLINE;
         float g = pass ? 0 : 7;
         fillEllipse(layer, C, -20 + dy, 630 + g, 310 + g, c);
         fillEllipse(layer, 46, 226, 190 + g, 300 + g, c);
         fillEllipse(layer, 420, 226, 190 + g, 300 + g, c);
-        fillRect(layer, 96 - g, 70 + dy, 370 + g, 136 + dy + g, 24, c);  // pony
+        fillRect(layer, 96 - g, 70 + dy, 370 + g, 136 + dy + g, 24, c);  // fringe
       }
       line(layer, 140, 40 + dy, 190, 100 + dy, 9, HAIR_HI, 180);
       break;
     }
     case HairStyle::Pigtails: {
-      // Middenscheiding met twee staartjes opzij
+      // Centre parting with two pigtails at the sides
       fillEllipse(layer, C, -20 + dy, 630, 310, OUTLINE);
       fillEllipse(layer, C, -20 + dy, 618, 298, HAIR);
       line(layer, C, 0 + dy, C, 96 + dy, 5, shade(look_.accent, -60), 200);
@@ -524,7 +524,7 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
         float x = C + side * 206;
         fillEllipse(layer, x, 290, 98, 160, OUTLINE);
         fillEllipse(layer, x, 290, 86, 148, HAIR);
-        fillEllipse(layer, x - side * 10, 196, 34, 24, hex(look_.extra));  // elastiekje
+        fillEllipse(layer, x - side * 10, 196, 34, 24, hex(look_.extra));  // hair tie
       }
       fillTri(layer, 96, 96 + dy, C - 6, 96 + dy, 116, 140 + dy, HAIR);
       fillTri(layer, C + 6, 96 + dy, 370, 96 + dy, 350, 140 + dy, HAIR);
@@ -532,7 +532,7 @@ void Face::drawHair(lv_layer_t* layer, float dy) {
     }
     case HairStyle::Spiky:
     default: {
-      // Pony-pieken (hangen naar beneden en zwiepen naar links) + bakkebaarden.
+      // Fringe spikes (hang down and sweep to the left) + sideburns.
       static const float spikes[][6] = {
           {110, 92, 185, 118, 92, 182},  {170, 116, 245, 128, 150, 198}, {232, 124, 300, 122, 214, 190},
           {288, 120, 352, 104, 280, 176}, {340, 100, 400, 78, 362, 150},  {30, 118, 96, 104, 56, 220},

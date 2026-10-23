@@ -1,38 +1,39 @@
 # CLAUDE.md
 
-Project rond een deskbuddy desk-robot. Hardware: Waveshare ESP32-S3-Touch-AMOLED-1.75 (ESP32-S3R8,
-16 MB flash, 466×466 AMOLED met CO5300 + CST9217-touch). Details en pins staan in `docs/hardware.md`.
-Taal van docs en commits: Nederlands.
+Project around a deskbuddy desk robot. Hardware: Waveshare ESP32-S3-Touch-AMOLED-1.75 (ESP32-S3R8,
+16 MB flash, 466×466 AMOLED with CO5300 + CST9217 touch). Details and pins are in `docs/hardware.md`.
+Language: docs, code comments and commit messages are in English. User-facing text in the firmware
+and web app exists in English and Dutch (firmware `tr(en, nl)` helper in
+`firmware/lib/buddy/src/i18n.h`, web app dictionary in `firmware/web/index.html`); new UI text must
+be added in both languages.
 
-## Apparaat
-- USB `303a:1001`, poort `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*-if00`
-- Voor toegang tot de poort moet de gebruiker in `dialout` zitten. Sudo nooit zelf uitvoeren; vraag
-  het de gebruiker. Is de groep al toegevoegd maar nog niet actief in de shell, gebruik dan `sg dialout -c "…"`.
-- Gebruik de scripts in `tools/` (esptool v5 in `.venv/`, commando's met streepjes, zoals `read-flash`)
+## Device
+- USB `303a:1001`, port `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*-if00`
+- Access to the port requires the user to be in `dialout`. Never run sudo yourself; ask the user.
+  If the group has been added but is not yet active in the shell, use `sg dialout -c "…"`.
+- Use the scripts in `tools/` (esptool v5 in `.venv/`, commands with dashes, such as `read-flash`)
 
 ## Code
-- `firmware/`: PlatformIO, met env `esp32` (apparaat), `sim` (headless PC-simulator), `emu`
-  (interactieve SDL-emulator, `tools/emu.sh`) en `webemu` (web-emulator met webinterface en PWA,
-  `tools/webemu.sh` -> http://localhost:8765/emu). Uitleg in `docs/firmware.md`.
-- Draai `tools/webemu-test.sh` (regressietest, `docs/regressietest.md`) na wijzigingen in de
-  firmware-logica of web-app, en altijd vóór een release of flashverzoek.
-- Test functionaliteit en web-app/PWA eerst in de web-emulator (bijv. via de ingebouwde browser,
-  config `webemu` in `.claude/launch.json`); prestaties meet je op het apparaat.
-- Hardware-onafhankelijke logica hoort in `firmware/lib/buddy/` (alleen LVGL), zodat de simulator
-  hem ook draait. Hardware hoort in `firmware/src/board/`.
-- Controleer UI-wijzigingen met `tools/sim.sh` en bekijk de PNG's in `sim-out/` voordat je om
-  flashen vraagt.
-- Plan en fases staan in `docs/plan.md`. Navigatie: veeg omlaag = info (Wi-Fi/BLE/geluid/skin),
-  veeg omhoog = klok.
-- Start de emulator ontkoppeld met `setsid … &` en stop hem met `pkill -x program`. Gebruik geen
-  `pkill -f`, want die matcht ook je eigen shell.
+- `firmware/`: PlatformIO, with env `esp32` (device), `sim` (headless PC simulator), `emu`
+  (interactive SDL emulator, `tools/emu.sh`) and `webemu` (web emulator with web interface and PWA,
+  `tools/webemu.sh` -> http://localhost:8765/emu). Explained in `docs/firmware.md`.
+- Run `tools/webemu-test.sh` (regression test, `docs/regression-test.md`) after changes to the
+  firmware logic or web app, and always before a release or a flash request.
+- Test functionality and the web app/PWA in the web emulator first (e.g. via the built-in browser,
+  config `webemu` in `.claude/launch.json`); measure performance on the device.
+- Hardware-independent logic belongs in `firmware/lib/buddy/` (LVGL only), so the simulator can run
+  it too. Hardware belongs in `firmware/src/board/`.
+- Check UI changes with `tools/sim.sh` and look at the PNGs in `sim-out/` before asking to flash.
+- Plan and phases are in `docs/plan.md`. Navigation: swipe down = info (Wi-Fi/BLE/sound/skin),
+  swipe up = clock.
+- Start the emulator detached with `setsid … &` and stop it with `pkill -x program`. Do not use
+  `pkill -f`, because it also matches your own shell.
 
-## Regels
-- **Nooit flashen, wissen of `write-flash` uitvoeren zonder expliciete toestemming** en zonder dat er
-  een backup in `backups/` staat. Op de chip staat de enige kopie van de closed-source
-  originele firmware.
-- `backups/` staat in `.gitignore` (IP van de oorspronkelijke maker). Commit of publiceer dumps nooit.
-- Lees-acties (chip-info, read-flash, monitor) zijn veilig.
+## Rules
+- **Never flash, erase or run `write-flash` without explicit permission** and without a backup in
+  `backups/`. The chip holds the only copy of the closed-source original firmware.
+- `backups/` is in `.gitignore` (IP of the original maker). Never commit or publish dumps.
+- Read actions (chip-info, read-flash, monitor) are safe.
 
 ## Skill
-`.claude/skills/esp-device/` bevat de workflow voor dit apparaat: inspecteren, backup maken, flashen.
+`.claude/skills/esp-device/` contains the workflow for this device: inspect, back up, flash.

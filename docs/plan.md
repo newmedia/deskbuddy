@@ -1,26 +1,26 @@
-# Plan: deskbuddy-firmware en apps
+# Plan: deskbuddy firmware and apps
 
-De originele firmware is closed source en kan dus niet worden aangepast. Daarom bouwen we eigen
-deskbuddy-firmware vanaf nul op dezelfde hardware (zie `hardware.md`). De backup van de originele
-firmware staat in `backups/`; terugzetten kan altijd.
+The original firmware is closed source and therefore cannot be modified. That is why we are
+building custom deskbuddy firmware from scratch on the same hardware (see `hardware.md`). The
+backup of the original firmware is in `backups/`; restoring it is always possible.
 
-## Gekozen uitgangspunten (2026-10-15)
+## Chosen starting points (2026-10-15)
 
-| Onderwerp | Keuze |
+| Topic | Choice |
 |---|---|
 | Firmware | PlatformIO + Arduino-ESP32 3.x + **LVGL 9** |
-| Animaties | **Mix**: procedureel getekend gezicht met ogen en emoties als basis, plus sprite-animaties voor speciale momenten |
-| Aansturing | Webinterface op het apparaat, BLE, Windows-app en Home Assistant/MQTT |
-| Telefoon | **PWA**: dezelfde web-app praat via Wi-Fi of Web Bluetooth. Web Bluetooth werkt niet in Safari op iOS; daar gaat het via Wi-Fi. |
-| Desktop | **Tauri** (Rust + dezelfde web-UI), voor Windows en ook Linux |
-| Functies | Klok, weer en agenda; reageren op beweging en aanraking; geluid en spraak |
-| Flash | Volledig voor deskbuddy, met twee OTA-slots en geen fallback naar de originele firmware op het apparaat |
+| Animations | **Mix**: a procedurally drawn face with eyes and emotions as the basis, plus sprite animations for special moments |
+| Control | Web interface on the device, BLE, Windows app and Home Assistant/MQTT |
+| Phone | **PWA**: the same web app talks over Wi-Fi or Web Bluetooth. Web Bluetooth does not work in Safari on iOS; there it goes over Wi-Fi. |
+| Desktop | **Tauri** (Rust + the same web UI), for Windows and also Linux |
+| Features | Clock, weather and calendar; reacting to movement and touch; sound and speech |
+| Flash | Fully for deskbuddy, with two OTA slots and no fallback to the original firmware on the device |
 
-## Architectuur
+## Architecture
 
 ```
             ┌───────────── deskbuddy (ESP32-S3) ─────────────┐
-            │  Face engine (LVGL 9)  ←  Behaviour/emotie-FSM │
+            │  Face engine (LVGL 9)  ←  Behaviour/emotion FSM│
             │      ↑ sprites (LittleFS)      ↑ events        │
             │  Sensors: touch · IMU · RTC · PMU · mic        │
             │  Audio: ES8311 speaker · ES7210 mic            │
@@ -28,91 +28,91 @@ firmware staat in `backups/`; terugzetten kan altijd.
             └───────────────┬───────────────┬────────────────┘
                  Wi-Fi (mDNS deskbuddy.local)│BLE
         ┌───────────────────┴──┐   ┌────────┴─────────┐   ┌──────────────┐
-        │ Web-UI / PWA         │   │ Tauri desktop app│   │ Home Assistant│
-        │ (geserveerd door ESP)│   │ (PC-status push) │   │ via MQTT disc.│
+        │ Web UI / PWA         │   │ Tauri desktop app│   │ Home Assistant│
+        │ (served by the ESP)  │   │ (PC status push) │   │ via MQTT disc.│
         └──────────────────────┘   └──────────────────┘   └──────────────┘
 ```
 
-- **Eén commandoprotocol** (JSON-berichten zoals `{"cmd":"emotion","value":"happy"}`) dat over
-  WebSocket, BLE (GATT-characteristic) en MQTT hetzelfde werkt. Alle clients spreken dezelfde taal.
-- **Web-UI** wordt gebouwd als statische bestanden en geserveerd vanuit LittleFS. De PWA en de
-  Tauri-app gebruiken dezelfde code.
-- **Wi-Fi-setup**: eerst via BLE vanuit de PWA, of via een access point met captive portal als
-  terugvaloptie.
-- **OTA**: firmware en LittleFS bijwerken via de webinterface of de desktop-app.
+- **One command protocol** (JSON messages such as `{"cmd":"emotion","value":"happy"}`) that works
+  the same over WebSocket, BLE (GATT characteristic) and MQTT. All clients speak the same language.
+- **Web UI** is built as static files and served from LittleFS. The PWA and the Tauri app use the
+  same code.
+- **Wi-Fi setup**: first via BLE from the PWA, or via an access point with a captive portal as a
+  fallback.
+- **OTA**: update firmware and LittleFS via the web interface or the desktop app.
 
-## Repo-indeling (voorstel)
+## Repo layout (proposal)
 
 ```
-firmware/        PlatformIO-project (src/, lib/, data/ voor LittleFS)
-  src/face/      procedureel gezicht, emoties, sprite-player
+firmware/        PlatformIO project (src/, lib/, data/ for LittleFS)
+  src/face/      procedural face, emotions, sprite player
   src/drivers/   display (CO5300 QSPI), touch, IMU, PMU, RTC, audio
   src/net/       wifi, webserver/ws, ble, mqtt, ota
-web/             web-UI + PWA (Vite + TypeScript); de build gaat naar firmware/data/
-desktop/         Tauri-app (hergebruikt web/)
-protocol/        JSON-schema van de commando's en events (gedeeld)
+web/             web UI + PWA (Vite + TypeScript); the build goes to firmware/data/
+desktop/         Tauri app (reuses web/)
+protocol/        JSON schema of the commands and events (shared)
 docs/
 tools/
 ```
 
-## Fases
+## Phases
 
-Navigatie (vast): **veeg omlaag** opent het info-paneel met Wi-Fi (IP/SSID of AP), BLE en accu.
-**Veeg omhoog** opent de klok. Wi-Fi en BLE zijn optioneel; zonder verbinding werkt de buddy
-offline, maar met minder functies.
+Navigation (fixed): **swipe down** opens the info panel with Wi-Fi (IP/SSID or AP), BLE and battery.
+**Swipe up** opens the clock. Wi-Fi and BLE are optional; without a connection the buddy works
+offline, but with fewer features.
 
-1. ✅ **Basis-firmware** (zie `firmware.md`): het display werkt met LVGL 9 op 466×466. Het procedurele gezicht knippert,
-   kijkt rond en heeft 6–8 emoties. Touch-gestures (tik, aai, lang drukken) en IMU-events
-   (schudden, oppakken, kantelen) geven reacties. Plus klok via de RTC en de accu-indicator.
-2. ✅ **Wi-Fi en web** (QR-setup, captive portal, `deskbuddy.local`, web-UI, OTA, NTP): captive-portal-setup, mDNS `deskbuddy.local`, webserver met WebSocket,
-   web-UI met de knoppen emotie, bericht, helderheid en volume, NTP-tijd en OTA.
-   → *Dit is het MVP.* ✅ Plus automatische updates via GitHub Releases (`tools/release.sh`).
-3. ✅ **BLE en PWA** (NUS met pincode-koppeling, PWA op GitHub Pages via Web Bluetooth): GATT-service met hetzelfde protocol, Wi-Fi-provisioning via BLE en een
-   installeerbare PWA.
-4. **Desktop-app (Tauri)**: verbindt via mDNS of BLE en pusht PC-status, notificaties en
-   agenda-items naar de buddy.
-5. **Home Assistant/MQTT**: MQTT-discovery, emoties als `select`, sensoren voor accu en
-   beweging, en het tonen van HA-waarden op het scherm.
-6. **Klok, weer en agenda**: weer via Open-Meteo (geen API-key nodig). De agenda loopt via de
-   desktop-app of HA.
-7. **Geluid en spraak** (✅ geluidseffecten via de synth, aan/uit in het info-paneel): geluidseffecten via de ES8311, klap- en stemdetectie via de ES7210, en
-   later eventueel spraakinteractie met een LLM via de desktop-app of HA.
-8. ✅ **Skins**: `classic` (robot) en `mascot` (cartoon met haar, bril en lach). Later
-   eventueel meer skins.
-9. **Sprite-animaties**: speciale animaties uit LittleFS (bijvoorbeeld een LVGL-image-reeks) voor
-   events zoals een verjaardag of een nieuwe melding.
+1. ✅ **Base firmware** (see `firmware.md`): the display works with LVGL 9 at 466×466. The procedural face blinks,
+   looks around and has 6–8 emotions. Touch gestures (tap, stroke, long press) and IMU events
+   (shake, pick up, tilt) trigger reactions. Plus clock via the RTC and the battery indicator.
+2. ✅ **Wi-Fi and web** (QR setup, captive portal, `deskbuddy.local`, web UI, OTA, NTP): captive portal setup, mDNS `deskbuddy.local`, web server with WebSocket,
+   web UI with buttons for emotion, message, brightness and volume, NTP time and OTA.
+   → *This is the MVP.* ✅ Plus automatic updates via GitHub Releases (`tools/release.sh`).
+3. ✅ **BLE and PWA** (NUS with PIN pairing, PWA on GitHub Pages via Web Bluetooth): GATT service with the same protocol, Wi-Fi provisioning via BLE and an
+   installable PWA.
+4. **Desktop app (Tauri)**: connects via mDNS or BLE and pushes PC status, notifications and
+   calendar items to the buddy.
+5. **Home Assistant/MQTT**: MQTT discovery, emotions as `select`, sensors for battery and
+   motion, and showing HA values on the screen.
+6. **Clock, weather and calendar**: weather via Open-Meteo (no API key needed). The calendar goes
+   through the desktop app or HA.
+7. **Sound and speech** (✅ sound effects via the synth, on/off in the info panel): sound effects via the ES8311, clap and voice detection via the ES7210, and
+   possibly speech interaction with an LLM later via the desktop app or HA.
+8. ✅ **Skins**: `classic` (robot) and `mascot` (cartoon with hair, glasses and a smile). Possibly
+   more skins later.
+9. **Sprite animations**: special animations from LittleFS (for example an LVGL image sequence) for
+   events such as a birthday or a new notification.
 
-## Risico's en aandachtspunten
-- **Prestaties**: 466×466 in 16-bit is ±434 KB per frame. Dat vraagt om LVGL-buffers in PSRAM,
-  gedeeltelijke updates en DMA via QSPI. Mikken op 30+ fps voor het gezicht.
-- Wi-Fi en BLE tegelijk is mogelijk op de S3, maar kost RAM. Daarom NimBLE gebruiken in plaats
-  van Bluedroid.
-- Voor flashen is toestemming nodig (zie `CLAUDE.md`). De eerste keer flashen overschrijft de
-  originele firmware; de backup staat klaar.
+## Risks and points of attention
+- **Performance**: 466×466 at 16-bit is ±434 KB per frame. That calls for LVGL buffers in PSRAM,
+  partial updates and DMA over QSPI. Aim for 30+ fps for the face.
+- Wi-Fi and BLE at the same time is possible on the S3, but costs RAM. That is why we use NimBLE
+  instead of Bluedroid.
+- Flashing requires permission (see `CLAUDE.md`). The first flash overwrites the original
+  firmware; the backup is ready.
 
-## Meerdere buddies (idee)
+## Multiple buddies (idea)
 
-Op elkaar reageren en samen dingen doen (aanstekelijk gedrag, koor, wave, berichtjes naar collega's):
-zie `multi-buddy.md` voor het ontwerpvoorstel (ESP-NOW lokaal + MQTT op afstand).
+Reacting to each other and doing things together (contagious behavior, choir, wave, messages to colleagues):
+see `multi-buddy.md` for the design proposal (ESP-NOW locally + MQTT remotely).
 
-## Animaties (✅ fluiten, knipoog, kusje, rage en ontploffen gebouwd; de rest staat nog open)
+## Animations (✅ whistle, wink, kiss, rage and explode built; the rest is still open)
 
-Speciale animaties zijn *acties*: een korte tijdlijn bovenop de gewone emotie. Ze krijgen een eigen
-geluid en gaan daarna terug naar de vorige emotie. Ze werken in beide skins en zijn te starten via
-een commando (`play <naam>`), de webinterface, BLE en HA, en sommige ook via gebaren.
+Special animations are *actions*: a short timeline on top of the regular emotion. They get their own
+sound and then return to the previous emotion. They work in both skins and can be started via
+a command (`play <name>`), the web interface, BLE and HA, and some also via gestures.
 
-| Actie | Beeld | Geluid | Trigger |
+| Action | Visual | Sound | Trigger |
 |---|---|---|---|
-| Fluiten | getuite mond, muzieknootjes zweven omhoog, ogen half dicht | melodietje (synth) | spontaan bij verveling |
-| Knipoog | één oog dicht (los ooglid per oog), lichte kanteling van het hoofd | "ting" | dubbeltik op één oog |
-| Kusje | getuite lippen, hartje vliegt naar voren en groeit | smakje | lang aaien |
-| Boos | rode tint, wenkbrauwen/oogleden schuin, korte trilling | brom | herhaald tikken |
-| Rage | dieprood, scherm trilt, stoomwolkjes uit de zijkanten, "#@!"-symbooltjes | grommen + sissen | nog vaker tikken of schudden als hij al boos is |
-| Ontploffen | opzwellen, witte flits, deeltjes vliegen weg, daarna verkoold en verbaasd (zwarte vegen, rookpluim) | "boem" (ruis-burst) | rage die blijft doorgaan |
-| Niezen | ogen dicht, opbouw "ah-ah-", nies-schok | "hatsjoe" | spontaan |
-| Lachen | ogen "^ ^", hele gezicht schudt ritmisch | "hihihi"-chirps | kietelen (snel aaien) |
-| Rollende ogen | ogen draaien een rondje omhoog | zucht | veeg heen en weer |
+| Whistle | pursed mouth, music notes float upward, eyes half closed | little tune (synth) | spontaneously when bored |
+| Wink | one eye closed (separate eyelid per eye), slight tilt of the head | "ting" | double tap on one eye |
+| Kiss | pursed lips, a heart flies forward and grows | smack | long stroking |
+| Angry | red tint, eyebrows/eyelids slanted, short shake | growl | repeated tapping |
+| Rage | deep red, screen shakes, steam clouds from the sides, "#@!" symbols | snarling + hissing | even more tapping or shaking when already angry |
+| Explode | swelling, white flash, particles fly away, then charred and surprised (black streaks, smoke plume) | "boom" (noise burst) | rage that keeps going |
+| Sneeze | eyes closed, build-up "ah-ah-", sneeze jolt | "achoo" | spontaneously |
+| Laugh | eyes "^ ^", whole face shakes rhythmically | "hehehe" chirps | tickling (fast stroking) |
+| Eye roll | eyes roll a full circle upward | sigh | swipe back and forth |
 
-Benodigdheden in de engine: per-oog-overrides (knipoog), een deeltjessysteem (noten, hartjes,
-stoom, explosie), schermtrilling (offset op alles) en tint/flits-overlays, plus een `Action`-tijdlijn
-met keyframes per parameter. De synth krijgt ruis (explosie, sissen) en melodieën (fluiten).
+Needed in the engine: per-eye overrides (wink), a particle system (notes, hearts,
+steam, explosion), screen shake (offset on everything) and tint/flash overlays, plus an `Action`
+timeline with keyframes per parameter. The synth gets noise (explosion, hissing) and melodies (whistling).

@@ -1,321 +1,334 @@
-# deskbuddy-firmware
+# deskbuddy firmware
 
-PlatformIO-project in `firmware/`: Arduino-ESP32 3.3 (pioarduino `55.03.311`) en LVGL 9.5.
+PlatformIO project in `firmware/`: Arduino-ESP32 3.3 (pioarduino `55.03.311`) and LVGL 9.5.
 
-## Bediening
+## Controls
 
-| Actie | Reactie |
+| Action | Reaction |
 |---|---|
-| Tik | kijkt naar je vinger, blij of verrast; maakt hem wakker |
-| Dubbeltik | knipoog |
-| Lang indrukken | verliefd (hartjesogen) |
-| Aaien (heen en weer vegen) | blij, na 3× verliefd, na 5× een kusje |
-| Snel blijven tikken | 5× boos, 9× rage, en doortikken tijdens rage laat hem ontploffen |
-| Veeg links/rechts | kijkt die kant op |
-| **Veeg omlaag** | **info-paneel**: Wi-Fi (IP/SSID of access point), BLE, geluid en uiterlijk (tik om te wisselen), accu en versie |
-| **Veeg omhoog** | **klok** met datum en accuring |
-| Tik of terugvegen in een paneel | paneel sluiten (sluit ook vanzelf) |
-| Schudden | duizelig, daarna even boos (schudden terwijl hij boos is: rage) |
-| Oppakken | verrast |
-| Kantelen | ogen kijken "bergafwaarts" |
-| Niets doen | na 90 s slaperig en na 3 min in slaap (scherm dimt) |
-| PWR-knop (kort) | info-paneel aan/uit |
-| BOOT-knop | emoties doorlopen (om te testen) |
+| Tap | looks at your finger, happy or surprised; wakes it up |
+| Double tap | wink |
+| Long press | in love (heart eyes) |
+| Stroke (swipe back and forth) | happy, after 3× in love, after 5× a kiss |
+| Keep tapping fast | 5× angry, 9× rage, and tapping on during rage makes it explode |
+| Swipe left/right | looks in that direction |
+| **Swipe down** | **info panel**: Wi-Fi (IP/SSID or access point), BLE, sound and look (tap to switch), battery and version |
+| **Swipe up** | **clock** with date and battery ring |
+| Tap or swipe back in a panel | close the panel (it also closes by itself) |
+| Shake | dizzy, then briefly angry (shaking while angry: rage) |
+| Pick up | surprised |
+| Tilt | eyes look "downhill" |
+| Do nothing | sleepy after 90 s and asleep after 3 min (screen dims) |
+| PWR button (short) | info panel on/off |
+| BOOT button | cycle through emotions (for testing) |
 
-Wi-Fi en BLE zijn optioneel. Zonder verbinding werkt alles hierboven gewoon, en het info-paneel
-toont dan "niet verbonden" en "uit". BLE volgt in fase 3.
+Wi-Fi and BLE are optional. Without a connection everything above works as usual, and the info
+panel shows "not connected" and "off". BLE follows in phase 3.
 
-## Wi-Fi en webinterface (fase 2)
+## Wi-Fi and web interface (phase 2)
 
-1. Zonder bekend netwerk start hij het open setup-netwerk **`deskbuddy-XXXX`** (de laatste 4 tekens
-   van het MAC-adres). Na 10 minuten zonder bezoekers gaat het weer uit.
-2. Veeg omlaag en tik op de Wi-Fi-rij. **Stap 1:** scan de QR-code om met het setup-netwerk te
-   verbinden. **Stap 2:** zodra je telefoon verbonden is, toont het scherm een tweede QR-code met de
-   link `http://192.168.4.1`. Op veel telefoons opent de setup-pagina ook vanzelf (captive portal);
-   Samsung doet dat niet altijd, en stap 2 werkt overal.
-3. Kies je netwerk (alleen 2.4 GHz), vul het wachtwoord in (met "Wachtwoord tonen" kun je het
-   controleren) en tik op Verbinden. Onder de knop zie je de voortgang, het IP-adres of de reden van
-   een mislukte poging.
-4. 30 seconden na een gelukte verbinding schakelt hij over naar je thuisnetwerk. Daar is hij
-   bereikbaar via het IP uit het info-paneel, of via **`http://deskbuddy.local`** als je apparaat mDNS
-   ondersteunt.
+1. Without a known network it starts the open setup network **`deskbuddy-XXXX`** (the last 4
+   characters of the MAC address). After 10 minutes without visitors it turns off again.
+2. Swipe down and tap the Wi-Fi row. **Step 1:** scan the QR code to connect to the setup network.
+   **Step 2:** once your phone is connected, the screen shows a second QR code with the link
+   `http://192.168.4.1`. On many phones the setup page also opens by itself (captive portal);
+   Samsung does not always do that, and step 2 works everywhere.
+3. Choose your network (2.4 GHz only), enter the password (with "Show password" you can check it)
+   and tap Connect. Under the button you see the progress, the IP address or the reason for a
+   failed attempt.
+4. 30 seconds after a successful connection it switches over to your home network. There it is
+   reachable via the IP from the info panel, or via **`http://deskbuddy.local`** if your device
+   supports mDNS.
 
-De webinterface biedt:
-- emoties, knipperen, stuiteren en schudden
-- skin, geluid, volume en helderheid
-- status en Wi-Fi (zoeken, verbinden, vergeten)
-- een firmware-upload
-- een commandoregel
+The web interface offers:
+- emotions, blinking, bouncing and shaking
+- skin, sound, volume and brightness
+- status and Wi-Fi (scan, connect, forget)
+- a firmware upload
+- a command line
 
-| API | Doel |
+| API | Purpose |
 |---|---|
-| `GET /api/status` | status als JSON |
-| `POST /api/cmd` (`c=<commando>`) | elk serial-commando, antwoord als JSON |
-| `GET /api/wifi/scan` | netwerken zoeken (asynchroon: herhaal tot `scanning:false`) |
-| `POST /api/wifi` (`ssid`, `pass`) | verbinden en opslaan |
-| `GET /api/wifi/state` | voortgang: `connecting`/`connected`/`failed` + IP of reden |
-| `POST /update` (multipart `firmware`) | firmware bijwerken (OTA) |
+| `GET /api/status` | status as JSON |
+| `POST /api/cmd` (`c=<command>`) | any serial command, reply as JSON |
+| `GET /api/wifi/scan` | scan for networks (asynchronous: repeat until `scanning:false`) |
+| `POST /api/wifi` (`ssid`, `pass`) | connect and save |
+| `GET /api/wifi/state` | progress: `connecting`/`connected`/`failed` + IP or reason |
+| `POST /update` (multipart `firmware`) | update firmware (OTA) |
 
-Firmware bijwerken zonder kabel kan via de webpagina, of met
+Updating firmware without a cable works via the web page, or with
 `curl -F firmware=@firmware/.pio/build/esp32/firmware.bin http://<ip>/update`,
-of met `cd firmware && ../.venv/bin/pio run -e esp32 -t upload --upload-port deskbuddy.local`
-(ArduinoOTA). Na verbinding haalt hij de tijd via NTP op en zet die in de RTC.
+or with `cd firmware && ../.venv/bin/pio run -e esp32 -t upload --upload-port deskbuddy.local`
+(ArduinoOTA). After connecting it fetches the time via NTP and stores it in the RTC.
 
-## Automatische updates (GitHub Releases)
+## Automatic updates (GitHub Releases)
 
-Verbonden met het thuisnetwerk vraagt de deskbuddy 30 s na het verbinden en daarna elke 12 uur
-`https://api.github.com/repos/newmedia/deskbuddy/releases/latest` op (HTTPS met de CA-bundel uit
-ESP-IDF). Is de tag nieuwer dan de eigen versie (semver), dan haalt hij het asset `firmware.bin`
-van die release op en flasht hem met `HTTPUpdate` (de redirect naar de downloadserver van GitHub
-wordt gevolgd). Controleren en installeren lopen in een eigen taak; het gezicht blijft bewegen.
+Connected to the home network, the deskbuddy requests
+`https://api.github.com/repos/newmedia/deskbuddy/releases/latest` 30 s after connecting and then
+every 12 hours (HTTPS with the CA bundle from ESP-IDF). If the tag is newer than its own version
+(semver), it fetches the asset `firmware.bin` of that release and flashes it with `HTTPUpdate` (the
+redirect to GitHub's download server is followed). Checking and installing run in a separate task;
+the face keeps moving.
 
-Instelling (in NVS, standaard `notify`), via commando of web-UI:
+Setting (in NVS, default `notify`), via command or web UI:
 
 | `update …` | effect |
 |---|---|
-| `notify` | alleen melden: het info-paneel toont onderaan "Update beschikbaar: vX (tik)", de web-UI een knop |
-| `auto` | nieuwe versie meteen installeren |
-| `off` | niet zelf controleren |
-| `check` / `install` | nu controleren / nu installeren |
-| (leeg) | status: modus, toestand, huidige en nieuwste versie, laatste fout |
+| `notify` | only report: the info panel shows "Update available: vX (tap)" at the bottom, the web UI a button |
+| `auto` | install a new version right away |
+| `off` | do not check by itself |
+| `check` / `install` | check now / install now |
+| (empty) | status: mode, state, current and latest version, last error |
 
-Tijdens het installeren kijkt het gezicht verrast en loopt er een voortgangsring langs de rand.
-Daarna herstart hij met de nieuwe versie; mislukt het, dan kijkt hij even verdrietig en probeert
-hij het na 30 min opnieuw te controleren.
+While installing, the face looks surprised and a progress ring runs along the edge. Afterwards it
+restarts with the new version; if it fails, it looks sad for a moment and tries to check again
+after 30 min.
 
-### Installeren via de browser (installatiepagina)
+### Installing via the browser (install page)
 
-- **Versiekeuze:** de pagina toont alle GitHub-releases; de nieuwste staat voorgeselecteerd. Per versie
-  staat er een eigen map (`flash/<versie>/firmware.bin` en `manifest.json`), de rest is gedeeld.
-  `?v=0.3.2` in de URL kiest direct een versie.
-- **Logo:** `firmware/web/icon.svg` is het deskbuddy-logo (cyaan ring met ogen en lach). Het staat in
-  de web-app (koptekst en tabblad-icoon), de installatiepagina, de README, het opstartscherm en
-  het info-paneel van het apparaat (`draw::logo()` in `draw_util.h` tekent dezelfde vormen). Let op:
-  eigen tekenwerk (`lv_draw_*` met een eigen descriptor) negeert de `opa`-stijl van het object. Wat
-  meevervaagt, zoals het opstartscherm en het info-paneel, geeft de opa daarom zelf door aan `draw::logo()`.
-  Het opstartscherm wordt na afloop verwijderd, niet alleen verborgen. De PNG-versies
-  (`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`) staan naast de svg voor het beginscherm van
-  een telefoon.
+- **Version choice:** the page shows all GitHub releases; the newest is preselected. Each version
+  has its own folder (`flash/<version>/firmware.bin` and `manifest.json`), the rest is shared.
+  `?v=0.3.2` in the URL selects a version directly.
+- **Logo:** `firmware/web/icon.svg` is the deskbuddy logo (cyan ring with eyes and a smile). It is
+  used in the web app (header and tab icon), the install page, the README, the boot screen and
+  the info panel of the device (`draw::logo()` in `draw_util.h` draws the same shapes). Note:
+  custom drawing (`lv_draw_*` with its own descriptor) ignores the object's `opa` style. Anything
+  that fades along, such as the boot screen and the info panel, therefore passes the opa on to
+  `draw::logo()` itself. The boot screen is deleted afterwards, not merely hidden. The PNG versions
+  (`icon-192/512`, `icon-maskable-512`, `apple-touch-icon`) sit next to the svg for a phone's home
+  screen.
 
-Voor wie de firmware voor het eerst op een bord wil zetten staat er een pagina op
-**https://newmedia.github.io/deskbuddy/flash/**. Die gebruikt [ESP Web Tools](https://esphome.github.io/esp-web-tools/)
-(Web Serial, dus Chrome, Edge of Opera op een computer) en flasht via USB.
+For anyone putting the firmware on a board for the first time there is a page at
+**https://newmedia.github.io/deskbuddy/flash/**. It uses [ESP Web Tools](https://esphome.github.io/esp-web-tools/)
+(Web Serial, so Chrome, Edge or Opera on a computer) and flashes over USB.
 
-- Het zet vier delen: bootloader (0x0), partitietabel (0x8000), boot_app0 (0xE000) en de app (0x10000).
-  De NVS-partitie (0x9000) blijft ongemoeid: Wi-Fi en instellingen blijven bewaard.
-- De firmware komt uit de nieuwste GitHub-release. Na elke release draai je dus
-  `tools/publish-flash.sh` (haalt `firmware.bin` op, controleert de sha256 en publiceert naar `gh-pages`).
-  Bootloader en partitietabel komen uit de lokale build (`.pio/build/esp32`) en veranderen niet.
-- `tools/publish-pwa.sh` ververst alleen de pagina zelf (`firmware/web/flash/index.html`).
-- Updaten kan ook zonder deze pagina: de buddy haalt nieuwe versies zelf van GitHub.
+- It writes four parts: bootloader (0x0), partition table (0x8000), boot_app0 (0xE000) and the app (0x10000).
+  The NVS partition (0x9000) is left alone: Wi-Fi and settings are preserved.
+- The firmware comes from the newest GitHub release. So after every release you run
+  `tools/publish-flash.sh` (fetches `firmware.bin`, checks the sha256 and publishes to `gh-pages`).
+  Bootloader and partition table come from the local build (`.pio/build/esp32`) and do not change.
+- `tools/publish-pwa.sh` refreshes only the page itself (`firmware/web/flash/index.html`).
+- Updating also works without this page: the buddy fetches new versions from GitHub by itself.
 
-### Een release maken
+### Making a release
 
-**Versienummers (sinds v1.0.0, semver):** nieuwe functies of uitbreidingen verhogen het middelste
-getal (1.1.0, 1.2.0), alleen bugfixes het laatste (1.0.1). Het eerste getal gaat pas omhoog bij iets
-dat niet meer samengaat met oudere versies (bijv. een andere opslag van instellingen).
+**Version numbers (since v1.0.0, semver):** new features or extensions raise the middle number
+(1.1.0, 1.2.0), only bugfixes the last (1.0.1). The first number only goes up for something that
+is no longer compatible with older versions (e.g. a different storage format for settings).
 
-We bouwen zelf, niet met GitHub Actions. `tools/release.sh` doet alles:
+We build ourselves, not with GitHub Actions. `tools/release.sh` does everything:
 
-1. Schrijf bovenaan `CHANGELOG.md` een sectie `## v0.2.0` met wat er nieuw is (die tekst wordt de
-   omschrijving van de release op GitHub). Zonder sectie stopt het script en toont het een concept
-   op basis van de commits sinds de vorige tag. Commit de changelog.
-2. `tools/release.sh 0.2.0` controleert dat de werkmap schoon is en dat de versie nieuwer is dan de
-   laatste tag, bouwt `esp32` met `-D DESKBUDDY_VERSION="0.2.0"`, maakt en pusht tag `v0.2.0`
-   (`git tag -a v0.2.0 && git push origin v0.2.0`) en maakt met `gh release create` de release met
-   `firmware.bin` en `firmware.bin.sha256`.
+1. At the top of `CHANGELOG.md`, write a section `## v0.2.0` with what is new (that text becomes
+   the description of the release on GitHub). Without a section the script stops and shows a draft
+   based on the commits since the previous tag. Commit the changelog.
+2. `tools/release.sh 0.2.0` checks that the working directory is clean and that the version is newer
+   than the last tag, builds `esp32` with `-D DESKBUDDY_VERSION="0.2.0"`, creates and pushes tag
+   `v0.2.0` (`git tag -a v0.2.0 && git push origin v0.2.0`) and uses `gh release create` to create
+   the release with `firmware.bin` and `firmware.bin.sha256`.
 
-`gh` moet schrijfrechten op `newmedia/deskbuddy` hebben via de API (het script controleert dat).
-Pushen via SSH is niet genoeg: blokkeert de organisatie de GitHub CLI-app, keur die dan goed onder
-*Organization settings → Third-party access*, of gebruik een fine-grained token met
-"Contents: read and write" voor deze repo (`GH_TOKEN=… tools/release.sh 0.2.0`). Faalt het uploaden
-nadat de tag al gepusht is, dan hervat een tweede run met dezelfde versie op dezelfde commit.
+`gh` must have write access to `newmedia/deskbuddy` via the API (the script checks that).
+Pushing over SSH is not enough: if the organization blocks the GitHub CLI app, approve it under
+*Organization settings → Third-party access*, or use a fine-grained token with
+"Contents: read and write" for this repo (`GH_TOKEN=… tools/release.sh 0.2.0`). If uploading fails
+after the tag has already been pushed, a second run with the same version on the same commit
+resumes.
 
-Oude releases blijven altijd staan (het script past bestaande tags of releases nooit aan), zodat je
-een oudere versie nog handmatig kunt installeren: download die `firmware.bin` en upload hem via de
-web-UI of `curl -F firmware=@firmware.bin http://<ip>/update`. Automatisch gaat hij alleen vooruit,
-nooit terug.
+Old releases always remain (the script never modifies existing tags or releases), so you can still
+install an older version manually: download that `firmware.bin` and upload it via the web UI or
+`curl -F firmware=@firmware.bin http://<ip>/update`. Automatically it only goes forward, never
+back.
 
-> Beveiliging: de webinterface en OTA hebben nog geen wachtwoord. Iedereen op je (thuis)netwerk kan
-> hem dus bedienen en bijwerken. Een pincode is gepland.
+> Security: the web interface and OTA do not have a password yet. Anyone on your (home) network can
+> therefore control and update it. A PIN is planned.
 
-De pagina staat in `firmware/web/index.html`. Bij het bouwen wordt hij gzip-gecomprimeerd in de
-firmware gezet (`scripts/embed_web.py`).
+The page lives in `firmware/web/index.html`. When building, it is gzip-compressed and embedded in
+the firmware (`scripts/embed_web.py`).
 
-## Bluetooth en PWA (fase 3)
+## Bluetooth and PWA (phase 3)
 
-- De deskbuddy adverteert als **`deskbuddy-XXXX`** met de Nordic UART Service (NUS, `6E400001-…`).
-  Commando's gaan naar RX (`…0002`, write), en antwoorden komen als notify op TX (`…0003`), in
-  stukjes en afgesloten met `\n`. Het protocol is gelijk aan serial/web, plus `json` voor de status.
-- **Koppelen met pincode:** bij de eerste verbinding toont het scherm een 6-cijferige code, die je op
-  je telefoon invult. Alleen gekoppelde apparaten mogen commando's sturen. `ble forget` wist alle
-  koppelingen.
-- **De PWA** staat op **https://newmedia.github.io/deskbuddy/**. Hij gebruikt dezelfde pagina
-  (`firmware/web/`), maar praat via Web Bluetooth, werkt ook zonder Wi-Fi en is te installeren als
-  app ("Toevoegen aan startscherm"). Via Bluetooth kun je ook Wi-Fi instellen: netwerken zoeken,
-  verbinden.
-  - Werkt in Chrome op Android en desktop. **Niet op iPhone**: Safari heeft geen Web Bluetooth. Gebruik
-    daar Wi-Fi via het IP-adres.
-  - De versie die het apparaat zelf serveert (http) gebruikt Wi-Fi. Web Bluetooth vereist https,
-    daarom staat de BLE-versie op GitHub Pages.
-- BLE aan/uit: tik op de Bluetooth-rij in het info-paneel, of gebruik `ble on|off`. De instelling
-  wordt bewaard.
-- Publiceren gaat **zonder GitHub Actions**: `tools/publish-pwa.sh` zet de bestanden uit
-  `firmware/web/` op de branch `gh-pages`. Draai dit script na elke wijziging aan de pagina.
-  Eenmalig nodig: GitHub → Settings → Pages → Source: **Deploy from a branch**, branch `gh-pages`,
-  map `/ (root)`.
+- The deskbuddy advertises as **`deskbuddy-XXXX`** with the Nordic UART Service (NUS, `6E400001-…`).
+  Commands go to RX (`…0002`, write), and replies come as notify on TX (`…0003`), in chunks and
+  terminated with `\n`. The protocol is the same as serial/web, plus `json` for the status.
+- **Pairing with a PIN:** on the first connection the screen shows a 6-digit code, which you enter
+  on your phone. Only paired devices may send commands. `ble forget` erases all pairings.
+- **The PWA** lives at **https://newmedia.github.io/deskbuddy/**. It uses the same page
+  (`firmware/web/`), but talks via Web Bluetooth, also works without Wi-Fi and can be installed as
+  an app ("Add to home screen"). Via Bluetooth you can also set up Wi-Fi: scan for networks,
+  connect.
+  - Works in Chrome on Android and desktop. **Not on iPhone**: Safari has no Web Bluetooth. Use
+    Wi-Fi via the IP address there.
+  - The version that the device serves itself (http) uses Wi-Fi. Web Bluetooth requires https,
+    which is why the BLE version lives on GitHub Pages.
+- BLE on/off: tap the Bluetooth row in the info panel, or use `ble on|off`. The setting is saved.
+- Publishing happens **without GitHub Actions**: `tools/publish-pwa.sh` puts the files from
+  `firmware/web/` on the `gh-pages` branch. Run this script after every change to the page.
+  Needed once: GitHub → Settings → Pages → Source: **Deploy from a branch**, branch `gh-pages`,
+  folder `/ (root)`.
 
-## Acties
+## Actions
 
-Korte animaties bovenop de emotie (`face_fx.cpp`). Na afloop keert hij terug naar de vorige emotie.
+Short animations on top of the emotion (`face_fx.cpp`). Afterwards it returns to the previous emotion.
 
-| Actie | Commando | Beeld | Geluid |
+| Action | Command | Visual | Sound |
 |---|---|---|---|
-| Fluiten | `play whistle` | getuite mond, muzieknootjes, halfdichte ogen (ook spontaan bij verveling) | melodietje |
-| Knipoog | `play wink` | één oog dicht, sterretje | "ting" |
-| Kusje | `play kiss` | ogen dicht, getuite lippen, hartje vliegt naar voren | smak |
-| Rage | `play rage` | rode gloed, trillen, stoomwolkjes, `#@!$%` | grom + sis |
-| Ontploffen | `play explode` | opzwellen, witte flits, vonken, daarna roet, rook en duizelig/verbaasd | lont-gesis + boem |
-| Niezen | `play sneeze` | "ah-ah-": ogen knijpen dicht, hoofd achterover; "tsjoe!": schok met druppeltjes (ook spontaan) | inademen + nies |
-| Lachen | `play laugh` | "^ ^"-ogen, ritmisch stuiteren (kietelen = 3× snel aaien) | "hihihi" |
-| Ogen rollen | `play eyeroll` | blik draait in een boog over boven (2× snel heen en weer vegen) | zucht |
-| Hik | `play hiccup` | drie keer een plotse schok met grote ogen (ook spontaan) | "hik!" |
+| Whistle | `play whistle` | pursed mouth, music notes, half-closed eyes (also spontaneously when bored) | little tune |
+| Wink | `play wink` | one eye closed, little star | "ting" |
+| Kiss | `play kiss` | eyes closed, pursed lips, a heart flies forward | smack |
+| Rage | `play rage` | red glow, shaking, steam clouds, `#@!$%` | growl + hiss |
+| Explode | `play explode` | swelling, white flash, sparks, then soot, smoke and dizzy/surprised | fuse hiss + boom |
+| Sneeze | `play sneeze` | "ah-ah-": eyes squeeze shut, head tilts back; "achoo!": jolt with droplets (also spontaneously) | inhale + sneeze |
+| Laugh | `play laugh` | "^ ^" eyes, rhythmic bouncing (tickling = 3× fast stroking) | "hehehe" |
+| Eye roll | `play eyeroll` | gaze rolls in an arc over the top (2× fast swipe back and forth) | sigh |
+| Hiccup | `play hiccup` | three sudden jolts with big eyes (also spontaneously) | "hic!" |
 
-Emoties met een eigen animatie (beide skins):
+Emotions with their own animation (both skins):
 
-| Emotie | Commando | Wat je ziet |
+| Emotion | Command | What you see |
 |---|---|---|
-| Huilen | `emotion cry` | verdrietig gezicht, tranen rollen doorlopend over de wangen |
-| Druk (ADHD) | `emotion hyper` | wijd open ogen, grote lach, blik schiet steeds ergens anders heen, sprongetjes |
-| Pijn | `emotion pain` | dichtgeknepen ogen, grimas met tanden op elkaar, zweetdruppel, af en toe een steek (trillen) |
+| Crying | `emotion cry` | sad face, tears keep rolling down the cheeks |
+| Busy (ADHD) | `emotion hyper` | wide-open eyes, big smile, gaze keeps darting elsewhere, little jumps |
+| Pain | `emotion pain` | squeezed-shut eyes, grimace with clenched teeth, sweat drop, an occasional sting (shaking) |
 
-Stuiteren (`bounce`) is een sprongetje: het gezicht gaat in een boog ~48 px omhoog en veert bij het
-landen na. De hik geeft een schok omhoog en laat de ogen even oppoppen. Het gezicht tekent in vaste
-schermcoördinaten; verspringen en trillen gaan daarom via een tekenverschuiving (`draw::ox/oy` in
-`draw_util.h`). Het object verplaatsen deed niets zichtbaars. Tijdens een sprong wordt één
-momentopname van het gezicht (PSRAM) verschoven in plaats van elk frame alles opnieuw te tekenen.
+Bouncing (`bounce`) is a little jump: the face goes ~48 px up in an arc and springs back on
+landing. The hiccup gives a jolt upward and makes the eyes pop for a moment. The face draws in
+fixed screen coordinates; shifting and shaking therefore go through a draw offset (`draw::ox/oy` in
+`draw_util.h`). Moving the object did nothing visible. During a jump, a single snapshot of the face
+(PSRAM) is shifted instead of redrawing everything every frame.
 
-Het engine-deel bevat:
-- sluiting per oog
-- een deeltjessysteem (noten, harten, stoom, rook, vonken, symbolen, sterren)
-- trillen (het hele gezichtsobject verschuift)
-- tint-, flits- en roetlagen
+The engine part contains:
+- closing per eye
+- a particle system (notes, hearts, steam, smoke, sparks, symbols, stars)
+- shaking (the whole face object shifts)
+- tint, flash and soot layers
 
-Elke actie zet *cues*, waar de App een geluid aan koppelt. Ze werken in beide skins.
+Every action sets *cues*, to which the App attaches a sound. They work in both skins.
 
-## Prestaties en geheugen
+## Performance and memory
 
-- **Display:** eigen driver (`src/board/display.cpp`) via ESP-IDF `esp_lcd`, QSPI op 80 MHz.
-  - LVGL tekent in een schermvullende buffer in PSRAM (434 KB), direct in RGB565_SWAPPED. Elk
-    gewijzigd gebied wordt zo in één keer getekend. Met de vroegere strook van 20 regels liep de hele
-    gezichtstekening ~18× per frame, en dat kostte de mascotte de helft van zijn tekentijd.
-  - De flush draait het gebied in stroken van 10 regels 90° naar een van twee DMA-buffers (intern,
-    2 × 9,3 KB) en verstuurt ze asynchroon. De volgende strook wordt al gedraaid terwijl de vorige nog
-    verstuurd wordt.
-  - LVGL bewaart de AA-randen van 16 cirkelstralen (`LV_DRAW_SW_CIRCLE_CACHE_SIZE`).
-  - Maximaal 30 fps (`LV_DEF_REFR_PERIOD`).
-- **Mascotte in rust:** alleen ogen, wenkbrauwen en mond worden hertekend. Haar en bril staan
-  stil.
-- **Niets tekenen als er niets beweegt:** alle veren worden op hun doel vastgeklikt zodra ze
-  stilvallen. De ademhaling gaat in hele pixels. Is het gezicht afgedekt door een paneel, dan wordt
-  het niet hertekend.
-- **Lagere verversing bij weinig beweging:** slaperig ~10 fps, slapend ~8 fps.
-- **Hoofdlus:** wacht tot er werk is (`delay` op basis van `lv_timer_handler`).
-- **Touch:** alleen uitlezen bij een interrupt, met een vangnet elke 100 ms.
-- **Belasting:** wakker en stil ~35–45%, was ~95%. De CPU blijft bewust op 240 MHz.
-- **Updates:** bij het starten van een update wordt hij eerst wakker. Vanuit de slaapstand liepen
-  uploads anders vast.
-- **`perf`-commando:** fps, frametijd (tekenen/draaien/versturen), belasting van de hoofdlus en vrij
-  intern RAM (ook het laagste punt). Gemeten (Wi-Fi verbonden, BLE aan):
+- **Display:** own driver (`src/board/display.cpp`) via ESP-IDF `esp_lcd`, QSPI at 80 MHz.
+  - LVGL draws into a full-screen buffer in PSRAM (434 KB), directly in RGB565_SWAPPED. Every
+    changed area is thus drawn in one go. With the earlier strip of 20 lines the whole face drawing
+    ran ~18× per frame, and that cost the mascot half of its drawing time.
+  - The flush rotates the area in strips of 10 lines by 90° into one of two DMA buffers (internal,
+    2 × 9.3 KB) and sends them asynchronously. The next strip is already being rotated while the
+    previous one is still being sent.
+  - LVGL keeps the AA edges of 16 circle radii (`LV_DRAW_SW_CIRCLE_CACHE_SIZE`).
+  - Maximum 30 fps (`LV_DEF_REFR_PERIOD`).
+- **Mascot at rest:** only eyes, eyebrows and mouth are redrawn. Hair and glasses stay still.
+- **Draw nothing when nothing moves:** all springs snap to their target as soon as they settle.
+  Breathing goes in whole pixels. If the face is covered by a panel, it is not redrawn.
+- **Lower refresh rate with little movement:** sleepy ~10 fps, asleep ~8 fps.
+- **Main loop:** waits until there is work (`delay` based on `lv_timer_handler`).
+- **Touch:** only read on an interrupt, with a safety net every 100 ms.
+- **Load:** awake and still ~35–45%, was ~95%. The CPU deliberately stays at 240 MHz.
+- **Updates:** when an update starts, it wakes up first. From sleep mode, uploads would otherwise
+  get stuck.
+- **`perf` command:** fps, frame time (draw/rotate/send), main loop load and free internal RAM
+  (including the lowest point). Measured (Wi-Fi connected, BLE on):
 
-  | Look, emotie (doorlopend bewegend) | tekenen per frame | lus-belasting |
+  | Look, emotion (continuously moving) | draw per frame | loop load |
   |---|---|---|
-  | Robot, slaperig (10 fps) | 17 ms (was 34) | 48% (was 59%) |
-  | Robot, verliefd | 15 ms (was 30), 23–25 fps | 77% |
-  | Lisa, slaperig (10 fps) | 53 ms (was 79) | 80% (was 87%) |
-  | Mascotte, slaperig (10 fps) | 60 ms (was 84) | 86% (was 90%) |
+  | Robot, sleepy (10 fps) | 17 ms (was 34) | 48% (was 59%) |
+  | Robot, in love | 15 ms (was 30), 23–25 fps | 77% |
+  | Lisa, sleepy (10 fps) | 53 ms (was 79) | 80% (was 87%) |
+  | Mascot, sleepy (10 fps) | 60 ms (was 84) | 86% (was 90%) |
 
-  Stilstaand gezicht: 0 fps, ~18% belasting. Intern RAM: ~80 KB vrij met Wi-Fi en BLE aan (was
+  Still face: 0 fps, ~18% load. Internal RAM: ~80 KB free with Wi-Fi and BLE on (was
   ~52 KB).
-- **Intern RAM is de schaarse bron:** de BT-controller (prebuilt) houdt ~60 KB vast. Daarom:
-  - staan de NimBLE-host, de LVGL-tekenbuffer en TLS (updates) in PSRAM;
-  - gaat gewone `malloc`/`new` vanaf 256 bytes naar PSRAM (`net::updateMemory`, standaard pas vanaf
-    4 KB). Tijdens een firmware-update tijdelijk terug naar 4 KB: flash schrijven vanuit
-    PSRAM-buffers maakte de upload ~5× trager (120 s in plaats van ~25 s);
-  - zijn de DMA-buffers klein (10 regels).
-- **ESP-IDF zelf opnieuw bouwen** (pioarduino `custom_sdkconfig`, bijv. om Wi-Fi/lwIP-buffers in
-  PSRAM te zetten) werkt nog niet: de build faalt op `SCons.Tool.FortranCommon` (platform 55.03.311).
-- **Tijdens updates:** Matrix-animatie (alleen de oogvensters hertekend) en een pomp van maximaal ~10
-  fps, zodat de download voorrang houdt.
+- **Internal RAM is the scarce resource:** the BT controller (prebuilt) holds ~60 KB. Therefore:
+  - the NimBLE host, the LVGL draw buffer and TLS (updates) are in PSRAM;
+  - ordinary `malloc`/`new` goes to PSRAM from 256 bytes (`net::updateMemory`, by default only from
+    4 KB). During a firmware update temporarily back to 4 KB: writing flash from
+    PSRAM buffers made the upload ~5× slower (120 s instead of ~25 s);
+  - the DMA buffers are small (10 lines).
+- **Rebuilding ESP-IDF itself** (pioarduino `custom_sdkconfig`, e.g. to put Wi-Fi/lwIP buffers in
+  PSRAM) does not work yet: the build fails on `SCons.Tool.FortranCommon` (platform 55.03.311).
+- **During updates:** Matrix animation (only the eye windows redrawn) and a pump of at most ~10
+  fps, so the download keeps priority.
 
-## Uiterlijk (bouwdoos)
+## Appearance (construction kit)
 
-Het uiterlijk is een **look** (`lib/buddy/look.*`): een basis plus een stijl per onderdeel en een
-paar kleuren. De emoties sturen nog steeds de oogleden, wenkbrauwhoek, mond enz., en elk onderdeel
-tekent die op zijn eigen manier (`face_robot.cpp`, `face_mascot.cpp`). Alles wordt in code getekend,
-dus er zijn geen plaatjes nodig, en een look is maar een paar bytes in NVS.
+The appearance is a **look** (`lib/buddy/look.*`): a base plus a style per part and a few colors.
+The emotions still drive the eyelids, eyebrow angle, mouth etc., and each part draws that in its
+own way (`face_robot.cpp`, `face_mascot.cpp`). Everything is drawn in code, so no images are
+needed, and a look is only a few bytes in NVS.
 
-| Onderdeel | Robot | Cartoon |
+| Part | Robot | Cartoon |
 |---|---|---|
-| Ogen | blok, rond, pil, ring + pupil, LED-pixels, vizier | normaal (wit + iris), stipjes |
-| Wenkbrauwen | geen, balk, dik, dun, pixels | dik, recht, dun, geen |
-| Mond | per emotie, lijn, zigzag, LED-equalizer (beweegt mee met geluid), pixels | per emotie (D-lach), gesloten glimlach |
-| Wangen | geen, blosjes, streepjes, pixels | blosjes, sproeten, geen |
-| Bril | geen, vierkant, rond, zonnebril, monocle | vierkant, rond, zonnebril, monocle, geen |
-| Haar | | stekels, netjes, krullen, hanenkam, kaal, petje |
-| Kleuren | ogen/mond, wenkbrauwen, achtergrond, bril | iris, haar (of petje), huid, bril |
+| Eyes | block, round, pill, ring + pupil, LED pixels, visor | normal (white + iris), dots |
+| Eyebrows | none, bar, thick, thin, pixels | thick, straight, thin, none |
+| Mouth | per emotion, line, zigzag, LED equalizer (moves with sound), pixels | per emotion (D-smile), closed smile |
+| Cheeks | none, blush, stripes, pixels | blush, freckles, none |
+| Glasses | none, square, round, sunglasses, monocle | square, round, sunglasses, monocle, none |
+| Hair | | spikes, neat, curls, mohawk, bald, cap |
+| Colors | eyes/mouth, eyebrows, background, glasses | iris, hair (or cap), skin, glasses |
 
-- **Personages:** Robot, Mascotte, Retro, Pixel, Cool, Synth, Professor, Rocker, Krullebol en
-  Sportief. "Verras me" maakt een willekeurige combinatie met passende kleuren.
-- **Emotiekleuren aan/uit:** bij "aan" kleuren boos, verdrietig, verliefd en duizelig mee; bij "uit"
-  houdt de robot altijd zijn eigen kleur.
-- **Kiezen:**
-  - in de webinterface/PWA onder **Uiterlijk** (je ziet het direct op de buddy);
-  - met een tik op de Uiterlijk-rij in het info-paneel (volgend personage);
-  - met het commando `look`.
-- AMOLED-tip: een zwarte achtergrond (robot) is het zuinigst; elke verlichte pixel kost stroom.
+- **Characters:** Robot, Mascot, Retro, Pixel, Cool, Synth, Professor, Rocker, Curly and
+  Sporty. "Surprise me" makes a random combination with matching colors.
+- **Emotion colors on/off:** when "on", angry, sad, in love and dizzy tint along; when "off", the
+  robot always keeps its own color.
+- **Choosing:**
+  - in the web interface/PWA under **Appearance** (you see it directly on the buddy);
+  - with a tap on the Appearance row in the info panel (next character);
+  - with the `look` command.
+- AMOLED tip: a black background (robot) is the most economical; every lit pixel costs power.
 
-## Microfoon (luisteren)
+## Microphone (listening)
 
-De twee microfoons (ES7210, op dezelfde I2S-bus als de speaker) worden in de audio-task gelezen.
-`lib/buddy/mic.*` maakt van het geluidsniveau gebeurtenissen. Er wordt niets opgenomen of
-verstuurd: alleen het niveau per 10 ms telt.
+The two microphones (ES7210, on the same I2S bus as the speaker) are read in the audio task.
+`lib/buddy/mic.*` turns the sound level into events. Nothing is recorded or sent: only the level
+per 10 ms counts.
 
-| Geluid | Herkenning | Reactie |
+| Sound | Detection | Reaction |
 |---|---|---|
-| Klap | korte, scherpe piek (≤ 70 ms), duidelijk harder dan alles van de laatste seconden | schrikken, of wakker worden |
-| Dubbele klap | twee klappen binnen 0,12–0,7 s | blij sprongetje (de enkele klap wordt dan niet gemeld) |
-| Praten | een groot deel van de tijd stem-achtig geluid boven de achtergrond, met pauzes en zonder vaste beat | luisteren: om en om links en rechts een oor, golfjes komen van buiten naar het oor, de ogen kijken mee |
-| Muziek | minstens 8 regelmatige beats (60–180 bpm) in 5 s, bijna continu geluid | dansen: hupje en om en om opzij kijken op de maat, de equalizer-mond beweegt mee |
-| Hard lawaai | ~1,5 s aanhoudend ver boven de achtergrond, zonder beats | ogen dichtknijpen (pijn) |
+| Clap | short, sharp peak (≤ 70 ms), clearly louder than everything in the last seconds | get startled, or wake up |
+| Double clap | two claps within 0.12–0.7 s | happy little jump (the single clap is then not reported) |
+| Talking | a large part of the time voice-like sound above the background, with pauses and without a steady beat | listening: an ear alternately left and right, waves come from outside toward the ear, the eyes follow along |
+| Music | at least 8 regular beats (60–180 bpm) in 5 s, almost continuous sound | dancing: hop and alternately look to the side on the beat, the equalizer mouth moves along |
+| Loud noise | ~1.5 s sustained far above the background, without beats | squeeze eyes shut (pain) |
 
-- **Achtergrond** = de mediaan van het geluid (~3 dB/s aanpassing). Een ventilator of pc die continu
-  ruist, telt zo niet als stem.
-- **Eigen geluid:** zolang de buddy zelf geluid maakt (en 0,3 s daarna) luistert hij niet.
-- **Aan/uit:** `mic on|off` of de knop in de web-app (Instellingen). Uitzetten beëindigt ook luisteren
-  en dansen.
-- **Diagnose:** `mic` (niveau, achtergrond, praten/muziek/dansen) en `mic trace` (laatste 1,5 s in
+- **Background** = the median of the sound (~3 dB/s adaptation). A fan or PC that hums continuously
+  therefore does not count as voice.
+- **Own sound:** as long as the buddy itself makes sound (and 0.3 s after), it does not listen.
+- **On/off:** `mic on|off` or the button in the web app (Settings). Turning it off also ends
+  listening and dancing.
+- **Diagnostics:** `mic` (level, background, talking/music/dancing) and `mic trace` (last 1.5 s in
   dBFS).
-- **Testen zonder lawaai:** de web-emulator heeft knoppen voor klap, dubbele klap, lawaai, muziek en
-  praten. De regressietest controleert alle reacties, en ook dat praten geen emotie geeft.
-- **Kosten:** geen extra intern RAM. Tijdens het luisteren ververst het scherm op ~15 fps, en alleen
-  rond het oor.
+- **Testing without noise:** the web emulator has buttons for clap, double clap, noise, music and
+  talking. The regression test checks all reactions, and also that talking does not trigger an
+  emotion.
+- **Cost:** no extra internal RAM. While listening, the screen refreshes at ~15 fps, and only
+  around the ear.
 
-## Geluid
+## Sound
 
-Korte robotgeluidjes worden live berekend (`lib/buddy/sound.*`, 16 kHz). Er zijn dus geen
-geluidsbestanden nodig. Er is een geluid voor blij, verliefd, verrast, verdrietig, boos, duizelig,
-geeuwen, wakker worden, aaien (spinnen) en tikken. Op het apparaat gaat het geluid via de
-ES8311-codec en I2S naar de speaker op MX1.25. De versterker (GPIO46) staat alleen aan tijdens
-het afspelen. Je zet het geluid **aan of uit in het info-paneel** (veeg omlaag, tik op "Geluid").
-Geluid, volume, helderheid en skin worden in NVS bewaard.
+Short robot sounds are computed live (`lib/buddy/sound.*`, 16 kHz). So no sound files are
+needed. There is a sound for happy, in love, surprised, sad, angry, dizzy, yawning, waking up,
+stroking (purring) and tapping. On the device the sound goes via the ES8311 codec and I2S to the
+speaker on MX1.25. The amplifier (GPIO46) is only on during playback. You switch sound **on or off
+in the info panel** (swipe down, tap "Sound"). Sound, volume, brightness and skin are saved in NVS.
 
-> De ES8311-init (`src/board/audio.cpp`) is een eigen, minimale registerreeks. Die is nog niet op
-> het apparaat getest.
+> The ES8311 init (`src/board/audio.cpp`) is a custom, minimal register sequence. It has not been
+> tested on the device yet.
 
-## Serial-commando's (115200 baud)
+## Language
 
-Hetzelfde commandoprotocol wordt later via WebSocket, BLE en MQTT gebruikt.
+The firmware and the web app exist in English and Dutch.
+
+- Setting `lang`: `en` (default) or `nl`. Stored in NVS under the key `lang`.
+- Command `lang en|nl` (serial, BLE and HTTP via `POST /api/cmd`). Without an argument it shows the
+  current language.
+- `/api/status` and the `json` command contain the field `"lang"` (`"en"` or `"nl"`).
+- Switching the language changes the on-screen text (info panel, clock, setup screens) at once.
+- In the web app and PWA there is an EN/NL switch. It sets the language of the device itself (the
+  `lang` command), so the screen and the app always speak the same language.
+- Serial and API replies, and the logs, are English-only and do not change with the setting.
+- New UI text: add it in both languages (firmware `tr(en, nl)` in `lib/buddy/src/i18n.h`, web app
+  dictionary in `firmware/web/index.html`).
+
+## Serial commands (115200 baud)
+
+The same command protocol is also used via WebSocket, BLE and MQTT later.
 
 ```
 emotion <neutral|happy|sad|angry|surprised|sleepy|love|dizzy|asleep|cry|hyper|pain> [ms]
@@ -327,116 +340,115 @@ brightness <0-255>
 sound on|off|<blip|happy|love|surprised|sad|angry|dizzy|yawn|wake|purr|toggle>
 volume <0-100>
 skin classic|mascot
-wifi status | setup | on | off | forget | scan | join "<ssid>" <wachtwoord>
+lang [en|nl]                  # language; without argument = show current
+wifi status | setup | on | off | forget | scan | join "<ssid>" <password>
 ble on | off | forget | status
-json                          # status als JSON (voor BLE-clients)
+json                          # status as JSON (for BLE clients)
 update [check|install|auto|notify|off]
 clock | info | status | help
 ```
 
-## Opbouw
+## Structure
 
-| Pad | Inhoud |
+| Path | Contents |
 |---|---|
-| `lib/buddy/` | Hardware-onafhankelijk (alleen LVGL): `face` en `face_mascot` (procedureel gezicht, twee skins), `face_fx` (acties en effecten), `sound` (synth), `behaviour` (emoties en verveling), `gestures` (touch en IMU), `clock_view`, `info_view`, `commands`, `app` (koppelt alles en regelt de navigatie) |
-| `src/board/` | Hardware: CO5300-display via QSPI, CST9217-touch, QMI8658-IMU, AXP2101-PMU en PCF85063-RTC |
-| `src/main.cpp` | Apparaat: polling-loop, serial-commando's, knoppen |
-| `src/sim/` | Headless PC-simulator die dezelfde `App` draait (PNG's, GIF en MP4 met geluid) |
-| `src/emu/` | Interactieve emulator (SDL2-venster met geluid) |
-| `include/lv_conf.h` | LVGL-configuratie (RGB565, fonts Montserrat 14/20/28/48) |
+| `lib/buddy/` | Hardware-independent (LVGL only): `face` and `face_mascot` (procedural face, two skins), `face_fx` (actions and effects), `sound` (synth), `behaviour` (emotions and boredom), `gestures` (touch and IMU), `clock_view`, `info_view`, `commands`, `app` (ties everything together and handles navigation) |
+| `src/board/` | Hardware: CO5300 display via QSPI, CST9217 touch, QMI8658 IMU, AXP2101 PMU and PCF85063 RTC |
+| `src/main.cpp` | Device: polling loop, serial commands, buttons |
+| `src/sim/` | Headless PC simulator that runs the same `App` (PNGs, GIF and MP4 with sound) |
+| `src/emu/` | Interactive emulator (SDL2 window with sound) |
+| `include/lv_conf.h` | LVGL configuration (RGB565, fonts Montserrat 14/20/28/48) |
 
-### Gezicht
-De ogen zijn afgeronde rechthoeken. Elke emotie is een *pose*: oogmaat, hoekradius, boven- en
-onderooglid met kanteling, kleur, blosjes, mond en hartvorm. Alle waarden lopen via veren naar het
-doel, en daardoor vloeien emoties in elkaar over. Daar bovenop zitten knipperen, rondkijken,
-ademen, perspectief bij opzij kijken en squash & stretch. Een vormwissel (bijvoorbeeld naar
-hartjes) gebeurt achter een knipper. Alleen het gebied rond de ogen wordt elk frame opnieuw
-getekend.
+### Face
+The eyes are rounded rectangles. Every emotion is a *pose*: eye size, corner radius, upper and
+lower eyelid with tilt, color, blush, mouth and heart shape. All values run via springs to the
+target, which is why emotions flow into each other. On top of that come blinking, looking around,
+breathing, perspective when looking sideways and squash & stretch. A shape change (for example to
+hearts) happens behind a blink. Only the area around the eyes is redrawn every frame.
 
-Een nieuwe emotie toevoegen: zet een waarde in `Emotion` en een regel in `Face::poseFor()`
-(`face.cpp`), en voeg de naam toe aan `kNames`.
+Adding a new emotion: put a value in `Emotion` and a line in `Face::poseFor()` (`face.cpp`), and
+add the name to `kNames`.
 
-## Bouwen, previewen en flashen
+## Building, previewing and flashing
 
 ```bash
-tools/setup.sh        # venv met esptool, pyserial en PlatformIO
-tools/sim.sh          # simulator -> sim-out/emotions.png, mascot.png, demo.gif, demo.mp4 (met geluid)
-tools/sim.sh check    # per personage één overzicht van alle emoties en acties -> sim-out/check_NN.png
-tools/emu.sh          # interactieve emulator (eenmalig: sudo apt install libsdl2-dev)
-tools/webemu.sh       # web-emulator met webinterface en PWA -> http://localhost:8765/emu
-cd firmware && ../.venv/bin/pio run -e esp32   # alleen bouwen
-tools/flash.sh        # bouwen + flashen (vraagt bevestiging, eist een backup)
-tools/monitor.sh      # serial log en commando's
+tools/setup.sh        # venv with esptool, pyserial and PlatformIO
+tools/sim.sh          # simulator -> sim-out/emotions.png, mascot.png, demo.gif, demo.mp4 (with sound)
+tools/sim.sh check    # one overview per character of all emotions and actions -> sim-out/check_NN.png
+tools/emu.sh          # interactive emulator (once: sudo apt install libsdl2-dev)
+tools/webemu.sh       # web emulator with web interface and PWA -> http://localhost:8765/emu
+cd firmware && ../.venv/bin/pio run -e esp32   # build only
+tools/flash.sh        # build + flash (asks for confirmation, requires a backup)
+tools/monitor.sh      # serial log and commands
 ```
 
-Terug naar de originele firmware gaat met
+Going back to the original firmware works with
 `esptool --chip esp32s3 write-flash 0 backups/original-firmware-*.bin`.
 
-## Web-emulator (alles testen zonder apparaat)
+## Web emulator (test everything without a device)
 
-`tools/webemu.sh` start de firmware-logica op de PC, dus dezelfde `App`, hetzelfde gezicht en
-dezelfde commando's. Hij biedt dezelfde web-API als het apparaat. Open
-**http://localhost:8765/emu** (andere poort: `tools/webemu.sh 9000` of `PORT=9000`). Alleen
-bereikbaar vanaf deze computer.
+`tools/webemu.sh` runs the firmware logic on the PC, so the same `App`, the same face and the same
+commands. It offers the same web API as the device. Open
+**http://localhost:8765/emu** (other port: `tools/webemu.sh 9000` or `PORT=9000`). Only reachable
+from this computer.
 
-| Onderdeel | Hoe |
+| Part | How |
 |---|---|
-| Scherm | live in de browser; muis = vinger (tik, lang drukken, aaien, omlaag/omhoog vegen) |
-| Sensoren | kantelen (pijltjes), schudden, oppakken |
-| Stroom | USB of accu (schuif), laden |
-| Wi-Fi | verbonden, setup-netwerk of uit, signaalsterkte. Wi-Fi-setup werkt met nep-netwerken; netwerk **Weg** = niet gevonden, wachtwoord **fout** = verkeerd wachtwoord |
-| Webinterface | rechts in een telefoonkader: `firmware/web/index.html` rechtstreeks van schijf, dus wijzigen en herladen |
-| PWA (Bluetooth) | tabblad "PWA": dezelfde pagina met `?pwa`, met een nagebootste Web Bluetooth (zelfde NUS-regelprotocol, antwoorden in stukjes van 20 bytes). Koppelen werkt als echt: de code verschijnt op het scherm. Met `?pwa&auto` gaat dat zonder vragen (voor tests) |
-| Updates | "aangeboden release" bepaalt wat de nagebootste GitHub aanbiedt (leeg = geen). `update check/install` en uploaden via de webinterface tonen het installatiescherm en herstarten |
-| Geluid | knop "Geluid in de browser aan": de synth wordt live gestreamd |
-| Herstarten | de emulator start echt opnieuw, met de bewaarde instellingen |
+| Screen | live in the browser; mouse = finger (tap, long press, stroke, swipe down/up) |
+| Sensors | tilt (arrows), shake, pick up |
+| Power | USB or battery (slider), charging |
+| Wi-Fi | connected, setup network or off, signal strength. Wi-Fi setup works with fake networks; network **Gone** = not found, password **wrong** = wrong password |
+| Web interface | on the right in a phone frame: `firmware/web/index.html` straight from disk, so edit and reload |
+| PWA (Bluetooth) | "PWA" tab: the same page with `?pwa`, with a simulated Web Bluetooth (same NUS line protocol, replies in chunks of 20 bytes). Pairing works for real: the code appears on the screen. With `?pwa&auto` it goes without asking (for tests) |
+| Updates | "offered release" determines what the simulated GitHub offers (empty = none). `update check/install` and uploading via the web interface show the install screen and restart |
+| Sound | button "Sound in the browser on": the synth is streamed live |
+| Restart | the emulator really restarts, with the saved settings |
 
-Instellingen, eigen profielen, de Bluetooth-koppeling en de "geïnstalleerde" versie blijven bewaard
-in `firmware/.pio/webemu-state/` (net als NVS). `tools/webemu.sh --reset` begint schoon.
+Settings, custom profiles, the Bluetooth pairing and the "installed" version are preserved in
+`firmware/.pio/webemu-state/` (like NVS). `tools/webemu.sh --reset` starts clean.
 
-### Regressietest
+### Regression test
 
-`tools/webemu-test.sh` (`-v` toont ook de geslaagde controles) bouwt env `webemu` en start hem op een
-vrije poort met een eigen, lege staat (`WEBEMU_STATE`, je gewone `webemu-state` blijft staan). Daarna
-loopt `tools/webemu_test.py` alles via HTTP na: alle emoties en acties (de lijsten komen uit
-`/emu/state`, dus nieuwe gaan vanzelf mee), blink/bounce/schudden, personages en eigen profielen,
-Wi-Fi-scan en verbinden (fout wachtwoord, netwerk weg, goed), BLE (koppelcode, verkeerde code,
-regelcommando's, bonded), vegen naar info en klok (`view` in `/emu/state`), geluid (PCM na
-`play whistle`) en updates (check, install, herstart met nieuwe versie en bewaarde instellingen,
-upload via `POST /update`). Duurt ongeveer 30 s. Eindigt met een overzicht per groep; exitcode 0
-betekent alles goed, anders 1 plus het einde van het emulator-log. Draai hem vóór een release.
-Handleiding (uitkomst lezen, controles toevoegen, problemen): [regressietest.md](regressietest.md).
+`tools/webemu-test.sh` (`-v` also shows the passed checks) builds env `webemu` and starts it on a
+free port with its own, empty state (`WEBEMU_STATE`, your regular `webemu-state` stays untouched).
+Then `tools/webemu_test.py` checks everything over HTTP: all emotions and actions (the lists come
+from `/emu/state`, so new ones are included automatically), blink/bounce/shake, characters and
+custom profiles, Wi-Fi scan and connect (wrong password, network gone, correct), BLE (pairing code,
+wrong code, line commands, bonded), swiping to info and clock (`view` in `/emu/state`), sound (PCM
+after `play whistle`), language, and updates (check, install, restart with new version and saved
+settings, upload via `POST /update`). Takes about 30 s. Ends with an overview per group; exit code 0
+means all good, otherwise 1 plus the end of the emulator log. Run it before a release.
+Guide (reading the result, adding checks, problems): [regression-test.md](regression-test.md).
 
-Niet nagebootst: echte radio's (Wi-Fi/BLE-bereik), TLS naar GitHub, flash schrijven, en de
-snelheid van het echte scherm. Meet prestaties daarom altijd op het apparaat (`perf`).
+Not simulated: real radios (Wi-Fi/BLE range), TLS to GitHub, flash writing, and the speed of the
+real screen. So always measure performance on the device (`perf`).
 
-## Emulator-bediening
+## Emulator controls
 
-Met de muis bedien je het scherm alsof het je vinger is: klik = tik, vasthouden = lang drukken,
-heen en weer slepen = aaien, vegen omlaag of omhoog = info of klok.
+With the mouse you operate the screen as if it were your finger: click = tap, hold = long press,
+drag back and forth = stroke, swipe down or up = info or clock.
 
-| Toets | Actie |
+| Key | Action |
 |---|---|
-| 1–9 | emotie (neutral … asleep) |
-| S / P | schudden / oppakken |
-| pijltjes | kantelen |
-| B | knipperen |
-| C / I | klok / info |
-| W | Wi-Fi-status doorlopen (uit → verbinden → verbonden → AP) |
-| L | BLE aan/uit |
-| M | geluid aan/uit |
-| K | skin wisselen |
-| F / N / J / R / E | fluiten / knipoog / kusje / rage / ontploffen |
-| H / G / O / U | niezen / lachen / ogen rollen / hik |
-| + / - | accu |
-| Esc | stoppen |
+| 1–9 | emotion (neutral … asleep) |
+| S / P | shake / pick up |
+| arrows | tilt |
+| B | blink |
+| C / I | clock / info |
+| W | cycle through Wi-Fi status (off → connecting → connected → AP) |
+| L | BLE on/off |
+| M | sound on/off |
+| K | switch skin |
+| F / N / J / R / E | whistle / wink / kiss / rage / explode |
+| H / G / O / U | sneeze / laugh / eye roll / hiccup |
+| + / - | battery |
+| Esc | quit |
 
-## Nog te verifiëren op het echte apparaat
-- Geluid: de ES8311-init, het volume en of GPIO46 inderdaad de versterker schakelt
-- Of de kantel-assen kloppen (`Behaviour::tiltSignX/Y`) en of de drempels voor schudden en
-  oppakken goed zijn
-- Framerate. Zo nodig de QSPI-klok verhogen (`gfx->begin(80000000)`) of de buffers in DMA-RAM
-  zetten.
-- Of touch en kantelen dezelfde kant op werken als het beeld. Het scherm is vast 90° gedraaid
-  (`kRotation` in `src/board/board.cpp`), omdat het bord gedraaid in de behuizing zit. Touch en
-  IMU draaien mee.
+## Still to verify on the real device
+- Sound: the ES8311 init, the volume and whether GPIO46 does switch the amplifier
+- Whether the tilt axes are right (`Behaviour::tiltSignX/Y`) and whether the thresholds for shaking
+  and picking up are good
+- Frame rate. If needed raise the QSPI clock (`gfx->begin(80000000)`) or put the buffers in DMA RAM.
+- Whether touch and tilt work in the same direction as the image. The screen is permanently rotated
+  by 90° (`kRotation` in `src/board/board.cpp`), because the board sits rotated in the case. Touch
+  and IMU rotate along.

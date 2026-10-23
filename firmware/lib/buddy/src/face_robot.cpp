@@ -1,6 +1,6 @@
-// Robot-basis met bouwdoos-onderdelen: ogen (blok, rond, pil, ring, pixel, vizier), wenkbrauwen,
-// mond (auto, lijn, zigzag, LED-equalizer, pixel), wangen en bril, in eigen kleuren.
-// Emoties sturen dezelfde veren als altijd; elk onderdeel tekent ze op zijn eigen manier.
+// Robot base with construction-kit parts: eyes (block, round, pill, ring, pixel, visor), eyebrows,
+// mouth (auto, line, zigzag, LED equaliser, pixel), cheeks and glasses, in own colours.
+// Emotions drive the same springs as always; each part draws them in its own way.
 
 #include <math.h>
 
@@ -21,7 +21,7 @@ const uint32_t kBlushColor = 0xFF6FA8;
 
 inline lv_color_t hex(uint32_t c) { return lv_color_hex(c); }
 
-// Ligt (px,py) binnen een afgeronde rechthoek?
+// Is (px,py) inside a rounded rectangle?
 bool inRoundRect(float px, float py, float x1, float y1, float x2, float y2, float r) {
   if (px < x1 || px > x2 || py < y1 || py > y2) return false;
   float cx = LV_CLAMP(x1 + r, px, x2 - r), cy = LV_CLAMP(y1 + r, py, y2 - r);
@@ -37,7 +37,7 @@ bool inHeart(float px, float py, float cx, float cy, float s, float vs) {
     return dx * dx + dy * dy <= r * r;
   };
   if (inCircle(cx - s * 0.23f) || inCircle(cx + s * 0.23f)) return true;
-  // driehoek: van (cx±0.49s, cy-0.06s) naar (cx, cy+0.44s)
+  // triangle: from (cx±0.49s, cy-0.06s) to (cx, cy+0.44s)
   float top = cy - s * 0.06f * vs, bot = cy + s * 0.44f * vs;
   if (py < top || py > bot) return false;
   float half = s * 0.49f * (1 - (py - top) / (bot - top));
@@ -46,17 +46,17 @@ bool inHeart(float px, float py, float cx, float cy, float s, float vs) {
 
 }  // namespace
 
-// LED-raster: vierkante "pixels" binnen de vorm (afgeronde rechthoek of hart).
+// LED grid: square "pixels" inside the shape (rounded rectangle or heart).
 void Face::drawPixelShape(lv_layer_t* layer, float x1, float y1, float x2, float y2, float r, bool heart,
                           lv_color_t col) {
-  const float cell = 16, dot = 13;  // grotere pixels = minder blokjes per frame
+  const float cell = 16, dot = 13;  // bigger pixels = fewer blocks per frame
   float cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
   float s = (x2 - x1) * 1.08f, vs = 1;
-  // raster vast t.o.v. het oogmidden, zodat pixels niet "zwemmen" bij kleine bewegingen
+  // grid fixed relative to the eye centre, so pixels don't "swim" with small movements
   for (float y = cy - floorf((cy - y1) / cell) * cell; y <= y2; y += cell)
     for (float x = cx - floorf((cx - x1) / cell) * cell; x <= x2; x += cell) {
       bool in = heart ? inHeart(x, y, cx, cy, s, vs) : inRoundRect(x, y, x1, y1, x2, y2, r);
-      if (in) fillRect(layer, x - dot / 2, y - dot / 2, x + dot / 2, y + dot / 2, 0, col);  // recht = veel sneller
+      if (in) fillRect(layer, x - dot / 2, y - dot / 2, x + dot / 2, y + dot / 2, 0, col);  // straight = much faster
     }
 }
 
@@ -66,27 +66,27 @@ void Face::drawRobot(lv_layer_t* layer) {
   const lv_color_t bg = hex(look_.face);
   const lv_color_t col = lv_color_make((uint8_t)LV_CLAMP(0.f, colR_.x, 255.f), (uint8_t)LV_CLAMP(0.f, colG_.x, 255.f),
                                        (uint8_t)LV_CLAMP(0.f, colB_.x, 255.f));
-  if (look_.face != 0) {  // eigen achtergrondkleur, altijd schermvullend
+  if (look_.face != 0) {  // own background colour, always full-screen
     NoShift ns;
     fillRect(layer, 0, 0, kSize, kSize, 0, bg);
   }
   float baseY = C + kEyeY + dy_.x + lookY_.x + bob;
 
-  // Vizier: één brede balk over beide ogen (de oogleden per oog vormen hem daarna per emotie)
+  // Visor: one wide bar across both eyes (the per-eye eyelids then shape it per emotion)
   const EyeStyle es = (EyeStyle)look_.eyes;
   if (es == EyeStyle::Visor && !heartShown_) {
-    // Dicht door knipperen of door de emotie (slapen): anders blijft tussen de ogen een blokje staan
+    // Closed by blinking or by the emotion (sleeping): otherwise a block stays between the eyes
     float c = LV_MAX(LV_MAX(eyeClosure(-1), eyeClosure(1)), LV_CLAMP(0.f, eye_.lidTop.x, 1.f) * 0.9f);
     float h = LV_MAX(eye_.h.x * 0.5f * swell_ * (1 - c * 0.92f), 6.0f);
     float x1 = C - kEyeSpacing - eye_.w.x / 2 + lookX_.x * 0.5f, x2 = C + kEyeSpacing + eye_.w.x / 2 + lookX_.x * 0.5f;
     fillRect(layer, x1, baseY - h / 2, x2, baseY + h / 2, LV_RADIUS_CIRCLE, col);
-    // "scanner": een lichter vlekje dat de kijkrichting volgt
+    // "scanner": a lighter spot that follows the gaze direction
     float sx = C + lookX_.x * 2.2f;
     if (c < 0.75f) fillEllipse(layer, sx, baseY, 56, h * 0.7f, lv_color_mix(lv_color_white(), col, 150), 220);
   }
 
   for (int side = -1; side <= 1; side += 2) {
-    float persp = 1.0f + side * (lookX_.x / kLookX) * 0.07f;  // oog aan de kijkkant iets groter
+    float persp = 1.0f + side * (lookX_.x / kLookX) * 0.07f;  // eye on the gaze side slightly bigger
     float cx = C + side * kEyeSpacing + lookX_.x;
     float cy = baseY;
     if (emotion_ == Emotion::Dizzy) {
@@ -122,7 +122,7 @@ void Face::drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale)
   float pulse = (emotion_ == Emotion::Love) ? 1.0f + 0.06f * sinf(t_ * 9.0f) : 1.0f;
   float w = eye_.w.x * scale * (1 + sq) * pulse * swell_;
   float h = eye_.h.x * scale * (1 - sq) * pulse * swell_;
-  if (es == EyeStyle::Round) w = h = LV_MIN(w, h) * 1.02f;  // rond: even breed als hoog
+  if (es == EyeStyle::Round) w = h = LV_MIN(w, h) * 1.02f;  // round: as wide as tall
   if (es == EyeStyle::Pill) w *= 0.68f;
   if (es == EyeStyle::Visor) h *= 0.5f;
   float c = eyeClosure(side);
@@ -131,7 +131,7 @@ void Face::drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale)
   float x1 = cx - w / 2, x2 = cx + w / 2;
   float y1 = cy - hv / 2, y2 = cy + hv / 2;
 
-  // Wangen onder de buitenkant van het oog
+  // Cheeks below the outside of the eye
   const CheekStyle cs = (CheekStyle)look_.cheeks;
   float bx = cx + side * 18, by = cy + eye_.h.x / 2 + 26;
   if (cs == CheekStyle::Blush && blush_.x > 0.02f) {
@@ -163,12 +163,12 @@ void Face::drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale)
   if (es == EyeStyle::Round || es == EyeStyle::Pill) r = LV_RADIUS_CIRCLE;
   switch (es) {
     case EyeStyle::Visor:
-      break;  // de balk is al getekend; hieronder alleen de oogleden
+      break;  // the bar is already drawn; below only the eyelids
     case EyeStyle::Ring: {
       fillRect(layer, x1, y1, x2, y2, r, col);
       float t = LV_MIN(13.0f, LV_MIN(w, hv) / 3);
       fillRect(layer, x1 + t, y1 + t, x2 - t, y2 - t, LV_MAX(0.f, r - t), bg);
-      // pupil die de kijkrichting volgt
+      // pupil that follows the gaze direction
       float pr = LV_MIN(w, hv) * 0.2f;
       float px = cx + LV_CLAMP(-1.f, lookX_.x / kLookX, 1.f) * (w / 2 - t - pr - 3);
       float py = cy + LV_CLAMP(-1.f, lookY_.x / kLookY, 1.f) * LV_MAX(0.f, hv / 2 - t - pr - 3);
@@ -183,7 +183,7 @@ void Face::drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale)
       break;
   }
 
-  // Bovenooglid in achtergrondkleur met schuine onderrand (binnenhoek = kant richting schermmidden)
+  // Upper eyelid in background colour with slanted lower edge (inner corner = side towards screen centre)
   float lid = LV_CLAMP(0.f, eye_.lidTop.x, 1.f);
   float tilt = eye_.tilt.x;
   if (lid > 0.005f || fabsf(tilt) > 0.5f) {
@@ -199,7 +199,7 @@ void Face::drawEye(lv_layer_t* layer, int side, float cx, float cy, float scale)
     if (yl < yr) fillTri(layer, xl, yl, xr, yl, xr, yr, bg);
     else if (yr < yl) fillTri(layer, xl, yr, xr, yr, xl, yl, bg);
   }
-  // Onderooglid (blije "^"-vorm)
+  // Lower eyelid (happy "^" shape)
   float lidB = LV_CLAMP(0.f, eye_.lidBottom.x, 1.f);
   if (lidB > 0.005f) {
     float ew = w * 1.7f, eh = hv * 1.3f;
@@ -219,7 +219,7 @@ void Face::drawRobotBrows(lv_layer_t* layer, float cy) {
     float by = cy - eye_.h.x / 2 - 26 - browRaise_.x;
     float half = eye_.w.x * 0.48f;
     float dx = half * cosf(ang), dy = half * sinf(ang);
-    float ix = bx - side * dx, iy = by + dy;  // binnenkant (+hoek = binnenkant omlaag = boos)
+    float ix = bx - side * dx, iy = by + dy;  // inside (+angle = inside down = angry)
     float ox = bx + side * dx, oy = by - dy;
     if (bs == BrowStyle::Pixel) {
       for (int i = 0; i < 4; i++) {
@@ -242,14 +242,14 @@ void Face::drawRobotGlasses(lv_layer_t* layer, float cy) {
     float ex = C + kEyeSpacing + lookX_.x * 0.5f;
     float rr = LV_MAX(hw, hh);
     frame(layer, ex - rr, cy - rr, ex + rr, cy + rr, LV_RADIUS_CIRCLE, 6, fr, lv_color_black(), 0);
-    line(layer, ex + rr * 0.7f, cy + rr * 0.7f, ex + rr * 0.95f, cy + rr * 1.9f, 3, fr, 200);  // kettinkje
+    line(layer, ex + rr * 0.7f, cy + rr * 0.7f, ex + rr * 0.95f, cy + rr * 1.9f, 3, fr, 200);  // little chain
     return;
   }
   float rad = gs == GlassesStyle::Round ? LV_RADIUS_CIRCLE : 14;
   for (int side = -1; side <= 1; side += 2) {
     float ex = C + side * kEyeSpacing + lookX_.x * 0.5f;
     if (gs == GlassesStyle::Shades) {
-      // donkere glazen: de ogen schijnen er gedempt doorheen
+      // dark lenses: the eyes shine through dimly
       frame(layer, ex - hw, cy - hh, ex + hw, cy + hh * 0.9f, 22, 7, fr, lv_color_hex(0x0A0A0A), 200);
       line(layer, ex - hw * 0.6f, cy - hh * 0.55f, ex - hw * 0.2f, cy - hh * 0.75f, 5, lv_color_white(), 110);
     } else {
@@ -264,7 +264,7 @@ void Face::drawMouth(lv_layer_t* layer, float cx, float cy) {
   const lv_color_t col = lv_color_make((uint8_t)colR_.x, (uint8_t)colG_.x, (uint8_t)colB_.x);
   const MouthStyle ms = (MouthStyle)look_.mouth;
   lv_opa_t opa = ms == MouthStyle::Auto ? (lv_opa_t)(LV_CLAMP(0.f, mouthAlpha_, 1.f) * 255) : LV_OPA_COVER;
-  // vorm per emotie: glimlach / frons / o / plat / geen
+  // shape per emotion: smile / frown / o / flat / none
   uint8_t shape = mouthShown_;
 
   if (ms == MouthStyle::Line) {
@@ -285,7 +285,7 @@ void Face::drawMouth(lv_layer_t* layer, float cx, float cy) {
     return;
   }
   if (ms == MouthStyle::Equalizer) {
-    // LED-balkjes; bewegen mee met het geluid, in rust een rustig golfje
+    // LED bars; move along with the sound, a calm wave at rest
     static const float bell[7] = {0.35f, 0.6f, 0.85f, 1.0f, 0.85f, 0.6f, 0.35f};
     float lvl = LV_CLAMP(0.f, soundLevel_, 1.f);
     for (int i = 0; i < 7; i++) {
@@ -315,7 +315,7 @@ void Face::drawMouth(lv_layer_t* layer, float cx, float cy) {
     return;
   }
 
-  // Auto: de klassieke vormen
+  // Auto: the classic shapes
   lv_draw_arc_dsc_t a;
   lv_draw_arc_dsc_init(&a);
   a.color = col;

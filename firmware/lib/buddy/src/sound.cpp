@@ -7,14 +7,14 @@ namespace buddy {
 
 namespace {
 
-enum Wave : uint8_t { Sine, Tri, Square, Noise };  // Noise: f0->f1 = kantelfrequentie van het filter
+enum Wave : uint8_t { Sine, Tri, Square, Noise };  // Noise: f0->f1 = corner frequency of the filter
 
 struct Note {
-  float f0, f1;      // begin- en eindfrequentie (exponentiële glijding); 0 = stilte
+  float f0, f1;      // start and end frequency (exponential glide); 0 = silence
   uint16_t ms;
   uint8_t wave;
   float vol;         // 0..1
-  float vibHz = 0, vibDepth = 0;  // vibrato (fractie van frequentie)
+  float vibHz = 0, vibDepth = 0;  // vibrato (fraction of frequency)
   float tremHz = 0;               // tremolo (amplitude)
 };
 
@@ -44,7 +44,7 @@ const Seq& seqFor(Sound s) {
   static const Seq wake = SEQ({300, 900, 180, Sine, 0.55f}, {900, 1250, 80, Sine, 0.5f});
   static const Seq purr = SEQ({130, 145, 700, Tri, 0.65f, 0, 0, 14});
   static const Seq toggle = SEQ({1200, 1200, 35, Square, 0.22f});
-  // Fluitmelodie (vrolijk deuntje, sinus met vibrato)
+  // Whistle melody (cheerful tune, sine with vibrato)
   static const Seq whistle = SEQ({1568, 1568, 220, Sine, 0.45f, 6, 0.012f}, {1319, 1319, 220, Sine, 0.45f, 6, 0.012f},
                                  {1568, 1760, 180, Sine, 0.45f, 6, 0.012f}, {2093, 2093, 380, Sine, 0.45f, 6, 0.018f},
                                  {0, 0, 120, Sine, 0}, {1760, 1760, 200, Sine, 0.42f, 6, 0.012f},
@@ -168,19 +168,19 @@ bool SoundSynth::fill(int16_t* out, size_t n) {
       phase_ -= floorf(phase_);
       switch (nt.wave) {
         case Noise: {
-          // 16-bit Galois-LFSR -> witte ruis, door een eenpolig filter met kantelfrequentie f
+          // 16-bit Galois LFSR -> white noise, through a one-pole filter with corner frequency f
           noise_ = (noise_ >> 1) ^ (-(int32_t)(noise_ & 1u) & 0xB400u);
           float white = (noise_ & 0xFFFF) / 32768.0f - 1.0f;
           float k = LV_MIN(1.0f, 6.2831853f * f / kRate);
           lp_ += (white - lp_) * k;
-          s = lp_ * LV_MIN(3.0f, 1.0f / sqrtf(k + 0.02f));  // lage kantelfreq. compenseren
+          s = lp_ * LV_MIN(3.0f, 1.0f / sqrtf(k + 0.02f));  // compensate low corner freq.
           break;
         }
         case Tri: s = 4.0f * fabsf(phase_ - 0.5f) - 1.0f; break;
         case Square: s = phase_ < 0.5f ? 0.8f : -0.8f; break;
         default: s = sinf(kTwoPi * phase_); break;
       }
-      // Envelope: 4 ms aanzet, 15 ms uitsterven -> geen klikjes.
+      // Envelope: 4 ms attack, 15 ms decay -> no clicks.
       float a = LV_MIN(1.0f, pos_ / (0.004f * kRate));
       float r = LV_MIN(1.0f, (len - pos_) / (0.015f * kRate));
       float trem = nt.tremHz > 0 ? 0.55f + 0.45f * sinf(lfo_) : 1.0f;

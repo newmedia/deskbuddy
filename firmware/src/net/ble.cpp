@@ -13,10 +13,10 @@ namespace ble {
 
 namespace {
 
-// Nordic UART Service: door veel tools en Web Bluetooth-voorbeelden ondersteund.
+// Nordic UART Service: supported by many tools and Web Bluetooth examples.
 constexpr const char* kService = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-constexpr const char* kRx = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";  // telefoon -> buddy (commando)
-constexpr const char* kTx = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";  // buddy -> telefoon (antwoord, notify)
+constexpr const char* kRx = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";  // phone -> buddy (command)
+constexpr const char* kTx = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";  // buddy -> phone (reply, notify)
 
 struct Msg {
   char line[220];
@@ -29,10 +29,10 @@ NimBLEServer* server = nullptr;
 NimBLECharacteristic* tx = nullptr;
 bool inited = false, enabled = false, suspended = false;
 char devName[24] = "deskbuddy";
-std::atomic<uint32_t> passkey{0};   // >0 = tonen op het scherm
+std::atomic<uint32_t> passkey{0};   // >0 = show on the screen
 std::atomic<uint8_t> connected{0};
 
-// Bericht in stukjes van (MTU - 3) versturen; de client plakt ze aan elkaar tot de '\n'.
+// Send the message in chunks of (MTU - 3); the client glues them together up to the '\n'.
 void send(uint16_t conn, const char* msg) {
   if (!tx) return;
   size_t mtu = server->getPeerMTU(conn);
@@ -42,14 +42,14 @@ void send(uint16_t conn, const char* msg) {
   for (size_t i = 0; i < s.length(); i += chunk) {
     size_t n = s.length() - i < chunk ? s.length() - i : chunk;
     tx->notify((const uint8_t*)s.c_str() + i, n, conn);
-    delay(4);  // geef de stack even lucht bij lange berichten
+    delay(4);  // give the stack some air on long messages
   }
 }
 
 struct ServerCb : NimBLEServerCallbacks {
   void onConnect(NimBLEServer*, NimBLEConnInfo& info) override {
     connected = server->getConnectedCount();
-    NimBLEDevice::startSecurity(info.getConnHandle());  // koppelen vragen (pincode)
+    NimBLEDevice::startSecurity(info.getConnHandle());  // request pairing (passkey)
   }
   void onDisconnect(NimBLEServer*, NimBLEConnInfo&, int) override {
     connected = server->getConnectedCount();
@@ -58,19 +58,19 @@ struct ServerCb : NimBLEServerCallbacks {
   uint32_t onPassKeyDisplay() override {
     uint32_t k = 100000 + esp_random() % 900000;
     passkey = k;
-    Serial.printf("[ble] koppelcode %06lu\n", (unsigned long)k);
+    Serial.printf("[ble] pairing code %06lu\n", (unsigned long)k);
     return k;
   }
   void onAuthenticationComplete(NimBLEConnInfo& info) override {
     passkey = 0;
-    Serial.printf("[ble] koppelen %s\n", info.isEncrypted() ? "gelukt" : "mislukt");
+    Serial.printf("[ble] pairing %s\n", info.isEncrypted() ? "succeeded" : "failed");
     if (!info.isEncrypted()) server->disconnect(info.getConnHandle());
   }
 };
 
 struct RxCb : NimBLECharacteristicCallbacks {
   void onWrite(NimBLECharacteristic* c, NimBLEConnInfo& info) override {
-    if (!info.isEncrypted()) return;  // alleen gekoppelde apparaten
+    if (!info.isEncrypted()) return;  // paired devices only
     std::string v = c->getValue();
     Msg m;
     size_t n = v.size() < sizeof(m.line) - 1 ? v.size() : sizeof(m.line) - 1;
@@ -78,7 +78,7 @@ struct RxCb : NimBLECharacteristicCallbacks {
     m.line[n] = 0;
     while (n && (m.line[n - 1] == '\n' || m.line[n - 1] == '\r')) m.line[--n] = 0;
     m.conn = info.getConnHandle();
-    xQueueSend(queue, &m, 0);  // vol = negeren; de hoofdlus verwerkt hem
+    xQueueSend(queue, &m, 0);  // full = ignore; the main loop processes it
   }
 };
 
@@ -90,7 +90,7 @@ void init() {
   inited = true;
   NimBLEDevice::init(devName);
   NimBLEDevice::setMTU(247);
-  NimBLEDevice::setSecurityAuth(true, true, true);  // bonding, MITM (pincode), secure connections
+  NimBLEDevice::setSecurityAuth(true, true, true);  // bonding, MITM (passkey), secure connections
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY);
   server = NimBLEDevice::createServer();
   server->setCallbacks(&serverCb);
@@ -118,7 +118,7 @@ void begin(buddy::App& a, bool on, const char* name) {
 }
 
 void setEnabled(bool on) {
-  if (suspended) {  // resume() regelt het
+  if (suspended) {  // resume() handles it
     enabled = on;
     return;
   }
@@ -147,8 +147,8 @@ void loop() {
   }
 }
 
-// Niet NimBLEDevice::deinit(): de BT-controller afsluiten terwijl Wi-Fi draait (gedeelde radio)
-// liet het apparaat hangen zonder Wi-Fi. Alleen adverteren stoppen en verbindingen verbreken.
+// Not NimBLEDevice::deinit(): shutting down the BT controller while Wi-Fi runs (shared radio)
+// left the device hanging without Wi-Fi. Only stop advertising and drop connections.
 bool suspend() {
   if (!inited || suspended) return false;
   NimBLEDevice::getAdvertising()->stop();

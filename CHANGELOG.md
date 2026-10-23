@@ -1,145 +1,152 @@
 # Changelog
 
-Elke versie hieronder wordt een release op GitHub (zie `tools/release.sh` en `docs/firmware.md`).
-De tekst onder een kop is de omschrijving van die release. Nieuwste bovenaan.
+Each version below becomes a release on GitHub (see `tools/release.sh` and `docs/firmware.md`).
+The text under a heading is the description of that release. Newest first.
 
-## v1.1.2
+## v1.2.0
 
-Bugfix: na het opstartscherm bleef er een zwart rondje over het gezicht staan.
+English and Dutch: the buddy and the web app speak both, and the whole project is now in English.
 
-- **Opstartscherm**: het logo vervaagt nu echt mee en het scherm wordt na afloop helemaal opgeruimd.
-  Daarvoor bleef op het apparaat soms het (zwarte) logo-rondje over de ogen hangen; grote effecten
-  zoals de ontploffing waren er wel omheen te zien.
-- **Naam**: de buddy heet nu **deskbuddy.dev**, op het opstartscherm, in het info-paneel, in de
-  web-app en op de installatiepagina. In de voettekst staat een link naar https://deskbuddy.dev.
-- **Web-emulator**: `reboot` herstart nu altijd (de herstart schoof soms eindeloos op), en na een
-  herstart heet het proces nog steeds `program`, zodat `pkill -x program` hem blijft vinden.
-- **tools/setup.sh** kiest een Python die PlatformIO met het ESP32-platform ondersteunt (3.10-3.14) en
-  maakt de venv opnieuw aan als die met een andere versie gemaakt is.
+- **Language**: choose English or Nederlands in the web app or PWA (Settings, or EN/NL in the footer).
+  The choice is stored on the buddy and applies to everything on its screen: info panel, clock,
+  Wi-Fi setup, pairing code and update screen. English is the default; serial command `lang en|nl`.
+- **English project**: docs, code comments, scripts and the regression test are in English. Serial
+  and API replies are English only (e.g. Wi-Fi reasons "wrong password", "network not found").
+- **Characters**: Mascotte, Krullebol and Sportief are now called Mascot, Curly and Sporty. A custom
+  look is named "Custom" (or "Eigen" in Dutch), a random one "Surprise".
+- **Fix: black circle after the boot screen**: the logo now really fades out and the screen is fully
+  cleaned up afterwards. Before, the (black) logo circle sometimes stayed over the eyes on the device; big effects such as
+  the explosion were still visible around it.
+- **Name**: the buddy is now called **deskbuddy.dev**, on the boot screen, in the info panel, in the
+  web app and on the install page. The footer has a link to https://deskbuddy.dev.
+- **Web emulator**: `reboot` now always restarts (the restart sometimes slipped forever), and after a
+  restart the process is still called `program`, so `pkill -x program` keeps finding it.
+- **tools/setup.sh** picks a Python that supports PlatformIO with the ESP32 platform (3.10-3.14) and
+  recreates the venv if it was made with a different version.
 
 ## v1.1.1
 
-Het deskbuddy-logo staat nu overal: op het scherm van de buddy, in de web-app en op de installatiepagina.
+The deskbuddy logo is now everywhere: on the buddy's screen, in the web app and on the install page.
 
-- **Opstartscherm**: bij het inschakelen toont de buddy kort het logo met zijn naam en versie, en
-  gaat daarna zacht over in het gezicht.
-- **Info-paneel**: een klein logo naast de versieregel.
-- **Web-pagina op het apparaat** (en de PWA): hetzelfde logo in de koptekst en als tabblad-icoon, in
-  plaats van de eerdere eigen versie zonder lach.
-- **Firmware installeren via USB**: nieuwe sectie in het tabblad Systeem en een voettekst met links naar
-  de installatiepagina (https://newmedia.github.io/deskbuddy/flash/), waar je ook een oudere versie kunt
-  kiezen.
+- **Boot screen**: when powered on, the buddy briefly shows the logo with its name and version, and
+  then fades smoothly into the face.
+- **Info panel**: a small logo next to the version line.
+- **Web page on the device** (and the PWA): the same logo in the header and as the tab icon, instead
+  of the earlier custom version without a smile.
+- **Install firmware over USB**: new section in the System tab and a footer with links to
+  the install page (https://newmedia.github.io/deskbuddy/flash/), where you can also pick an older
+  version.
 
 ## v1.1.0
 
-De buddy luistert nu mee: hij reageert op klappen, praten, muziek en lawaai.
+The buddy now listens along: it reacts to claps, talking, music and noise.
 
-- **Microfoon**: de twee ingebouwde microfoons worden nu gebruikt. Er wordt alleen het
-  geluidsniveau gemeten; er wordt niets opgenomen of verstuurd.
-  - **Klap**: hij schrikt, of wordt wakker als hij sliep.
-  - **Dubbele klap**: een blij sprongetje.
-  - **Praten**: hij luistert. Om en om steekt links en rechts een oortje uit, de geluidsgolfjes
-    komen van buiten naar het oor, en de ogen kijken mee.
-  - **Muziek**: hij danst op de maat, met hupjes en om en om opzij kijken.
-  - **Hard lawaai**: hij knijpt zijn ogen dicht.
-  - Gewone achtergrondruis (ventilator, pc) en zijn eigen geluidjes negeert hij.
-  - Aan/uit via de knop "Microfoon" in de web-app (Instellingen) of het commando `mic on|off`.
-- **Handmatig updaten**: de web-app verwijst nu naar de releases op GitHub om `firmware.bin` te
-  downloaden.
-- Voor ontwikkelaars: een web-emulator (`tools/webemu.sh`) en een automatische regressietest
-  (`tools/webemu-test.sh`) om alles, ook de web-app en de PWA, zonder apparaat te testen.
+- **Microphone**: the two built-in microphones are now used. Only the sound level is measured;
+  nothing is recorded or sent.
+  - **Clap**: it gets startled, or wakes up if it was sleeping.
+  - **Double clap**: a happy little jump.
+  - **Talking**: it listens. An ear sticks out alternately on the left and right, sound waves
+    come in from outside toward the ear, and the eyes follow along.
+  - **Music**: it dances to the beat, with hops and alternately looking to the side.
+  - **Loud noise**: it squeezes its eyes shut.
+  - It ignores ordinary background noise (fan, PC) and its own sounds.
+  - On/off via the "Microphone" button in the web app (Settings) or the command `mic on|off`.
+- **Manual updating**: the web app now points to the releases on GitHub to download
+  `firmware.bin`.
+- For developers: a web emulator (`tools/webemu.sh`) and an automated regression test
+  (`tools/webemu-test.sh`) to test everything, including the web app and the PWA, without a device.
 
 ## v1.0.0
 
-De eerste volwaardige versie: een eigen uiterlijk, nieuwe emoties, een vernieuwde web-app en een
-snellere, zuinigere buddy. Vanaf nu volgen we semver: nieuwe functies verhogen het middelste getal
-(1.1.0), alleen bugfixes het laatste (1.0.1).
+The first full version: its own look, new emotions, a revamped web app and a faster, more
+economical buddy. From now on we follow semver: new features raise the middle number
+(1.1.0), bugfixes only the last (1.0.1).
 
-- **Uiterlijk als bouwdoos**: kies voor robot of cartoon en stel ogen, wenkbrauwen, mond, wangen,
-  bril, haar, wimpers, lippenstift, oorbellen en haaraccessoires zelf samen, met eigen kleuren.
-  Er zijn 16 kant-en-klare personages (o.a. Lisa, Noor, Sofie, Mila, Emma en Bo) en een
-  "verras me". Eigen looks bewaar je onder een naam (tot 8 profielen).
-- **Nieuwe emoties**: huilen (tranen over de wangen), druk/ADHD (rondschietende blik en
-  sprongetjes) en pijn (grimas, zweetdruppel en af en toe een steek).
-- **Stuiteren en trillen echt zichtbaar**: stuiteren is een sprongetje, de hik een schok omhoog, en
-  bij rage, ontploffen en pijn trilt het hele gezicht. Daarvóór zag je daar niets van.
-- **Vernieuwde web-app**: tabbladen (bediening, instellingen, Wi-Fi, systeem) en een editor voor
-  het uiterlijk die je met het palet-icoon aan- en uitzet. De editor heeft knoppen in plaats van
-  keuzelijsten en kleurstalen bij elk onderdeel. Bovenaan zie je hoe hij verbonden is (Wi-Fi met
-  signaalsterkte, Bluetooth of setup) en of hij op USB-stroom of op de accu draait.
-- **Sneller en meer geheugen**: het scherm wordt in één keer getekend in plaats van in 18 stroken,
-  waardoor tekenen 30-50% sneller gaat. Er is ~80 KB vrij werkgeheugen met Wi-Fi en Bluetooth aan
-  (was ~52 KB), als ruimte voor nieuwe functies.
+- **Look as a construction kit**: choose robot or cartoon and compose eyes, eyebrows, mouth, cheeks,
+  glasses, hair, lashes, lipstick, earrings and hair accessories yourself, with your own colors.
+  There are 16 ready-made characters (including Lisa, Noor, Sofie, Mila, Emma and Bo) and a
+  "surprise me". You save your own looks under a name (up to 8 profiles).
+- **New emotions**: crying (tears down the cheeks), busy/ADHD (darting gaze and
+  little jumps) and pain (grimace, sweat drop and an occasional sting).
+- **Bouncing and shaking really visible**: bouncing is a little jump, the hiccup a jolt upward, and
+  during rage, exploding and pain the whole face shakes. Before, you saw none of that.
+- **Revamped web app**: tabs (controls, settings, Wi-Fi, system) and an editor for
+  the look that you toggle with the palette icon. The editor has buttons instead of
+  drop-down lists and color swatches for each part. At the top you see how it is connected (Wi-Fi with
+  signal strength, Bluetooth or setup) and whether it runs on USB power or on the battery.
+- **Faster and more memory**: the screen is drawn in one go instead of in 18 strips,
+  making drawing 30-50% faster. There is ~80 KB of free working memory with Wi-Fi and Bluetooth on
+  (was ~52 KB), as room for new features.
 - **Bugfixes**:
-  - knipoog en kusje: het dichte oog was bij de cartoon onzichtbaar;
-  - tranen en slaap-Z'jes verdwenen achter lang of donker haar;
-  - na het wakker worden bleef soms een Z'je staan;
-  - bij het vizier bleef in de slaap een blokje staan.
+  - wink and kiss: the closed eye was invisible on the cartoon;
+  - tears and sleep Z's disappeared behind long or dark hair;
+  - after waking up a Z sometimes stayed behind;
+  - with the visor a small block stayed behind during sleep.
 
 ## v0.3.2
 
-Zuiniger: de buddy tekent alleen nog als er iets beweegt, en updates lukken ook vanuit de slaapstand.
+More economical: the buddy only draws when something moves, and updates also work from sleep mode.
 
-- **Veel minder CPU-gebruik** (van ~95% naar ~40% als hij wakker is en stilstaat): er wordt niets
-  getekend als er niets beweegt, de ademhaling verspringt per hele pixel, en het gezicht wordt niet
-  hertekend als de klok of het info-paneel eroverheen ligt.
-- **Slaperig en slapend op laag pitje** (~10 en ~8 beelden per seconde), wat de accu spaart.
-- **Updates vanuit de slaapstand**: bij het starten van een update wordt de buddy eerst wakker.
-  Daarvóór liepen uploads vanuit slaap vast.
-- **Touch** wordt alleen nog uitgelezen als het scherm wordt aangeraakt.
-- Nieuw commando `reboot` (herstarten op afstand).
+- **Much lower CPU usage** (from ~95% to ~40% when awake and standing still): nothing is
+  drawn when nothing moves, breathing steps by whole pixels, and the face is not
+  redrawn when the clock or the info panel covers it.
+- **Sleepy and sleeping at low frame rate** (~10 and ~8 frames per second), which saves the battery.
+- **Updates from sleep mode**: when an update starts, the buddy first wakes up.
+  Before, uploads from sleep got stuck.
+- **Touch** is only read when the screen is touched.
+- New command `reboot` (restart remotely).
 
 ## v0.3.1
 
-Updates en Bluetooth gaan nu samen, plus nieuwe acties en een snellere schermaansturing.
+Updates and Bluetooth now work together, plus new actions and faster display control.
 
-- **Updates met Bluetooth aan**: tijdens een update stopt BLE alleen met adverteren in plaats van
-  helemaal uit te gaan. In v0.3.0 kon de buddy daardoor zijn Wi-Fi-verbinding kwijtraken; zet
-  bij v0.3.0 dus eerst BLE of updates uit, of installeer deze versie handmatig.
-- **Meer vrij werkgeheugen met Bluetooth aan** (van een paar KB naar ruim 50 KB), zodat de web-
-  interface en updates stabiel blijven.
-- **Eigen schermaansturing**: sneller tekenen via asynchrone DMA; de mascotte hertekent in rust
-  alleen wat beweegt.
-- **Nieuwe acties**: niezen, lachen (3x snel aaien = kietelen), ogen rollen (2x snel heen en weer
-  vegen) en de hik, met geluid en knoppen in de webinterface.
+- **Updates with Bluetooth on**: during an update BLE only stops advertising instead of
+  turning off completely. In v0.3.0 the buddy could lose its Wi-Fi connection because of that; with
+  v0.3.0, first turn off BLE or updates, or install this version manually.
+- **More free working memory with Bluetooth on** (from a few KB to well over 50 KB), so that the web
+  interface and updates stay stable.
+- **Own display driver**: faster drawing via asynchronous DMA; the mascot at rest only
+  redraws what moves.
+- **New actions**: sneezing, laughing (3x fast stroking = tickling), rolling eyes (2x fast swiping
+  back and forth) and the hiccup, with sound and buttons in the web interface.
 
 ## v0.3.0
 
-Bluetooth, een app voor je telefoon en een snellere, zuinigere buddy.
+Bluetooth, an app for your phone and a faster, more economical buddy.
 
-- **Bluetooth (BLE)**: bedienen zonder Wi-Fi via de Nordic UART Service, met hetzelfde
-  commandoprotocol. Koppelen met een pincode op het scherm; alleen gekoppelde apparaten krijgen
-  toegang. Aan/uit via het info-paneel of `ble on|off|forget`.
-- **Web-app (PWA)**: de webinterface is te installeren op je telefoon en werkt via Wi-Fi of via
+- **Bluetooth (BLE)**: control without Wi-Fi via the Nordic UART Service, with the same
+  command protocol. Pairing with a PIN on the screen; only paired devices get
+  access. On/off via the info panel or `ble on|off|forget`.
+- **Web app (PWA)**: the web interface can be installed on your phone and works over Wi-Fi or via
   Web Bluetooth.
-- **Updates naast Bluetooth**: tijdens het controleren en installeren gaat BLE even uit, zodat er
-  genoeg geheugen is voor de beveiligde verbinding met GitHub. Een automatische controle wacht
-  als er een telefoon verbonden is.
-- **Matrix-animatie tijdens updates**: groene ogen met vallende code en een voortgangsring, ook
-  bij uploaden via de webpagina en ArduinoOTA.
-- **Sneller en zuiniger**: veel meer vrij werkgeheugen, firmware 160 KB kleiner, scherpere klok,
-  snellere schermaansturing en vlottere webinterface (geen Wi-Fi-slaapstand).
-- Nieuwe commando's: `reboot`, `perf`, `json` en `wifi scan`; `wifi join` accepteert netwerknamen
-  met spaties tussen aanhalingstekens.
+- **Updates alongside Bluetooth**: while checking and installing, BLE briefly turns off, so there is
+  enough memory for the secure connection to GitHub. An automatic check waits
+  if a phone is connected.
+- **Matrix animation during updates**: green eyes with falling code and a progress ring, also
+  when uploading via the web page and ArduinoOTA.
+- **Faster and more economical**: a lot more free working memory, firmware 160 KB smaller, a sharper clock,
+  faster display control and a smoother web interface (no Wi-Fi sleep mode).
+- New commands: `reboot`, `perf`, `json` and `wifi scan`; `wifi join` accepts network names
+  with spaces in quotes.
 
 ## v0.2.0
 
-Eerste release die de deskbuddy zelf kan ophalen.
+First release that the deskbuddy can fetch by itself.
 
-- **Automatische updates**: de deskbuddy kijkt bij het opstarten en elke 12 uur of er een nieuwere
-  release op GitHub staat. Standaard meldt hij dat (info-paneel en web-UI, met een knop om te
-  installeren); met `update auto` installeert hij zelf. Tijdens installeren kijkt hij verrast en
-  loopt er een voortgangsring rond het scherm.
-- **Acties met geluid**: fluiten (spontaan bij verveling), knipoog (dubbeltik), kusje (5x aaien)
-  en bij herhaald tikken boos, dan rage en tot slot ontploffen. Ook via `play` en de web-UI.
-- **Wi-Fi-setup in twee stappen**: QR-code voor het setup-netwerk, daarna een QR-code met de
-  setup-link; captive portal op Android, iOS en Windows, en terugkoppeling tijdens het verbinden.
-- **Webinterface** op `http://deskbuddy.local`: emoties, uiterlijk, geluid, volume, helderheid,
-  slaaptijd, Wi-Fi en firmware bijwerken.
-- **Instelbare slaaptijd** (1-120 minuten of nooit).
-- Tijd via NTP, met de RTC als reserve.
+- **Automatic updates**: at startup and every 12 hours the deskbuddy checks whether there is a newer
+  release on GitHub. By default it reports that (info panel and web UI, with a button to
+  install); with `update auto` it installs by itself. While installing it looks surprised and
+  a progress ring runs around the screen.
+- **Actions with sound**: whistling (spontaneously when bored), wink (double tap), kiss (5x stroking)
+  and with repeated tapping angry, then rage and finally exploding. Also via `play` and the web UI.
+- **Wi-Fi setup in two steps**: QR code for the setup network, then a QR code with the
+  setup link; captive portal on Android, iOS and Windows, and feedback while connecting.
+- **Web interface** at `http://deskbuddy.local`: emotions, look, sound, volume, brightness,
+  sleep time, Wi-Fi and firmware updating.
+- **Adjustable sleep time** (1-120 minutes or never).
+- Time via NTP, with the RTC as backup.
 
 ## v0.1.0
 
-Eerste eigen firmware (niet als release gepubliceerd): procedureel gezicht met emoties, touch- en
-bewegingsgebaren, klok, info-paneel, geluidseffecten en twee skins (robot en mascotte).
+First own firmware (not published as a release): procedural face with emotions, touch and
+motion gestures, clock, info panel, sound effects and two skins (robot and mascot).

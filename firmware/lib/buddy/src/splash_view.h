@@ -1,6 +1,6 @@
 #pragma once
-// Opstartscherm: het deskbuddy.dev-logo met de naam, kort na het inschakelen. Na afloop wordt het
-// object verwijderd (niet alleen verborgen).
+// Start screen: the deskbuddy.dev logo with the name, shortly after power-on. Afterwards the
+// object is deleted (not just hidden).
 
 #include <lvgl.h>
 #include <stdint.h>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -46,7 +46,7 @@ a{color:var(--accent)}
 <header>
   <img src="/icon.svg" width="36" height="36" alt="deskbuddy.dev" style="display:block">
   <h1>deskbuddy.dev emulator</h1>
-  <span class="sub" id="sub">verbinden…</span>
+  <span class="sub" id="sub">connecting…</span>
 </header>
 <div class="wrap">
   <div class="dev">
@@ -54,74 +54,74 @@ a{color:var(--accent)}
     <div class="status" id="status"></div>
 
     <section>
-      <h2>Aanraken en bewegen</h2>
-      <p class="hint">Muis = vinger: klik = tik, vasthouden = lang drukken, heen en weer slepen = aaien,
-        omlaag vegen = info, omhoog vegen = klok. Kantelen met de pijltjes (of <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>).</p>
+      <h2>Touch and motion</h2>
+      <p class="hint">Mouse = finger: click = tap, hold = long press, drag back and forth = pet,
+        swipe down = info, swipe up = clock. Tilt with the arrows (or <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>).</p>
       <div class="row" style="margin-top:10px">
-        <div class="pad" aria-label="Kantelen">
-          <span></span><button data-tilt="0,-0.5" aria-label="naar voren">↑</button><span></span>
-          <button data-tilt="-0.5,0" aria-label="links">←</button><span></span><button data-tilt="0.5,0" aria-label="rechts">→</button>
-          <span></span><button data-tilt="0,0.5" aria-label="naar achteren">↓</button><span></span>
+        <div class="pad" aria-label="Tilt">
+          <span></span><button data-tilt="0,-0.5" aria-label="forward">↑</button><span></span>
+          <button data-tilt="-0.5,0" aria-label="left">←</button><span></span><button data-tilt="0.5,0" aria-label="right">→</button>
+          <span></span><button data-tilt="0,0.5" aria-label="backward">↓</button><span></span>
         </div>
         <div style="display:grid;gap:6px">
-          <button data-gesture="shake">Schudden</button>
-          <button data-gesture="pickup">Oppakken</button>
+          <button data-gesture="shake">Shake</button>
+          <button data-gesture="pickup">Pick up</button>
         </div>
       </div>
     </section>
 
     <section>
-      <h2>Microfoon</h2>
-      <p class="hint">Testgeluiden voor de nagebootste microfoon (er klinkt niets).</p>
+      <h2>Microphone</h2>
+      <p class="hint">Test sounds for the faked microphone (nothing is played).</p>
       <div class="row" style="margin-top:8px">
-        <button data-sound="clap">Klap</button>
-        <button data-sound="double">Dubbele klap</button>
-        <button data-sound="loud">Lawaai</button>
-        <button data-sound="music">Muziek</button>
-        <button data-sound="speech">Praten</button>
+        <button data-sound="clap">Clap</button>
+        <button data-sound="double">Double clap</button>
+        <button data-sound="loud">Noise</button>
+        <button data-sound="music">Music</button>
+        <button data-sound="speech">Speech</button>
       </div>
       <div class="row"><span class="hint" id="mic-state"></span></div>
     </section>
 
     <section>
-      <h2>Stroom</h2>
+      <h2>Power</h2>
       <div class="row">
-        <select id="power"><option value="usb">USB-stroom (geen accu)</option><option value="bat">Accu</option></select>
-        <label><input type="checkbox" id="charging"> laden</label>
+        <select id="power"><option value="usb">USB power (no battery)</option><option value="bat">Battery</option></select>
+        <label><input type="checkbox" id="charging"> charging</label>
       </div>
-      <div class="row"><label style="flex:1">Accu <input type="range" id="battery" min="0" max="100" value="76"> <span id="battery-v">76%</span></label></div>
+      <div class="row"><label style="flex:1">Battery <input type="range" id="battery" min="0" max="100" value="76"> <span id="battery-v">76%</span></label></div>
     </section>
 
     <section>
-      <h2>Verbindingen</h2>
+      <h2>Connections</h2>
       <div class="row">
-        <label>Wi-Fi <select id="wifi"><option value="sta">verbonden</option><option value="ap">setup-netwerk (AP)</option><option value="off">uit</option></select></label>
-        <label style="flex:1">signaal <input type="range" id="rssi" min="-95" max="-35" value="-58"> <span id="rssi-v">-58 dBm</span></label>
+        <label>Wi-Fi <select id="wifi"><option value="sta">connected</option><option value="ap">setup network (AP)</option><option value="off">off</option></select></label>
+        <label style="flex:1">signal <input type="range" id="rssi" min="-95" max="-35" value="-58"> <span id="rssi-v">-58 dBm</span></label>
       </div>
-      <p class="hint" style="margin-top:8px">Wi-Fi-setup testen: netwerk <b>Weg</b> = niet gevonden, wachtwoord <b>fout</b> = verkeerd wachtwoord.</p>
-      <div class="row"><span id="ble-state" class="hint"></span><button id="ble-forget">Koppeling vergeten</button></div>
+      <p class="hint" style="margin-top:8px">Testing Wi-Fi setup: network <b>Gone</b> = not found, password <b>wrong</b> = wrong password.</p>
+      <div class="row"><span id="ble-state" class="hint"></span><button id="ble-forget">Forget pairing</button></div>
     </section>
 
     <section>
-      <h2>Updates en systeem</h2>
+      <h2>Updates and system</h2>
       <div class="row">
-        <label>Aangeboden release <input type="text" id="offer" value="v1.0.1" size="8" placeholder="geen"></label>
+        <label>Offered release <input type="text" id="offer" value="v1.0.1" size="8" placeholder="none"></label>
         <span class="hint" id="version"></span>
       </div>
       <div class="row">
-        <button id="audio">Geluid in de browser aan</button>
-        <button id="reboot">Herstarten</button>
+        <button id="audio">Sound in the browser on</button>
+        <button id="reboot">Restart</button>
       </div>
     </section>
   </div>
 
   <div class="phone">
     <div class="tabs">
-      <button data-mode="wifi" class="on">Webinterface (Wi-Fi)</button>
+      <button data-mode="wifi" class="on">Web interface (Wi-Fi)</button>
       <button data-mode="pwa">PWA (Bluetooth)</button>
     </div>
     <div class="frame"><iframe id="app" src="/" title="deskbuddy web-app"></iframe></div>
-    <p class="hint">De app praat met de emulator zoals met een echte deskbuddy. <a id="open" href="/" target="_blank">Openen in een eigen tabblad</a></p>
+    <p class="hint">The app talks to the emulator like it would to a real deskbuddy. <a id="open" href="/" target="_blank">Open in its own tab</a></p>
   </div>
 </div>
 
@@ -129,13 +129,13 @@ a{color:var(--accent)}
 const $ = s => document.querySelector(s);
 const input = (params) => fetch("/emu/input?" + new URLSearchParams(params), {method: "POST"}).catch(() => {});
 
-// ---------- Scherm ----------
+// ---------- Screen ----------
 const cv = $("#cv"), ctx = cv.getContext("2d"), img = ctx.createImageData(466, 466);
 let frame = 0, online = false;
 async function pullScreen() {
   try {
     const r = await fetch(`/emu/screen?f=${frame}`);
-    if (!online) { online = true; $("#sub").textContent = "draait (zelfde firmware-code als het apparaat)"; }
+    if (!online) { online = true; $("#sub").textContent = "running (same firmware code as the device)"; }
     frame = +r.headers.get("X-Frame");
     const bright = +r.headers.get("X-Bright");
     cv.style.filter = `brightness(${Math.max(0.25, Math.min(1.25, bright / 200)).toFixed(2)})`;
@@ -151,14 +151,14 @@ async function pullScreen() {
       ctx.putImageData(img, 0, 0);
     }
   } catch {
-    if (online) { online = false; $("#sub").textContent = "emulator niet bereikbaar (herstart hij?)"; }
+    if (online) { online = false; $("#sub").textContent = "emulator unreachable (is it restarting?)"; }
     await new Promise(r => setTimeout(r, 500));
   }
   setTimeout(pullScreen, 25);
 }
 pullScreen();
 
-// ---------- Aanraken ----------
+// ---------- Touch ----------
 const scr = $("#screen");
 let down = false, lastSend = 0, pending = null;
 function pos(e) {
@@ -176,7 +176,7 @@ const up = e => { if (!down) return; down = false; sendTouch(pos(e), false); };
 scr.addEventListener("pointerup", up);
 scr.addEventListener("pointercancel", up);
 
-// ---------- Kantelen en gebaren ----------
+// ---------- Tilt and gestures ----------
 const tilt = (x, y) => input({t: "tilt", x, y});
 document.querySelectorAll("[data-tilt]").forEach(b => {
   const [x, y] = b.dataset.tilt.split(",");
@@ -189,7 +189,7 @@ addEventListener("keyup", e => { if (keys[e.key]) tilt(0, 0); });
 document.querySelectorAll("[data-gesture]").forEach(b => b.onclick = () => input({t: "gesture", g: b.dataset.gesture}));
 document.querySelectorAll("[data-sound]").forEach(b => b.onclick = () => input({t: "sound", v: b.dataset.sound}));
 
-// ---------- Stroom ----------
+// ---------- Power ----------
 function power() {
   const bat = $("#power").value === "bat";
   $("#battery").disabled = !bat;
@@ -201,26 +201,26 @@ $("#battery").oninput = power;
 $("#charging").onchange = e => input({t: "charging", v: e.target.checked ? 1 : 0});
 $("#battery").disabled = true;
 
-// ---------- Verbindingen ----------
+// ---------- Connections ----------
 $("#wifi").onchange = e => input({t: "wifi", v: e.target.value});
 $("#rssi").oninput = e => { $("#rssi-v").textContent = `${e.target.value} dBm`; input({t: "wifi", v: "rssi", n: e.target.value}); };
 $("#ble-forget").onclick = () => fetch("/api/cmd", {method: "POST", body: new URLSearchParams({c: "ble forget"})});
 
-// ---------- Updates, herstarten ----------
+// ---------- Updates, restart ----------
 $("#offer").onchange = e => input({t: "offer", v: e.target.value.trim()});
 $("#reboot").onclick = () => fetch("/api/cmd", {method: "POST", body: new URLSearchParams({c: "reboot"})});
 
-// ---------- Status van het nagebootste apparaat ----------
+// ---------- State of the faked device ----------
 async function pullState() {
   try {
     const s = await (await fetch("/emu/state")).json();
-    $("#status").textContent = `emotie: ${s.emotion} · helderheid ${s.brightness} · geluid ${s.sound ? "aan" : "uit"}`;
+    $("#status").textContent = `emotion: ${s.emotion} · brightness ${s.brightness} · sound ${s.sound ? "on" : "off"}`;
     $("#version").textContent = `firmware ${s.version}`;
-    $("#mic-state").textContent = `nu: ${s.micScene}${s.dancing ? " · hij danst" : ""}${s.listening ? " · hij luistert" : ""}`;
-    const ble = !s.ble ? '<span class="dot"></span>Bluetooth uit'
-      : s.bleConnected ? '<span class="dot ok"></span>Bluetooth verbonden'
-      : s.pairCode ? `<span class="dot warn"></span>koppelcode op het scherm: <b>${s.pairCode}</b>`
-      : `<span class="dot"></span>Bluetooth aan, ${s.blePaired ? "gekoppeld" : "nog niet gekoppeld"}`;
+    $("#mic-state").textContent = `now: ${s.micScene}${s.dancing ? " · it is dancing" : ""}${s.listening ? " · it is listening" : ""}`;
+    const ble = !s.ble ? '<span class="dot"></span>Bluetooth off'
+      : s.bleConnected ? '<span class="dot ok"></span>Bluetooth connected'
+      : s.pairCode ? `<span class="dot warn"></span>pairing code on the screen: <b>${s.pairCode}</b>`
+      : `<span class="dot"></span>Bluetooth on, ${s.blePaired ? "paired" : "not paired yet"}`;
     $("#ble-state").innerHTML = ble;
     const wifiNames = ["off", "sta", "sta", "ap"];  // Off, Connecting, Station, AccessPoint
     if (document.activeElement !== $("#wifi")) $("#wifi").value = wifiNames[s.wifi] || "off";
@@ -229,14 +229,14 @@ async function pullState() {
 }
 pullState();
 
-// ---------- Geluid: PCM van de synth ophalen en afspelen ----------
+// ---------- Sound: fetch the synth's PCM and play it ----------
 let actx = null, apos = 0, atime = 0;
 $("#audio").onclick = () => {
-  if (actx) { actx.close(); actx = null; $("#audio").classList.remove("on"); $("#audio").textContent = "Geluid in de browser aan"; return; }
+  if (actx) { actx.close(); actx = null; $("#audio").classList.remove("on"); $("#audio").textContent = "Sound in the browser on"; return; }
   actx = new AudioContext();
   apos = 0;
   $("#audio").classList.add("on");
-  $("#audio").textContent = "Geluid in de browser uit";
+  $("#audio").textContent = "Sound in the browser off";
   pullAudio();
 };
 async function pullAudio() {
@@ -259,7 +259,7 @@ async function pullAudio() {
   setTimeout(pullAudio, 80);
 }
 
-// ---------- Web-app: via Wi-Fi (http-API) of als PWA met nagebootste Bluetooth ----------
+// ---------- Web app: via Wi-Fi (http API) or as PWA with faked Bluetooth ----------
 document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => {
   document.querySelectorAll("[data-mode]").forEach(o => o.classList.toggle("on", o === b));
   const src = b.dataset.mode === "pwa" ? "/?pwa" : "/";

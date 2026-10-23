@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Regressietest op de web-emulator: bouwt env webemu, start hem op een vrije poort met een eigen, schone
-# staat (je gewone emulator-instellingen blijven staan), draait tools/webemu_test.py en stopt hem weer.
-#   tools/webemu-test.sh         -> samenvatting; exitcode 0 = alles goed
-#   tools/webemu-test.sh -v      -> ook de geslaagde controles tonen
+# Regression test on the web emulator: builds env webemu, starts it on a free port with its own, clean
+# state (your normal emulator settings are left alone), runs tools/webemu_test.py and stops it again.
+#   tools/webemu-test.sh         -> summary; exit code 0 = all passed
+#   tools/webemu-test.sh -v      -> also show the passed checks
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PY="$ROOT/.venv/bin/python3"
@@ -27,7 +27,7 @@ set +e
 RC=$?
 set -e
 if [ $RC -ne 0 ]; then
-  echo "--- emulator-log ($LOG) ---"
+  echo "--- emulator log ($LOG) ---"
   tail -n 20 "$LOG"
 else
   rm -f "$LOG"

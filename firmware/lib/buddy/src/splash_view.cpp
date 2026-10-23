@@ -43,23 +43,23 @@ void SplashView::show(uint32_t ms) {
 
 void SplashView::update() {
   if (!root_) return;
-  // Op de klok i.p.v. opgetelde dt: bij het opstarten (Wi-Fi, BLE) loopt de lus nog onregelmatig. De
-  // klok start bij de eerste update, anders is het scherm al voorbij voordat het één keer getekend is.
+  // By the clock instead of summed dt: during startup (Wi-Fi, BLE) the loop still runs irregularly. The
+  // clock starts at the first update, otherwise the screen is over before it was drawn even once.
   if (!started_) {
     started_ = true;
     start_ = lv_tick_get();
   }
   uint32_t t = lv_tick_elaps(start_);
   if (t >= total_) {
-    // Weg is weg: verwijderen i.p.v. verbergen, en het hele scherm opnieuw laten tekenen. Zo kan er
-    // niets van het logo blijven hangen (het zwarte rondje over de ogen) en is het geheugen terug.
+    // Gone is gone: delete instead of hide, and redraw the whole screen. That way nothing of the logo
+    // can linger (the black disc over the eyes) and the memory is freed.
     lv_obj_t* scr = lv_obj_get_parent(root_);
     lv_obj_delete(root_);
     root_ = nullptr;
     lv_obj_invalidate(scr);
     return;
   }
-  // Laatste 300 ms: wegfaden
+  // Last 300 ms: fade out
   uint32_t left = total_ - t;
   lv_obj_set_style_opa(root_, left < 300 ? (lv_opa_t)(left * 255 / 300) : LV_OPA_COVER, 0);
 }

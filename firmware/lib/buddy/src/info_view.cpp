@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "draw_util.h"
+#include "i18n.h"
 
 namespace buddy {
 
@@ -36,7 +37,7 @@ lv_obj_t* InfoView::row(const char* symbol, lv_obj_t** value, lv_obj_t** sub, lv
     lv_obj_set_style_text_color(icon, kAccent, 0);
     lv_obj_set_width(icon, 36);
   } else {
-    icon = lv_obj_create(r);  // leeg vlak; wordt zelf getekend
+    icon = lv_obj_create(r);  // empty area; drawn by ourselves
     lv_obj_remove_style_all(icon);
     lv_obj_set_size(icon, 36, 36);
   }
@@ -84,7 +85,7 @@ void InfoView::create(lv_obj_t* parent) {
   lv_obj_set_style_text_font(footer_, &lv_font_montserrat_14, 0);
   lv_obj_set_style_text_color(footer_, kDim, 0);
   lv_obj_add_flag(footer_, LV_OBJ_FLAG_IGNORE_LAYOUT);
-  lv_obj_align(footer_, LV_ALIGN_BOTTOM_MID, -20, -36);  // vlak boven de accuregel
+  lv_obj_align(footer_, LV_ALIGN_BOTTOM_MID, -20, -36);  // just above the battery line
 
   logo_ = lv_obj_create(root_);
   lv_obj_remove_style_all(logo_);
@@ -96,14 +97,14 @@ void InfoView::create(lv_obj_t* parent) {
     lv_area_t a;
     lv_obj_get_coords(o, &a);
     draw::logo(lv_event_get_layer(e), (a.x1 + a.x2) / 2.0f, (a.y1 + a.y2) / 2.0f, 20,
-               lv_obj_get_style_opa_recursive(o, LV_PART_MAIN));  // vervaagt mee met het paneel
+               lv_obj_get_style_opa_recursive(o, LV_PART_MAIN));  // fades along with the panel
   }, LV_EVENT_DRAW_MAIN, nullptr);
 
   battery_ = lv_label_create(root_);
   lv_obj_set_style_text_font(battery_, &lv_font_montserrat_20, 0);
   lv_obj_set_style_text_color(battery_, kText, 0);
   lv_obj_add_flag(battery_, LV_OBJ_FLAG_IGNORE_LAYOUT);
-  lv_obj_align(battery_, LV_ALIGN_BOTTOM_MID, -20, -10);  // -20: compenseert pad_left van root
+  lv_obj_align(battery_, LV_ALIGN_BOTTOM_MID, -20, -10);  // -20: compensates pad_left of root
 
   lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
 }
@@ -131,7 +132,7 @@ void InfoView::drawSkinIcon(lv_event_t* e) {
   float cx = (a.x1 + a.x2 + 1) / 2.0f, cy = (a.y1 + a.y2 + 1) / 2.0f;
 
   if (self->last_.mascot) {
-    // Huidkleurig kopje met blauw haar, brilletje en lach
+    // Skin-colored head with blue hair, glasses and a smile
     fillEllipse(layer, cx, cy, 36, 36, lv_color_hex(0xF5C99B));
     lv_area_t saved = layer->_clip_area;
     lv_area_t top = saved;
@@ -151,7 +152,7 @@ void InfoView::drawSkinIcon(lv_event_t* e) {
     fillEllipse(layer, cx, cy + 9, 14, 12, lv_color_hex(0x5A0F1C));
     layer->_clip_area = saved;
   } else {
-    // Zwart rondje met rand en twee cyaan robotoogjes
+    // Black circle with a rim and two cyan robot eyes
     fillEllipse(layer, cx, cy, 36, 36, kAccent);
     fillEllipse(layer, cx, cy, 31, 31, lv_color_black());
     fillRect(layer, cx - 10, cy - 7, cx - 3, cy + 5, 3, kAccent);
@@ -161,7 +162,7 @@ void InfoView::drawSkinIcon(lv_event_t* e) {
 
 InfoView::Hit InfoView::hit(int x, int y) const {
   if (!visible_) return Hit::None;
-  const int m = 7;  // halve rij-afstand als marge: kleine vinger, klein scherm
+  const int m = 7;  // half the row spacing as margin: small finger, small screen
   auto inside = [&](lv_obj_t* o) {
     lv_area_t a;
     lv_obj_get_coords(o, &a);
@@ -172,7 +173,7 @@ InfoView::Hit InfoView::hit(int x, int y) const {
   if (inside(soundRow_)) return Hit::Sound;
   if (inside(skinRow_)) return Hit::Skin;
   if (last_.updateState == UpdateState::Available) {
-    lv_area_t a;  // smalle regel: ruimere marge
+    lv_area_t a;  // narrow line: wider margin
     lv_obj_get_coords(footer_, &a);
     if (x >= a.x1 - 20 && x <= a.x2 + 20 && y >= a.y1 - 14 && y <= a.y2 + 10) return Hit::Update;
   }
@@ -185,8 +186,9 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
     else hideIn_ -= dtMs;
   }
   if (!visible_ && lv_obj_get_style_opa(root_, LV_PART_MAIN) == LV_OPA_TRANSP) lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
-  if (!first_ && in == last_) return;
+  if (!first_ && in == last_ && lang_ == gLang) return;
   first_ = false;
+  lang_ = gLang;
   last_ = in;
 
   using M = DeviceInfo::WifiMode;
@@ -197,41 +199,43 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
       break;
     case M::AccessPoint:
       lv_label_set_text(wifi_, in.ip);
-      lv_label_set_text_fmt(wifiSub_, "Setup: %s (tik voor QR)", in.ssid);
+      lv_label_set_text_fmt(wifiSub_, tr("Setup: %s (tap for QR)", "Setup: %s (tik voor QR)"), in.ssid);
       break;
     case M::Connecting:
-      lv_label_set_text(wifi_, "Verbinden...");
+      lv_label_set_text(wifi_, tr("Connecting...", "Verbinden..."));
       lv_label_set_text(wifiSub_, in.ssid);
       break;
     default:
-      lv_label_set_text(wifi_, "Niet verbonden");
-      lv_label_set_text(wifiSub_, "Tik om Wi-Fi in te stellen");
+      lv_label_set_text(wifi_, tr("Not connected", "Niet verbonden"));
+      lv_label_set_text(wifiSub_, tr("Tap to set up Wi-Fi", "Tik om Wi-Fi in te stellen"));
       break;
   }
 
   if (!in.bleEnabled) {
-    lv_label_set_text(ble_, "Bluetooth uit");
-    lv_label_set_text(bleSub_, "Tik om aan te zetten");
+    lv_label_set_text(ble_, tr("Bluetooth off", "Bluetooth uit"));
+    lv_label_set_text(bleSub_, tr("Tap to turn on", "Tik om aan te zetten"));
   } else {
     lv_label_set_text(ble_, in.bleName);
-    lv_label_set_text(bleSub_, in.bleConnected ? "Verbonden (tik = uit)" : "Zichtbaar (tik = uit)");
+    lv_label_set_text(bleSub_, in.bleConnected ? tr("Connected (tap = off)", "Verbonden (tik = uit)")
+                                                : tr("Visible (tap = off)", "Zichtbaar (tik = uit)"));
   }
 
   lv_label_set_text(soundIcon_, in.sound ? LV_SYMBOL_VOLUME_MAX : LV_SYMBOL_MUTE);
-  lv_label_set_text(sound_, in.sound ? "Geluid aan" : "Geluid uit");
-  lv_label_set_text(soundSub_, "Tik om te wisselen");
+  lv_label_set_text(sound_, in.sound ? tr("Sound on", "Geluid aan") : tr("Sound off", "Geluid uit"));
+  lv_label_set_text(soundSub_, tr("Tap to toggle", "Tik om te wisselen"));
   lv_label_set_text(skin_, in.lookName);
   lv_obj_invalidate(skinIcon_);
-  lv_label_set_text(skinSub_, "Tik voor volgend personage");
+  lv_label_set_text(skinSub_, tr("Tap for next character", "Tik voor volgend personage"));
 
   if (in.updateState == UpdateState::Available) {
-    lv_label_set_text_fmt(footer_, LV_SYMBOL_DOWNLOAD " Update beschikbaar: %s (tik)", in.updateVersion);
+    lv_label_set_text_fmt(footer_, tr(LV_SYMBOL_DOWNLOAD " Update available: %s (tap)", LV_SYMBOL_DOWNLOAD " Update beschikbaar: %s (tik)"),
+                          in.updateVersion);
     lv_obj_set_style_text_color(footer_, kAccent, 0);
   } else {
     lv_label_set_text_fmt(footer_, "deskbuddy.dev %s", in.version);
     lv_obj_set_style_text_color(footer_, kDim, 0);
   }
-  lv_obj_update_layout(root_);  // breedte van de tekst is nu bekend: logo ernaast
+  lv_obj_update_layout(root_);  // the text width is known now: logo next to it
   lv_obj_align_to(logo_, footer_, LV_ALIGN_OUT_LEFT_MID, -6, 0);
   if (in.batteryPct < 0)
     lv_label_set_text(battery_, LV_SYMBOL_USB "  USB");

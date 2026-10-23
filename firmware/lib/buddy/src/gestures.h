@@ -1,5 +1,5 @@
 #pragma once
-// Herkent gebaren uit ruwe touch- en accelerometer-samples. Platform-onafhankelijk.
+// Recognises gestures from raw touch and accelerometer samples. Platform-independent.
 
 #include <math.h>
 #include <stdint.h>
@@ -11,7 +11,7 @@ enum class Gesture : uint8_t {
   Tap,
   DoubleTap,
   LongPress,
-  Pet,         // heen-en-weer aaien
+  Pet,         // back-and-forth petting
   SwipeLeft,
   SwipeRight,
   SwipeUp,
@@ -24,12 +24,12 @@ const char* gestureName(Gesture g);
 
 struct GestureEvent {
   Gesture type = Gesture::None;
-  float x = 0, y = 0;  // schermpositie (touch), genormaliseerd -1..1
+  float x = 0, y = 0;  // screen position (touch), normalised -1..1
 };
 
 class TouchGestures {
  public:
-  // Aanroepen bij elke touch-poll (ook als niet ingedrukt). Geeft hooguit één event terug.
+  // Call on every touch poll (also when not pressed). Returns at most one event.
   GestureEvent feed(bool pressed, int x, int y, uint32_t nowMs);
 
  private:
@@ -44,25 +44,25 @@ class TouchGestures {
 
 class MotionGestures {
  public:
-  // Acceleratie in g. Geeft hooguit één event terug.
+  // Acceleration in g. Returns at most one event.
   GestureEvent feed(float ax, float ay, float az, uint32_t nowMs);
-  // Laagdoorlaat-zwaartekrachtvector (in schermassen).
+  // Low-pass gravity vector (in screen axes).
   float gx() const { return gx_; }
   float gy() const { return gy_; }
   float gz() const { return gz_; }
-  // Kanteling t.o.v. de rustpositie (die zich na een paar seconden stil staan aanpast), zodat het
-  // werkt of hij nu plat ligt of rechtop staat. x = links/rechts, y = voor/achter.
+  // Tilt relative to the rest position (which adapts after standing still for a few seconds), so that it
+  // works whether it lies flat or stands upright. x = left/right, y = forward/back.
   float tiltX() const { return gx_ - rx_; }
-  // Rechtop: voor/achter zit in z (+ = bovenkant naar je toe -> naar beneden kijken).
-  // Plat liggend: in y.
+  // Upright: forward/back is in z (+ = top towards you -> look down).
+  // Lying flat: in y.
   float tiltY() const { return fabsf(ry_) >= fabsf(rz_) ? gz_ - rz_ : gy_ - ry_; }
 
  private:
   float gx_ = 0, gy_ = 0, gz_ = 1;
-  float rx_ = 0, ry_ = 0, rz_ = 1;   // rustpositie
+  float rx_ = 0, ry_ = 0, rz_ = 1;   // rest position
   bool init_ = false;
   int warmup_ = 0;
-  float still_ = 0;          // hoe lang (ms) het apparaat stil ligt
+  float still_ = 0;          // how long (ms) the device has been lying still
   uint32_t last_ = 0;
   uint32_t shakeWindow_ = 0, lastShake_ = 0, lastPick_ = 0;
   int shakeHits_ = 0;

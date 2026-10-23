@@ -1,14 +1,14 @@
-// Web-emulator: dezelfde App als op het apparaat, met dezelfde web-API, te bedienen vanuit de browser.
+// Web emulator: the same App as on the device, with the same web API, operated from the browser.
 //
 //   tools/webemu.sh        -> http://localhost:8765/emu
 //
-// /emu      bedieningspagina: het ronde scherm (muis = vinger), sensoren, accu, Wi-Fi, BLE, geluid,
-//           en ernaast de webinterface (via "Wi-Fi") of de PWA (via een nagebootste Bluetooth-koppeling)
-// /         de echte webinterface (firmware/web/index.html, rechtstreeks van schijf: wijzigen + herladen)
-// /api/...  dezelfde endpoints als het apparaat (cmd, status, wifi, update)
-// /emu/...  scherm, invoer, geluid en de nagebootste BLE-verbinding (NUS-regelprotocol)
+// /emu      control page: the round screen (mouse = finger), sensors, battery, Wi-Fi, BLE, sound,
+//           and next to it the web interface (via "Wi-Fi") or the PWA (via a faked Bluetooth pairing)
+// /         the real web interface (firmware/web/index.html, straight from disk: edit + reload)
+// /api/...  same endpoints as the device (cmd, status, wifi, update)
+// /emu/...  screen, input, sound and the faked BLE connection (NUS line protocol)
 //
-// Instellingen en eigen profielen blijven bewaard in .pio/webemu-state/ (net als NVS op het apparaat).
+// Settings and custom profiles are kept in .pio/webemu-state/ (like NVS on the device).
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -39,7 +39,7 @@ namespace {
 
 constexpr int W = Face::kSize, H = Face::kSize;
 uint16_t fb[W * H];
-uint32_t frameNo = 1;  // telt op bij elk nieuw beeld
+uint32_t frameNo = 1;  // increments with every new frame
 
 std::string gRoot, gState;
 char** gArgv = nullptr;
@@ -75,12 +75,12 @@ void writeFile(const std::string& path, const void* data, size_t len) {
   fclose(f);
 }
 
-// ---------- Nagebootst apparaat ----------
+// ---------- Faked device ----------
 
 struct FakeNet {
-  char ssid[33] = "Thuisnetwerk", pass[65] = "";
+  char ssid[33] = "HomeNetwork", pass[65] = "";
   bool saved = true;
-  uint32_t joinAt = 0;  // >0: bezig met verbinden sinds
+  uint32_t joinAt = 0;  // >0: joining since
   bool joinFails = false;
   const char* failReason = "";
 };
@@ -93,7 +93,7 @@ struct EmuPlatform : Platform {
   uint32_t rebootAt = 0;
   // updates
   UpdateMode updMode = UpdateMode::Notify;
-  std::string offered = "v1.0.1";  // "release" die de nagebootste GitHub aanbiedt (leeg = geen)
+  std::string offered = "v1.0.1";  // "release" offered by the faked GitHub (empty = none)
   uint32_t checkDoneAt = 0, installStart = 0;
   bool installAfterCheck = false;
 
@@ -103,16 +103,16 @@ struct EmuPlatform : Platform {
     snprintf(dev.ip, sizeof(dev.ip), "127.0.0.1");
     dev.rssi = -58;
     snprintf(dev.version, sizeof(dev.version), "1.0.0");
-    dev.batteryPct = -1;  // USB-stroom
+    dev.batteryPct = -1;  // USB power
     dev.heapFree = 80 * 1024;
     dev.heapMin = 72 * 1024;
     dev.psramFree = 7700 * 1024;
     blePaired = access((gState + "/ble-paired").c_str(), F_OK) == 0;
   }
 
-  // Instellingen en blobs: één bestand per sleutel (zoals NVS)
-  // Elke instelling als eigen sleutel in een tekstbestand, net als NVS op het apparaat: een nieuwe
-  // instelling krijgt dan gewoon zijn standaardwaarde (een binaire struct-dump zou verschuiven).
+  // Settings and blobs: one file per key (like NVS)
+  // Each setting as its own key in a text file, like NVS on the device: a new setting then simply
+  // gets its default value (a binary struct dump would shift).
   void loadSettings(Settings& s) override {
     std::string d;
     if (readFile(gState + "/settings.txt", d)) {
@@ -128,6 +128,7 @@ struct EmuPlatform : Platform {
       s.sleepMin = (uint8_t)val("sleep", s.sleepMin);
       s.ble = val("ble", s.ble);
       s.mic = val("mic", s.mic);
+      s.lang = (uint8_t)val("lang", s.lang);
     }
     std::string l;
     if (readFile(gState + "/look.bin", l) && l.size() == sizeof(Look)) memcpy(&s.look, l.data(), sizeof(Look));
@@ -135,8 +136,8 @@ struct EmuPlatform : Platform {
   }
   void saveSettings(const Settings& s) override {
     char t[160];
-    int n = snprintf(t, sizeof(t), "\nsound=%d\nvolume=%u\nbright=%u\nsleep=%u\nble=%d\nmic=%d\n", s.sound, s.volume,
-                     s.brightness, s.sleepMin, s.ble, s.mic);
+    int n = snprintf(t, sizeof(t), "\nsound=%d\nvolume=%u\nbright=%u\nsleep=%u\nble=%d\nmic=%d\nlang=%u\n", s.sound, s.volume,
+                     s.brightness, s.sleepMin, s.ble, s.mic, s.lang);
     writeFile(gState + "/settings.txt", t, (size_t)n);
     writeFile(gState + "/look.bin", &s.look, sizeof(Look));
   }
@@ -188,31 +189,31 @@ struct EmuPlatform : Platform {
     snprintf(net.pass, sizeof(net.pass), "%s", p ? p : "");
     net.saved = true;
     net.joinAt = nowMs();
-    // Testgevallen: wachtwoord "fout" = verkeerd wachtwoord, netwerk "Weg" = niet bereikbaar
-    net.joinFails = !strcmp(net.pass, "fout") || !strcmp(net.ssid, "Weg");
-    net.failReason = !strcmp(net.ssid, "Weg") ? "netwerk niet gevonden" : "verkeerd wachtwoord";
+    // Test cases: password "wrong" = wrong password, network "Gone" = unreachable
+    net.joinFails = !strcmp(net.pass, "wrong") || !strcmp(net.ssid, "Gone");
+    net.failReason = !strcmp(net.ssid, "Gone") ? "network not found" : "wrong password";
     dev.wifi = DeviceInfo::WifiMode::Connecting;
     snprintf(dev.ssid, sizeof(dev.ssid), "%s", s);
     dev.ip[0] = 0;
   }
   const char* scanJson() {
-    return "[{\"ssid\":\"Thuisnetwerk\",\"rssi\":-52,\"open\":false},"
-           "{\"ssid\":\"Buren 5G\",\"rssi\":-71,\"open\":false},"
-           "{\"ssid\":\"Gastnetwerk\",\"rssi\":-80,\"open\":true},"
-           "{\"ssid\":\"Weg\",\"rssi\":-90,\"open\":false}]";
+    return "[{\"ssid\":\"HomeNetwork\",\"rssi\":-52,\"open\":false},"
+           "{\"ssid\":\"Neighbours 5G\",\"rssi\":-71,\"open\":false},"
+           "{\"ssid\":\"GuestNetwork\",\"rssi\":-80,\"open\":true},"
+           "{\"ssid\":\"Gone\",\"rssi\":-90,\"open\":false}]";
   }
   void wifi(const char* act, const char* s, const char* p, char* reply, size_t len) override {
     if (!strcmp(act, "off")) {
       dev.wifi = DeviceInfo::WifiMode::Off;
       dev.ssid[0] = dev.ip[0] = 0;
-      snprintf(reply, len, "ok wifi uit");
+      snprintf(reply, len, "ok wifi off");
     } else if (!strcmp(act, "on")) {
       if (net.saved) join(net.ssid, net.pass);
       else setAp();
-      snprintf(reply, len, "ok wifi aan");
+      snprintf(reply, len, "ok wifi on");
     } else if (!strcmp(act, "join")) {
       join(s, p);
-      snprintf(reply, len, "ok verbinden met %s", s);
+      snprintf(reply, len, "ok connecting to %s", s);
     } else if (!strcmp(act, "scan")) {
       snprintf(reply, len, "{\"networks\":%s}", scanJson());
     } else if (!strcmp(act, "forget")) {
@@ -220,7 +221,7 @@ struct EmuPlatform : Platform {
       net.ssid[0] = net.pass[0] = 0;
       dev.wifi = DeviceInfo::WifiMode::Off;
       dev.ssid[0] = dev.ip[0] = 0;
-      snprintf(reply, len, "ok netwerk vergeten");
+      snprintf(reply, len, "ok network forgotten");
     } else {
       snprintf(reply, len, "mode=%d ssid=%s ip=%s rssi=%d heap=%u", (int)dev.wifi, dev.ssid, dev.ip, dev.rssi,
                (unsigned)dev.heapFree);
@@ -236,18 +237,18 @@ struct EmuPlatform : Platform {
       if (m == UpdateMode::Auto && dev.updateState == UpdateState::Available) startInstall();
     } else if (!strcmp(act, "check")) {
       startCheck(false);
-      snprintf(reply, len, "ok controleren...");
+      snprintf(reply, len, "ok checking...");
     } else if (!strcmp(act, "install")) {
-      if (dev.updateState == UpdateState::Installing) snprintf(reply, len, "bezig met installeren");
+      if (dev.updateState == UpdateState::Installing) snprintf(reply, len, "installing in progress");
       else if (dev.updateState == UpdateState::Available) {
         startInstall();
-        snprintf(reply, len, "ok %s installeren...", dev.updateVersion);
+        snprintf(reply, len, "ok installing %s...", dev.updateVersion);
       } else {
         startCheck(true);
-        snprintf(reply, len, "ok controleren en installeren...");
+        snprintf(reply, len, "ok checking and installing...");
       }
     } else {
-      snprintf(reply, len, "updates=%s status=%s huidig=%s nieuwste=%s intern-vrij=%u", updateModeName(updMode),
+      snprintf(reply, len, "updates=%s status=%s current=%s latest=%s internal-free=%u", updateModeName(updMode),
                updateStateName(dev.updateState), dev.version, dev.updateVersion[0] ? dev.updateVersion : "-",
                (unsigned)dev.heapFree);
     }
@@ -292,7 +293,7 @@ struct EmuPlatform : Platform {
   }
 };
 
-// ---------- Minimale HTTP-server (één verzoek per verbinding) ----------
+// ---------- Minimal HTTP server (one request per connection) ----------
 
 struct Request {
   std::string method, path, query, body, contentType;
@@ -321,7 +322,7 @@ std::string formArg(const std::string& form, const char* key) {
   return "";
 }
 bool hasArg(const Request& r, const char* key) {
-  // "key=..." of een kale "key" (zoals ?pwa)
+  // "key=..." or a bare "key" (like ?pwa)
   auto has = [&](const std::string& f) {
     size_t i = 0, n = strlen(key);
     while (i <= f.size()) {
@@ -414,7 +415,7 @@ std::string jsonEscape(const char* s) {
   return o;
 }
 
-// ---------- Nagebootste microfoon: achtergrondruis plus testgeluiden (klap, muziek, ...) ----------
+// ---------- Faked microphone: background noise plus test sounds (clap, music, ...) ----------
 
 struct MicScene {
   uint32_t seed = 12345;
@@ -422,7 +423,7 @@ struct MicScene {
   uint64_t until = 0;
   enum Kind { Quiet, Clap, Double, Loud, Music, Speech } kind = Quiet;
   uint64_t start = 0;
-  uint64_t nextToggle = 0;  // spraak: lettergreep aan/uit
+  uint64_t nextToggle = 0;  // speech: syllable on/off
   bool voiced = false;
   float room = 0;
   float rnd() {
@@ -439,12 +440,12 @@ struct MicScene {
     nextToggle = t;
   }
   const char* name() const {
-    static const char* const n[] = {"stil", "klap", "dubbele klap", "lawaai", "muziek", "spraak"};
+    static const char* const n[] = {"quiet", "clap", "double clap", "noise", "music", "speech"};
     return t < until ? n[kind] : n[0];
   }
   int16_t next() {
     const uint64_t s = MicListener::kRate;
-    // Kamerruis die (zoals echt) schommelt: ~ -65 tot -50 dBFS, langzaam op en neer
+    // Room noise that (like the real thing) fluctuates: ~ -65 to -50 dBFS, slowly up and down
     room += (rnd() * 0.002f);
     room = LV_CLAMP(-1.f, room, 1.f);
     float v = rnd() * 60 * (1.6f + room + 0.6f * sinf((float)t / MicListener::kRate * 2.3f));
@@ -460,13 +461,13 @@ struct MicScene {
         case Music: {
           uint64_t beat = s / 2;  // 120 bpm
           burst((dt / beat) * beat, s / 16, 14000);                            // kick
-          v += 2500 * sinf(2 * 3.14159f * 110 * (float)dt / s) + rnd() * 600;  // bas + ruis, continu
+          v += 2500 * sinf(2 * 3.14159f * 110 * (float)dt / s) + rnd() * 600;  // bass + noise, continuous
           break;
         }
         case Speech:
           if (t >= nextToggle) {
             voiced = !voiced;
-            // lettergrepen 80-250 ms, pauzes 40-300 ms, af en toe een adempauze van ~0,8 s
+            // syllables 80-250 ms, pauses 40-300 ms, now and then a breath pause of ~0.8 s
             float r = (rnd() + 1) / 2;
             nextToggle = t + (uint64_t)(voiced ? (0.08f + 0.17f * r) * s : (r > 0.85f ? 0.8f : 0.04f + 0.26f * r) * s);
           }
@@ -481,20 +482,20 @@ struct MicScene {
 };
 MicScene micScene;
 
-// ---------- Geluid: wat de synth maakt, gaat in een ringbuffer die de browser ophaalt ----------
+// ---------- Sound: what the synth produces goes into a ring buffer the browser fetches ----------
 
 constexpr size_t kAudioRing = SoundSynth::kRate * 4;
 int16_t audioRing[kAudioRing];
-uint64_t audioTotal = 0;  // aantal samples ooit gemaakt
+uint64_t audioTotal = 0;  // number of samples ever produced
 
 }  // namespace
 
 int main(int argc, char** argv) {
   gArgv = argv;
-  prctl(PR_SET_NAME, "program");  // na een herstart (execv van /proc/self/exe) anders "exe": pkill -x program blijft werken
+  prctl(PR_SET_NAME, "program");  // otherwise "exe" after a restart (execv of /proc/self/exe): keeps pkill -x program working
   gRoot = argc > 1 ? argv[1] : ".";
   int port = argc > 2 ? atoi(argv[2]) : 8765;
-  // WEBEMU_STATE: andere map voor de bewaarde staat (de regressietest gebruikt een eigen map)
+  // WEBEMU_STATE: other directory for the saved state (the regression test uses its own)
   const char* st = getenv("WEBEMU_STATE");
   gState = st && *st ? st : gRoot + "/firmware/.pio/webemu-state";
   mkdir((gRoot + "/firmware/.pio").c_str(), 0755);
@@ -504,7 +505,7 @@ int main(int argc, char** argv) {
   lv_init();
   lv_tick_set_cb(nowMs);
   lv_display_t* disp = lv_display_create(W, H);
-  static uint16_t buf[W * H];  // schermvullend, net als op het apparaat
+  static uint16_t buf[W * H];  // full-screen, like on the device
   lv_display_set_buffers(disp, buf, nullptr, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(disp, flushCb);
   lv_display_add_event_cb(disp, refrReadyCb, LV_EVENT_REFR_READY, nullptr);
@@ -525,12 +526,12 @@ int main(int argc, char** argv) {
   sockaddr_in addr = {};
   addr.sin_family = AF_INET;
   addr.sin_port = htons((uint16_t)port);
-  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);  // alleen deze computer
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);  // this computer only
   if (bind(srv, (sockaddr*)&addr, sizeof(addr)) != 0 || listen(srv, 16) != 0) {
-    fprintf(stderr, "kan poort %d niet openen: %s\n", port, strerror(errno));
+    fprintf(stderr, "cannot open port %d: %s\n", port, strerror(errno));
     return 1;
   }
-  printf("deskbuddy web-emulator: http://localhost:%d/emu\n", port);
+  printf("deskbuddy web emulator: http://localhost:%d/emu\n", port);
   fflush(stdout);
 
   bool touchDown = false;
@@ -553,7 +554,7 @@ int main(int argc, char** argv) {
           std::string html;
           if (P == "/" || P == "/index.html") {
             readFile(gRoot + "/firmware/web/index.html", html);
-            // PWA-modus: Bluetooth nabootsen (zelfde NUS-regelprotocol als op het apparaat)
+            // PWA mode: fake Bluetooth (same NUS line protocol as on the device)
             if (hasArg(r, "pwa")) {
               size_t i = html.find("<script>");
               if (i != std::string::npos) html.insert(i, "<script src=\"/emu/fake-bluetooth.js\"></script>\n");
@@ -590,9 +591,9 @@ int main(int argc, char** argv) {
           } else if (P == "/api/wifi" && r.method == "POST") {
             std::string s = arg(r, "ssid"), pw = arg(r, "pass");
             if (s.empty() || s.size() > 32 || pw.size() > 64) {
-              respond(fd, 400, "application/json", "{\"ok\":false,\"reply\":\"ongeldige ssid of wachtwoord\"}");
+              respond(fd, 400, "application/json", "{\"ok\":false,\"reply\":\"invalid ssid or password\"}");
             } else {
-              respond(fd, 200, "application/json", "{\"ok\":true,\"reply\":\"verbinden...\"}");
+              respond(fd, 200, "application/json", "{\"ok\":true,\"reply\":\"connecting...\"}");
               platform.join(s.c_str(), pw.c_str());
             }
           } else if (P == "/api/wifi/state") {
@@ -607,14 +608,14 @@ int main(int argc, char** argv) {
                      failed ? platform.net.failReason : "");
             respond(fd, 200, "application/json", reply);
           } else if (P == "/update" && r.method == "POST") {
-            // Upload via de webinterface: grootte controleren, dan "installeren" (scherm) en herstarten
+            // Upload via the web interface: check the size, then "install" (screen) and restart
             bool ok = r.body.size() > 100 * 1024;
             if (ok) {
               snprintf(platform.dev.updateVersion, sizeof(platform.dev.updateVersion), "%s", "");
               platform.startInstall();
             }
             respond(fd, ok ? 200 : 500, "application/json",
-                    ok ? "{\"ok\":true,\"reply\":\"bijgewerkt, herstarten...\"}" : "{\"ok\":false,\"reply\":\"update mislukt\"}");
+                    ok ? "{\"ok\":true,\"reply\":\"updated, restarting...\"}" : "{\"ok\":false,\"reply\":\"update failed\"}");
           } else if (P == "/emu/screen") {
             uint32_t since = (uint32_t)atol(arg(r, "f").c_str());
             char extra[96];
@@ -622,7 +623,7 @@ int main(int argc, char** argv) {
             if (since == frameNo) respond(fd, 204, "application/octet-stream", "", extra);
             else respond(fd, 200, "application/octet-stream", std::string((const char*)fb, sizeof(fb)), extra);
           } else if (P == "/emu/audio") {
-            // PCM16 mono sinds 'pos' (max ~1 s terug)
+            // PCM16 mono since 'pos' (at most ~1 s back)
             uint64_t pos = (uint64_t)atoll(arg(r, "pos").c_str());
             if (pos == 0 || audioTotal - pos > SoundSynth::kRate) pos = audioTotal;
             std::string out;
@@ -645,7 +646,7 @@ int main(int argc, char** argv) {
                      app.sound.enabled() ? "true" : "false",
                      app.setup.visible() ? "setup" : app.info.visible() ? "info" : app.clock.visible() ? "clock" : "face",
                      micScene.name(), app.behaviour.dancing() ? "true" : "false", app.face.listening() ? "true" : "false");
-            // Alle emoties en acties, zodat de regressietest (tools/webemu-test.sh) nieuwe vanzelf meeneemt
+            // All emotions and actions, so the regression test (tools/webemu-test.sh) picks up new ones automatically
             std::string js = reply;
             for (int i = 0; i < (int)Emotion::Count; i++)
               js += std::string(i ? "," : "") + "\"" + emotionName((Emotion)i) + "\"";
@@ -685,17 +686,17 @@ int main(int argc, char** argv) {
             }
             respond(fd, 200, "application/json", "{\"ok\":true}");
           } else if (P == "/emu/ble") {
-            // Nagebootste NUS-verbinding. a=connect|pair|disconnect|line
+            // Faked NUS connection. a=connect|pair|disconnect|line
             std::string a = arg(r, "a");
             DeviceInfo& d = platform.dev;
             if (a == "connect") {
-              if (!d.bleEnabled) respond(fd, 400, "text/plain", "Bluetooth staat uit op de deskbuddy");
+              if (!d.bleEnabled) respond(fd, 400, "text/plain", "Bluetooth is off on the deskbuddy");
               else if (platform.blePaired) {
                 d.bleConnected = true;
                 respond(fd, 200, "text/plain", "bonded");
               } else {
                 pairCode = 100000 + (uint32_t)(rand() % 900000);
-                d.blePasskey = pairCode;  // verschijnt op het scherm, net als bij echt koppelen
+                d.blePasskey = pairCode;  // appears on the screen, like with real pairing
                 respond(fd, 200, "text/plain", "pair");
               }
             } else if (a == "pair") {
@@ -707,7 +708,7 @@ int main(int argc, char** argv) {
                 writeFile(gState + "/ble-paired", "1", 1);
                 d.bleConnected = true;
               }
-              respond(fd, ok ? 200 : 400, "text/plain", ok ? "ok" : "koppelen mislukt (verkeerde code)");
+              respond(fd, ok ? 200 : 400, "text/plain", ok ? "ok" : "pairing failed (wrong code)");
             } else if (a == "disconnect") {
               d.bleConnected = false;
               d.blePasskey = 0;
@@ -716,14 +717,14 @@ int main(int argc, char** argv) {
             } else {
               std::string line = r.body;
               while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
-              if (!d.bleConnected) respond(fd, 400, "text/plain", "niet verbonden");
+              if (!d.bleConnected) respond(fd, 400, "text/plain", "not connected");
               else {
-                app.command(line.c_str(), reply, 1200);  // zelfde maximale antwoordlengte als ble.cpp
+                app.command(line.c_str(), reply, 1200);  // same maximum reply length as ble.cpp
                 respond(fd, 200, "text/plain", std::string(reply) + "\n");
               }
             }
           } else {
-            respond(fd, 404, "text/plain", "niet gevonden");
+            respond(fd, 404, "text/plain", "not found");
           }
         }
         close(fd);
@@ -745,12 +746,12 @@ int main(int argc, char** argv) {
     last = t0;
     app.update(dt);
     lv_timer_handler();
-    // Geluid in hetzelfde tempo maken als de echte tijd
+    // Produce sound at the same pace as real time
     size_t n = (size_t)(SoundSynth::kRate / 1000 * dt);
     while (n) {
       int16_t chunk[512];
       size_t k = LV_MIN(n, sizeof(chunk) / 2);
-      if (app.sound.fill(chunk, k)) app.mic.hold(300);  // eigen geluid niet horen, net als op het apparaat
+      if (app.sound.fill(chunk, k)) app.mic.hold(300);  // don't hear its own sound, like on the device
       for (size_t i = 0; i < k; i++) audioRing[(audioTotal + i) % kAudioRing] = chunk[i];
       int16_t in[512];
       for (size_t i = 0; i < k; i++) in[i] = micScene.next();
@@ -768,10 +769,10 @@ int main(int argc, char** argv) {
       statWindow = t0;
     }
     if (platform.rebootAt && (int32_t)(t0 - platform.rebootAt) >= 0) {
-      printf("herstarten...\n");
+      printf("restarting...\n");
       fflush(stdout);
       close(srv);
-      execv("/proc/self/exe", gArgv);  // net als ESP.restart(): opnieuw beginnen met de bewaarde instellingen
+      execv("/proc/self/exe", gArgv);  // like ESP.restart(): start over with the saved settings
       return 0;
     }
   }

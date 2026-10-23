@@ -1,10 +1,10 @@
-// Nagebootste Web Bluetooth voor de web-emulator. De PWA-code (ble-transport in index.html) blijft
-// ongewijzigd: hij praat met dit object alsof het een echte deskbuddy met de Nordic UART Service is.
-// Antwoorden komen in stukjes van 20 bytes binnen (zoals bij de standaard-MTU) en eindigen op "\n".
+// Faked Web Bluetooth for the web emulator. The PWA code (ble-transport in index.html) stays
+// unchanged: it talks to this object as if it were a real deskbuddy with the Nordic UART Service.
+// Replies arrive in chunks of 20 bytes (like with the default MTU) and end with "\n".
 (() => {
   const NUS = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
   const post = (a, body = "", q = "") => fetch(`/emu/ble?a=${a}${q}`, {method: "POST", body});
-  // ?auto: geen vragen; de koppelcode wordt van het (nagebootste) scherm gelezen. Handig voor tests.
+  // ?auto: no prompts; the pairing code is read from the (faked) screen. Handy for tests.
   const AUTO = new URLSearchParams(location.search).has("auto");
 
   function makeDevice() {
@@ -26,13 +26,13 @@
     const tx = {
       addEventListener(t, f) { if (t === "characteristicvaluechanged") txListeners.push(f); },
       async startNotifications() {
-        // Hier vraagt een echte telefoon bij de eerste keer om de koppelcode van het scherm.
+        // This is where a real phone asks for the pairing code from the screen the first time.
         const r = await post("connect");
         const t = await r.text();
         if (!r.ok) throw new DOMException(t, "NetworkError");
         if (t === "pair") {
           const code = AUTO ? String((await (await fetch("/emu/state")).json()).pairCode)
-            : prompt("Koppelverzoek (emulator)\nTyp de koppelcode die op het scherm van de deskbuddy staat:");
+            : prompt("Pairing request (emulator)\nType the pairing code shown on the deskbuddy screen:");
           const p = await post("pair", "", `&code=${encodeURIComponent(code || "")}`);
           if (!p.ok) { device.gatt.connected = false; throw new DOMException(await p.text(), "SecurityError"); }
         }
@@ -55,12 +55,12 @@
           (listeners.gattserverdisconnected || []).forEach(f => f({target: device}));
           throw new DOMException(t, "NetworkError");
         }
-        setTimeout(() => tx.emit(t), 5);  // notify komt los van het schrijven binnen
+        setTimeout(() => tx.emit(t), 5);  // the notify arrives separately from the write
       },
     };
     const server = {
       async getPrimaryService(uuid) {
-        if (uuid !== NUS) throw new DOMException("service niet gevonden", "NotFoundError");
+        if (uuid !== NUS) throw new DOMException("service not found", "NotFoundError");
         return {async getCharacteristic(u) { return u.startsWith("6e400002") ? rx : tx; }};
       },
     };
@@ -71,13 +71,13 @@
     configurable: true,
     value: {
       async requestDevice() {
-        // Echte Chrome toont hier een apparaatkiezer; de emulator heeft er maar één.
-        if (!AUTO && !confirm("Bluetooth (emulator)\nVerbinden met deskbuddy-A45C?")) throw new DOMException("geen apparaat gekozen", "NotFoundError");
+        // Real Chrome shows a device picker here; the emulator has only one.
+        if (!AUTO && !confirm("Bluetooth (emulator)\nConnect to deskbuddy-A45C?")) throw new DOMException("no device selected", "NotFoundError");
         return makeDevice();
       },
     },
   });
-  // Laat zien dat dit de emulator is
+  // Show that this is the emulator
   addEventListener("DOMContentLoaded", () => {
     const s = document.getElementById("sub");
     if (s) s.dataset.emu = "1";

@@ -23,12 +23,12 @@ using buddy::UpdateState;
 
 constexpr const char* kLatestUrl = "https://api.github.com/repos/newmedia/deskbuddy/releases/latest";
 constexpr const char* kAsset = "/firmware.bin";
-constexpr uint32_t kFirstCheck = 30000;              // na verbinden even wachten (NTP, rust)
-constexpr uint32_t kInterval = 12UL * 3600 * 1000;   // daarna elke 12 uur
-constexpr uint32_t kRetry = 30UL * 60 * 1000;        // na een mislukte controle over 30 min opnieuw
+constexpr uint32_t kFirstCheck = 30000;              // wait a bit after connecting (NTP, settle)
+constexpr uint32_t kInterval = 12UL * 3600 * 1000;   // then every 12 hours
+constexpr uint32_t kRetry = 30UL * 60 * 1000;        // retry 30 min after a failed check
 
-// NetworkClientSecure met de CA-bundel die in ESP-IDF zit (CONFIG_MBEDTLS_CERTIFICATE_BUNDLE):
-// dekt api.github.com en de downloadservers waar GitHub naar doorstuurt.
+// NetworkClientSecure with the CA bundle that ships with ESP-IDF (CONFIG_MBEDTLS_CERTIFICATE_BUNDLE):
+// covers api.github.com and the download servers GitHub redirects to.
 class BundleClient : public NetworkClientSecure {
  public:
   BundleClient() {
@@ -50,9 +50,9 @@ volatile bool installAfterCheck = false, installWanted = false;
 void (*pump)() = nullptr;
 bool (*prepareHook)(bool) = nullptr;
 void (*releaseHook)() = nullptr;
-bool prepared = false;  // alleen op de hoofdlus gebruikt
+bool prepared = false;  // only used on the main loop
 
-// Geheugen vrijmaken voor TLS. false = (automatische) klus nu niet doen.
+// Free up memory for TLS. false = don't do the (automatic) job now.
 bool prepare(bool urgent) {
   if (prepared) return true;
   if (prepareHook && !prepareHook(urgent)) return false;
@@ -82,8 +82,8 @@ void fail(const char* msg) {
   state = UpdateState::Failed;
 }
 
-// Leest het (grote) release-JSON als stroom en onthoudt alleen tag_name en de download-URL van
-// firmware.bin. Kleine tokenizer: strings, sleutels (string gevolgd door ':') en hun waarde.
+// Reads the (large) release JSON as a stream and keeps only tag_name and the download URL of
+// firmware.bin. Small tokenizer: strings, keys (string followed by ':') and their value.
 bool parseRelease(NetworkClient& in, char* tag, size_t tagLen, char* url, size_t urlLen) {
   char key[24] = "", buf[200];
   size_t n = 0;
@@ -110,7 +110,7 @@ bool parseRelease(NetworkClient& in, char* tag, size_t tagLen, char* url, size_t
           if (!truncated && !strcmp(key, "browser_download_url") && n > strlen(kAsset) &&
               !strcmp(buf + n - strlen(kAsset), kAsset))
             snprintf(url, urlLen, "%s", buf);
-          if (tag[0] && url[0]) return true;  // de rest (o.a. de release-tekst) hoeven we niet
+          if (tag[0] && url[0]) return true;  // we don't need the rest (e.g. the release notes)
         } else {
           haveStr = true;
         }
@@ -131,25 +131,25 @@ bool parseRelease(NetworkClient& in, char* tag, size_t tagLen, char* url, size_t
       haveStr = false;
     } else if (c != ' ' && c != '\n' && c != '\r' && c != '\t') {
       haveStr = false;
-      valueNext = false;  // getal, object, lijst of true/false/null
+      valueNext = false;  // number, object, list or true/false/null
     }
   }
   return tag[0] != 0;
 }
 
-// Installeren gebeurt op de hoofdlus (interne stack): flash schrijven mag niet vanuit een taak
-// waarvan de stack in PSRAM staat. Via pump() blijft het scherm intussen bijwerken.
+// Installing happens on the main loop (internal stack): writing flash must not happen from a task
+// whose stack is in PSRAM. pump() keeps the screen updating in the meantime.
 void doInstall() {
   state = UpdateState::Installing;
   progress = 0;
   net::updateMemory(true);
   if (pump) pump();
-  Serial.printf("[update] installeren %s van %s, intern vrij %u\n", latest, assetUrl,
+  Serial.printf("[update] installing %s from %s, internal free %u\n", latest, assetUrl,
                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
   BundleClient client;
   client.setTimeout(20);  // s
   HTTPUpdate hu(20000);
-  hu.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);  // GitHub stuurt door naar zijn downloadserver
+  hu.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);  // GitHub redirects to its download server
   hu.rebootOnUpdate(false);
   hu.onProgress([](int cur, int total) {
     progress = total > 0 ? (uint8_t)((uint64_t)cur * 100 / total) : 0;
@@ -163,13 +163,13 @@ void doInstall() {
   if (r == HTTP_UPDATE_OK) {
     progress = 100;
     if (pump) pump();
-    Serial.println("[update] klaar, herstarten");
+    Serial.println("[update] done, restarting");
     delay(800);
     ESP.restart();
   }
   net::updateMemory(false);
   char msg[48];
-  snprintf(msg, sizeof(msg), "installeren mislukt: %s", hu.getLastErrorString().c_str());
+  snprintf(msg, sizeof(msg), "install failed: %s", hu.getLastErrorString().c_str());
   fail(msg);
 }
 
@@ -179,24 +179,24 @@ void doCheck() {
   BundleClient client;
   client.setTimeout(15);
   HTTPClient http;
-  http.useHTTP10(true);  // geen chunked encoding: we lezen de stroom zelf
+  http.useHTTP10(true);  // no chunked encoding: we read the stream ourselves
   http.setTimeout(15000);
-  http.setUserAgent(String("deskbuddy/") + current);  // GitHub weigert verzoeken zonder User-Agent
+  http.setUserAgent(String("deskbuddy/") + current);  // GitHub rejects requests without a User-Agent
   if (!http.begin(client, kLatestUrl)) {
-    fail("kan GitHub niet bereiken");
+    fail("cannot reach GitHub");
     return;
   }
   http.addHeader("Accept", "application/vnd.github+json");
   int code = http.GET();
   if (code != 200) {
     http.end();
-    if (code == 404) {  // nog geen enkele release
+    if (code == 404) {  // no release yet
       latest[0] = 0;
       state = UpdateState::UpToDate;
       return;
     }
     char msg[48];
-    snprintf(msg, sizeof(msg), "GitHub antwoordt %d", code);
+    snprintf(msg, sizeof(msg), "GitHub replied %d", code);
     fail(msg);
     return;
   }
@@ -204,35 +204,35 @@ void doCheck() {
   bool ok = parseRelease(*http.getStreamPtr(), tag, sizeof(tag), url, sizeof(url));
   http.end();
   if (!ok) {
-    fail("antwoord niet te lezen");
+    fail("cannot read response");
     return;
   }
   snprintf(latest, sizeof(latest), "%s", tag);
   if (buddy::compareVersions(tag, current) <= 0) {
-    Serial.printf("[update] up-to-date (%s, nieuwste release %s)\n", current, tag);
+    Serial.printf("[update] up to date (%s, latest release %s)\n", current, tag);
     state = UpdateState::UpToDate;
     return;
   }
   if (!url[0]) {
-    fail("release heeft geen firmware.bin");
+    fail("release has no firmware.bin");
     return;
   }
   snprintf(assetUrl, sizeof(assetUrl), "%s", url);
-  Serial.printf("[update] nieuwe versie %s beschikbaar (nu %s)\n", tag, current);
+  Serial.printf("[update] new version %s available (now %s)\n", tag, current);
   state = UpdateState::Available;
   if (installAfterCheck) installWanted = true;
 }
 
-// Vaste worker voor het controleren, met stack (en TCB) in PSRAM: intern RAM is krap zodra BLE draait.
-// Hij leeft zolang het apparaat aan staat; taken met PSRAM-stack kun je beter niet zelf laten stoppen.
+// Fixed worker for checking, with stack (and TCB) in PSRAM: internal RAM is tight once BLE runs.
+// It lives as long as the device is on; tasks with a PSRAM stack are best not left to stop themselves.
 TaskHandle_t worker = nullptr;
 
 void workerTask(void*) {
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    Serial.printf("[update] controleren, intern vrij %u\n", (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+    Serial.printf("[update] checking, internal free %u\n", (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
     doCheck();
-    // Volgende automatische controle; na een mislukte poging niet 12 uur wachten.
+    // Next automatic check; after a failed attempt don't wait 12 hours.
     nextCheck = millis() + (state == UpdateState::Failed ? kRetry : kInterval);
     busy = false;
   }
@@ -244,7 +244,7 @@ bool startCheck(bool install, bool urgent) {
   if (!worker && xTaskCreatePinnedToCoreWithCaps(workerTask, "update", 12288, nullptr, 1, &worker, 0,
                                                  MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) != pdPASS) {
     worker = nullptr;
-    fail("geen geheugen voor update-taak");
+    fail("no memory for update task");
     return false;
   }
   installAfterCheck = install;
@@ -255,8 +255,8 @@ bool startCheck(bool install, bool urgent) {
 
 }  // namespace
 
-// mbedTLS staat in deze Arduino-build op "alleen intern RAM" (~40 KB per verbinding). Met BLE erbij
-// is dat er niet; daarom bij voorkeur PSRAM, met intern RAM als terugval.
+// mbedTLS is set to "internal RAM only" in this Arduino build (~40 KB per connection). With BLE
+// running that isn't available; so prefer PSRAM, with internal RAM as fallback.
 void* tlsCalloc(size_t n, size_t size) {
   return heap_caps_calloc_prefer(n, size, 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 }
@@ -282,10 +282,10 @@ void loop(bool online) {
   if (installWanted && !busy) {
     installWanted = false;
     prepare(true);
-    doInstall();  // blokkeert tot herstart, of tot het mislukt
+    doInstall();  // blocks until restart, or until it fails
     nextCheck = millis() + kRetry;
   }
-  if (prepared && !busy && !installWanted) {  // klus klaar: BLE e.d. weer aan
+  if (prepared && !busy && !installWanted) {  // job done: BLE etc. back on
     prepared = false;
     if (releaseHook) releaseHook();
   }
@@ -295,7 +295,7 @@ void loop(bool online) {
     nextCheck = now + kFirstCheck;
   }
   if (mode == UpdateMode::Off || busy || (int32_t)(now - nextCheck) < 0) return;
-  // Lukt starten niet (bijv. BLE in gebruik), dan over 30 min opnieuw; anders zet de worker de tijd.
+  // If starting fails (e.g. BLE in use), retry in 30 min; otherwise the worker sets the time.
   nextCheck = now + kRetry;
   startCheck(mode == UpdateMode::Auto, false);
 }
@@ -315,29 +315,29 @@ void action(const char* act, char* reply, size_t len) {
     snprintf(reply, len, "ok updates=%s", buddy::updateModeName(m));
     if (m == UpdateMode::Auto && state == UpdateState::Available) {
       installWanted = true;
-      snprintf(reply, len, "ok updates=auto, %s wordt geinstalleerd", latest);
+      snprintf(reply, len, "ok updates=auto, installing %s", latest);
     }
   } else if (!strcmp(act, "check")) {
-    if (startCheck(false, true)) snprintf(reply, len, "ok controleren...");
-    else if (busy || state == UpdateState::Installing) snprintf(reply, len, "bezig, probeer zo opnieuw");
-    else snprintf(reply, len, "mislukt: %s", error);
+    if (startCheck(false, true)) snprintf(reply, len, "ok checking...");
+    else if (busy || state == UpdateState::Installing) snprintf(reply, len, "busy, try again shortly");
+    else snprintf(reply, len, "failed: %s", error);
   } else if (!strcmp(act, "install")) {
     if (state == UpdateState::Installing || installWanted) {
-      snprintf(reply, len, "bezig met installeren");
+      snprintf(reply, len, "installing in progress");
     } else if (state == UpdateState::Available && !busy) {
       installWanted = true;
-      snprintf(reply, len, "ok %s installeren...", latest);
+      snprintf(reply, len, "ok installing %s...", latest);
     } else if (startCheck(true, true)) {
-      snprintf(reply, len, "ok controleren en installeren...");
+      snprintf(reply, len, "ok checking and installing...");
     } else if (busy) {
-      snprintf(reply, len, "bezig, probeer zo opnieuw");
+      snprintf(reply, len, "busy, try again shortly");
     } else {
-      snprintf(reply, len, "mislukt: %s", error);
+      snprintf(reply, len, "failed: %s", error);
     }
   } else {
-    snprintf(reply, len, "updates=%s status=%s huidig=%s nieuwste=%s intern-vrij=%u%s%s", buddy::updateModeName(mode),
+    snprintf(reply, len, "updates=%s status=%s current=%s latest=%s internal-free=%u%s%s", buddy::updateModeName(mode),
              buddy::updateStateName(state), current, latest[0] ? latest : "-",
-             (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), error[0] ? " fout=" : "", error);
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), error[0] ? " error=" : "", error);
   }
 }
 

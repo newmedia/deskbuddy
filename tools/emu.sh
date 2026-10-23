@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bouwt en start de interactieve emulator (vereist: sudo apt install libsdl2-dev).
+# Builds and starts the interactive emulator (requires: sudo apt install libsdl2-dev).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT/firmware"

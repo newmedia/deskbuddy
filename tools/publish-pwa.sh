@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Publiceert de PWA (firmware/web) naar de branch gh-pages, zonder GitHub Actions.
-# GitHub Pages serveert die branch op https://newmedia.github.io/deskbuddy/
-# (eenmalig: repo -> Settings -> Pages -> Source: "Deploy from a branch", branch gh-pages, map / (root)).
+# Publishes the PWA (firmware/web) to the gh-pages branch, without GitHub Actions.
+# GitHub Pages serves that branch at https://newmedia.github.io/deskbuddy/
+# (one-time setup: repo -> Settings -> Pages -> Source: "Deploy from a branch", branch gh-pages, folder / (root)).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -21,15 +21,15 @@ else
 fi
 
 for f in "${FILES[@]}"; do cp "firmware/web/$f" "$TMP/$f"; done
-# Installatiepagina (flash/): alleen de pagina zelf; de firmware komt via tools/publish-flash.sh
+# Install page (flash/): only the page itself; the firmware comes from tools/publish-flash.sh
 mkdir -p "$TMP/flash"
 cp firmware/web/flash/index.html "$TMP/flash/index.html"
-touch "$TMP/.nojekyll"  # bestanden ongewijzigd serveren
+touch "$TMP/.nojekyll"  # serve files unchanged
 git -C "$TMP" add -A "${FILES[@]}" flash/index.html .nojekyll
 if git -C "$TMP" diff --cached --quiet; then
-  echo "PWA is al up-to-date."
+  echo "PWA is already up to date."
   exit 0
 fi
-git -C "$TMP" commit -q -m "PWA bijgewerkt vanaf main@$SRC_REV"
+git -C "$TMP" commit -q -m "PWA updated from main@$SRC_REV"
 git -C "$TMP" push -q origin gh-pages
-echo "Gepubliceerd: https://newmedia.github.io/deskbuddy/ (kan een minuut duren)"
+echo "Published: https://newmedia.github.io/deskbuddy/ (may take a minute)"

@@ -1,5 +1,5 @@
-// Acties (fluiten, knipoog, kusje, rage, ontploffen) en effecten: deeltjes, trillen, tint, flits en
-// roet. Werkt over beide skins heen; de skins lezen alleen wink_/pucker_/swell_ uit.
+// Actions (whistle, wink, kiss, rage, explode) and effects: particles, shaking, tint, flash and
+// soot. Works across both skins; the skins only read wink_/pucker_/swell_.
 
 #include <math.h>
 #include <string.h>
@@ -17,7 +17,7 @@ constexpr float C = Face::kSize / 2.0f;
 constexpr float kPi = 3.14159265f;
 const char* const kActionNames[] = {"none", "whistle", "wink", "kiss", "rage", "explode", "sneeze", "laugh", "eyeroll", "hiccup"};
 
-// Duur per actie in seconden
+// Duration per action in seconds
 float durationOf(Action a) {
   switch (a) {
     case Action::Whistle: return 3.4f;
@@ -51,11 +51,11 @@ bool actionFromName(const char* name, Action& out) {
 
 void Face::play(Action a) {
   if (a == Action::None) {
-    actT_ = durationOf(action_);  // laat updateAction netjes afronden
+    actT_ = durationOf(action_);  // let updateAction finish cleanly
     return;
   }
   if (!busy()) actPrevEmotion_ = emotion_;
-  // Schoon beginnen: effecten van een onderbroken actie (roet, gloed, opzwellen, ...) niet meenemen.
+  // Start clean: don't carry over effects of an interrupted action (soot, glow, swelling, ...).
   soot_ = tint_ = 0;
   swell_ = 1;
   pucker_ = false;
@@ -90,8 +90,8 @@ void Face::updateParticles(float dt) {
       particles_[i] = particles_[--particleCount_];
       continue;
     }
-    if (p.type == PNote) p.vx = 20 + sinf(p.life * 6 + p.spin) * 45;  // zwalkend omhoog
-    if (p.type == PSpark || p.type == PDrop) p.vy += 620 * dt;      // zwaartekracht
+    if (p.type == PNote) p.vx = 20 + sinf(p.life * 6 + p.spin) * 45;  // wandering upward
+    if (p.type == PSpark || p.type == PDrop) p.vy += 620 * dt;      // gravity
     if (p.type == PSteam || p.type == PSmoke) {
       p.vx *= 1 - dt * 1.5f;
       p.vy *= 1 - dt * 0.8f;
@@ -102,7 +102,7 @@ void Face::updateParticles(float dt) {
   }
 }
 
-// Positie van de mond en de ogen per skin (voor het startpunt van deeltjes)
+// Position of the mouth and the eyes per skin (for the starting point of particles)
 static void mouthPos(Skin s, float& x, float& y) {
   x = C;
   y = s == Skin::Mascot ? 350 : C + 112;
@@ -113,7 +113,7 @@ static void eyePos(Skin s, int side, float& x, float& y) {
 }
 
 void Face::updateAction(float dt) {
-  // Effecten die na een actie nog uitdoven
+  // Effects that still fade out after an action
   flash_ = LV_MAX(0.0f, flash_ - dt * 2.2f);
   if (!busy()) {
     shake_ = LV_MAX(0.0f, shake_ - dt * 20);
@@ -123,7 +123,7 @@ void Face::updateAction(float dt) {
   }
 
   const bool mascot = skin_ == Skin::Mascot;
-  const uint32_t ink = mascot ? 0x0B2290 : 0x6EE7F7;  // kleur van noten e.d., goed zichtbaar per skin
+  const uint32_t ink = mascot ? 0x0B2290 : 0x6EE7F7;  // colour of notes etc., clearly visible per skin
   float t = actT_;
   float mx, my;
   mouthPos(skin_, mx, my);
@@ -134,7 +134,7 @@ void Face::updateAction(float dt) {
         actStage_ = 1;
         cue_ = Cue::Whistle;
         pucker_ = true;
-        eye_.lidTop.target = 0.34f;  // ontspannen halfdichte ogen
+        eye_.lidTop.target = 0.34f;  // relaxed half-closed eyes
         lookAt(0.55f, -0.6f, true);
       }
       if (t >= actNext_ && t < 2.9f) {
@@ -184,7 +184,7 @@ void Face::updateAction(float dt) {
       if (t >= actNext_ && t < 3.6f) {
         actNext_ = t + 0.16f;
         for (int side = -1; side <= 1; side += 2) {
-          // Stoom uit de "oren": classic naast de ogen, mascotte naast de bril
+          // Steam from the "ears": classic next to the eyes, mascot next to the glasses
           float sx = mascot ? C + side * 168 : C + side * 158, sy = mascot ? 300 : C - 30;
           spawn(PSteam, sx, sy, side * (55 + rnd() * 45), -70 - rnd() * 50, 1.0f, 30 + rnd() * 8, 0xF0F0F0);
         }
@@ -235,7 +235,7 @@ void Face::updateAction(float dt) {
       break;
 
     case Action::Sneeze:
-      // "ah-ah-": ogen knijpen langzaam dicht, hoofd achterover, mond open...
+      // "ah-ah-": eyes slowly squeeze shut, head back, mouth open...
       if (actStage_ == 0) {
         actStage_ = 1;
         cue_ = Cue::Inhale;
@@ -247,7 +247,7 @@ void Face::updateAction(float dt) {
         eye_.tilt.target = -10 * k;
         lookAt(0, -0.8f * k, true);
       } else if (actStage_ == 1) {
-        // ...TSJOE!
+        // ...ACHOO!
         actStage_ = 2;
         cue_ = Cue::Achoo;
         wink_[0] = wink_[1] = 1;
@@ -255,7 +255,7 @@ void Face::updateAction(float dt) {
         bounce(-1.6f);
         shake_ = 7;
         for (int i = 0; i < 14; i++) {
-          float a = kPi * (0.25f + 0.5f * rnd());  // naar voren/beneden
+          float a = kPi * (0.25f + 0.5f * rnd());  // forward/down
           float sp = 140 + rnd() * 220;
           spawn(PDrop, mx + (rnd() - 0.5f) * 30, my, cosf(a) * sp * (rnd() < 0.5f ? -1 : 1), sinf(a) * sp * 0.6f,
                 0.6f + rnd() * 0.4f, 5 + rnd() * 5, 0x9FD8FF);
@@ -278,7 +278,7 @@ void Face::updateAction(float dt) {
         setEmotion(Emotion::Happy);
         blush_.target = 0.6f;
       }
-      if (t >= actNext_ && t < 1.9f) {  // ritmisch stuiteren: "ha-ha-ha"
+      if (t >= actNext_ && t < 1.9f) {  // rhythmic bouncing: "ha-ha-ha"
         actNext_ = t + 0.17f;
         bounce(0.9f);
       }
@@ -291,7 +291,7 @@ void Face::updateAction(float dt) {
         eye_.lidTop.target = 0.28f;
       }
       if (t < 1.1f) {
-        float a = kPi * (1.0f - t / 1.1f);  // van links, over boven, naar rechts
+        float a = kPi * (1.0f - t / 1.1f);  // from the left, over the top, to the right
         lookAt(cosf(a) * 0.9f, -sinf(a) * 0.95f, true);
       } else {
         lookAt(0, 0.1f, true);
@@ -303,11 +303,11 @@ void Face::updateAction(float dt) {
         actNext_ = t + 0.95f;
         actStage_++;
         cue_ = Cue::Hiccup;
-        bounce(-1.3f);  // plotse schok omhoog
-        eye_.h.v += 260;  // ogen schieten even groot open
+        bounce(-1.3f);  // sudden jolt upward
+        eye_.h.v += 260;  // eyes briefly shoot wide open
         eye_.w.v += 120;
       }
-      // Ogen "poppen" even op (werkt ook bij de cartoon, waar de oogmaat begrensd is)
+      // Eyes briefly "pop" (works for the cartoon too, where the eye size is limited)
       if (actStage_ > 0) swell_ = 1 + 0.25f * expf(-(t - (actNext_ - 0.95f)) * 7);
       break;
 
@@ -317,7 +317,7 @@ void Face::updateAction(float dt) {
 
   actT_ += dt;
   if (actT_ >= durationOf(action_)) {
-    // Afronden: alles terug, vorige emotie (geforceerd, ook als die gelijk is aan de huidige)
+    // Finish: everything back, previous emotion (forced, even if it equals the current one)
     action_ = Action::None;
     pucker_ = false;
     wink_[0] = wink_[1] = 0;
@@ -336,7 +336,7 @@ void Face::setMatrix(bool on) {
   for (int e = 0; e < 2; e++)
     for (int c = 0; c < 7; c++) {
       matrixHead_[e][c] = rnd() * 10 - 6;
-      matrixSpeed_[e][c] = 5 + rnd() * 9;  // tekens per seconde
+      matrixSpeed_[e][c] = 5 + rnd() * 9;  // characters per second
     }
   if (obj_) {
     lv_obj_set_pos(obj_, 0, 0);
@@ -349,7 +349,7 @@ void Face::drawMatrix(lv_layer_t* layer) {
   const lv_color_t green = lv_color_hex(0x00FF66), dark = lv_color_hex(0x002A12), bright = lv_color_hex(0xCCFFDD);
   fillRect(layer, 0, 0, kSize, kSize, 0, lv_color_black());
 
-  // Gesloten "mond": een rustig groen streepje
+  // Closed "mouth": a calm green dash
   fillRect(layer, C - 34, C + 108, C + 34, C + 116, 4, green, 200);
 
   for (int e = 0; e < 2; e++) {
@@ -358,7 +358,7 @@ void Face::drawMatrix(lv_layer_t* layer) {
     float x1 = ex - 58, y1 = ey - 50, x2 = ex + 58, y2 = ey + 50;
     fillRect(layer, x1, y1, x2, y2, 18, dark);
 
-    // Vallende code, geknipt op het oogvenster
+    // Falling code, clipped to the eye window
     lv_area_t saved = layer->_clip_area;
     lv_area_t clip = {ri(x1 + 4), ri(y1 + 4), ri(x2 - 5), ri(y2 - 5)};
     lv_area_t inter = {LV_MAX(saved.x1, clip.x1), LV_MAX(saved.y1, clip.y1), LV_MIN(saved.x2, clip.x2),
@@ -374,7 +374,7 @@ void Face::drawMatrix(lv_layer_t* layer) {
       const float cell = 15;
       for (int c = 0; c < 7; c++) {
         float head = matrixHead_[e][c];
-        for (int k = 0; k < 7; k++) {  // kop + staart van 6
+        for (int k = 0; k < 7; k++) {  // head + tail of 6
           float row = floorf(head) - k;
           float y = y1 + 2 + row * cell;
           if (y < y1 - cell || y > y2) continue;
@@ -414,7 +414,7 @@ void Face::drawPucker(lv_layer_t* layer, float cx, float cy, lv_color_t col, boo
 void Face::drawEffects(lv_layer_t* layer) {
   const bool mascot = skin_ == Skin::Mascot;
 
-  // Roet (na het ontploffen)
+  // Soot (after exploding)
   if (soot_ > 0.01f) {
     lv_opa_t o = (lv_opa_t)(soot_ * (mascot ? 210 : 235));
     lv_color_t sc = lv_color_hex(mascot ? 0x2B2522 : 0x3C3C3C);
