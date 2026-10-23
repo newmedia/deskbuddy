@@ -1,8 +1,8 @@
 # Multiple deskbuddies: reacting to each other and doing things together
 
 Status: **prototype** (2026-10-23): seeing each other and a contagious yawn over ESP-NOW, with signed
-messages and a group code (see "Prototype" below and `firmware.md`). The rest is still a design
-proposal. This document describes what is possible, which technology fits, and the order of work.
+messages, groups with an invite and searching for groups (see "Prototype" below and `firmware.md`).
+The rest is still a design proposal. This document describes what is possible, which technology fits, and the order of work.
 
 ## What do we want?
 
@@ -88,13 +88,22 @@ RAM, how many `hello`s arrive with BLE connected, and the delay from event to re
 
 ### Prototype (built 2026-10-23)
 
-- `group <code>` / `group off` / `buddies`, and Settings → Buddies nearby in the web app.
+- **Groups:** a random 128-bit key plus a name. Create one in the web app (Buddies tab) or with
+  `group create <name>`; others join with the invite (QR on the buddy's screen, a link, or the text).
+- **Groups nearby:** a visible group sends its name and a public id every 5 s; searching lists them.
+  The name is only a label, the invite is needed to join. Visibility can be turned off.
 - `hello` every 3 s, list of up to 8 buddies (gone after 10 s), "N buddies nearby" in the info panel.
-- Frames as proposed below, signed with a truncated HMAC-SHA256 over the group key; boot id + sequence
+- Signed frames as proposed below (truncated HMAC-SHA256 over the group key); boot id + sequence
   number against replays (a replay of an old boot is not caught yet).
 - Contagious yawn with a random delay, a 30 s cooldown and no passing on.
 - Device: ESP-NOW broadcast on the current channel (`src/net/espnow.cpp`); web emulator: UDP on
   localhost; the regression test runs two emulators against each other.
+- **Security notes:** whoever has the invite has the key (like a Wi-Fi password); there is no way to
+  remove one member except making a new group. The buddy's web API has no login on the LAN, so
+  anyone on that network can read the invite with `group invite` (as with every other setting).
+  Name beacons are unsigned: anyone can announce a fake group name, but cannot join a real group.
+- **Next step:** joining by confirming on a group member's screen (key exchange plus a short code
+  shown on both screens, like Bluetooth pairing), so no invite has to be passed on.
 - Not done yet: channel search for buddies without home Wi-Fi, "look at whoever does something",
   synchronized actions, a measurement on two real buddies (RAM, delivery with BLE on, delay).
 
@@ -117,9 +126,10 @@ buddy that has to do something receives a *request* (cmd).
 
 ## Key design decisions
 
-- **Groups and trust:** buddies only react to buddies from their own group ("team"). Pairing is done
-  through the web interface with a group code or QR. Messages carry an HMAC with the group key (ESP-NOW
-  cannot encrypt broadcast, see above), so a stranger's buddy cannot simply make your buddy explode.
+- **Groups and trust:** buddies only react to buddies from their own group ("team"). A group has a
+  random key; joining is done with an invite (QR on the buddy, link or text). Messages carry an HMAC
+  with the group key (ESP-NOW cannot encrypt broadcast, see above), so a stranger's buddy cannot
+  simply make your buddy explode.
 - **No endless chain reactions:** every event gets a `seq`, a hop count and a cooldown. Laughter is
   contagious, but not back and forth forever.
 - **Personality:** every buddy gets a few settings, such as how contagious, how quickly annoyed and

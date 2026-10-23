@@ -32,7 +32,8 @@ struct Settings {
   bool ble = true;          // Bluetooth on
   bool mic = true;          // listen to sound (level only; nothing is recorded)
   uint8_t lang = 0;         // Lang: 0 = English, 1 = Dutch (on-screen text and web app)
-  char group[Mesh::kMaxCode + 1] = "";  // group code for buddies nearby (mesh.h); "" = off
+  char group[Mesh::kInviteLen + 1] = "";  // buddies nearby: invite of our group (mesh.h); "" = no group
+  bool groupVisible = true;               // the group's name can be found by scanning
 };
 
 struct Platform {
@@ -76,6 +77,7 @@ class App : public CommandHost {
   void update(uint32_t dtMs);
   bool command(const char* line, char* reply, size_t len);
   void onMeshFrame(const uint8_t* data, size_t len, int rssi);  // from the platform's transport
+  bool meshRadioNeeded() const { return mesh.radioNeeded(uptime_); }  // in a group or scanning
   // Status as JSON for the web API (and BLE).
   void statusJson(char* out, size_t len);
   void showWifiSetup();
@@ -103,6 +105,7 @@ class App : public CommandHost {
   InfoView info;
   SetupView setup;
   PairView pair;
+  InviteView invite;
   SplashView splash;
   SoundSynth sound;
   MicListener mic;

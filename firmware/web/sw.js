@@ -1,5 +1,5 @@
 // Minimale service worker: maakt de PWA installeerbaar en laat hem offline openen.
-const CACHE = "deskbuddy-v6";
+const CACHE = "deskbuddy-v8";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))));
 self.addEventListener("activate", e => e.waitUntil(

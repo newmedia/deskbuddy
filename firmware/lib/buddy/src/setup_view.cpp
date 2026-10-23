@@ -92,6 +92,71 @@ void SetupView::update(uint32_t dtMs) {
   if (!visible_ && lv_obj_get_style_opa(root_, LV_PART_MAIN) == LV_OPA_TRANSP) lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
 }
 
+void InviteView::create(lv_obj_t* parent) {
+  root_ = lv_obj_create(parent);
+  lv_obj_remove_style_all(root_);
+  lv_obj_set_size(root_, LV_PCT(100), LV_PCT(100));
+  lv_obj_set_style_bg_color(root_, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(root_, LV_OPA_COVER, 0);
+  lv_obj_remove_flag(root_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(root_, LV_OBJ_FLAG_CLICKABLE);
+
+  title_ = lv_label_create(root_);
+  lv_obj_set_style_text_font(title_, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(title_, lv_color_hex(0x6EE7F7), 0);
+  lv_obj_set_style_text_align(title_, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align(title_, LV_ALIGN_TOP_MID, 0, 52);
+
+  qr_ = lv_qrcode_create(root_);
+  lv_qrcode_set_size(qr_, 190);
+  lv_qrcode_set_dark_color(qr_, lv_color_black());
+  lv_qrcode_set_light_color(qr_, lv_color_white());
+  lv_obj_set_style_border_color(qr_, lv_color_white(), 0);
+  lv_obj_set_style_border_width(qr_, 8, 0);
+  lv_obj_align(qr_, LV_ALIGN_CENTER, 0, 4);
+
+  hint_ = lv_label_create(root_);
+  lv_obj_set_style_text_font(hint_, &lv_font_montserrat_14, 0);
+  lv_obj_set_style_text_color(hint_, lv_color_hex(0x9AA8AD), 0);
+  lv_obj_set_style_text_align(hint_, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_width(hint_, 300);
+  lv_obj_align(hint_, LV_ALIGN_BOTTOM_MID, 0, -48);
+
+  lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
+}
+
+void InviteView::show(const char* group, const char* url, uint32_t autoHideMs) {
+  snprintf(group_, sizeof(group_), "%s", group);
+  lv_qrcode_update(qr_, url, (uint32_t)strlen(url));
+  retext();
+  hideIn_ = autoHideMs;
+  if (visible_) return;
+  visible_ = true;
+  lv_obj_move_foreground(root_);
+  lv_obj_remove_flag(root_, LV_OBJ_FLAG_HIDDEN);
+}
+
+void InviteView::retext() {
+  lang_ = gLang;
+  lv_label_set_text_fmt(title_, tr("Join \"%s\"", "Doe mee met \"%s\""), group_);
+  lv_label_set_text(hint_, tr("Scan with the phone that controls your buddy", "Scan met de telefoon die je buddy bedient"));
+}
+
+void InviteView::hide() {
+  if (!visible_) return;
+  visible_ = false;
+  lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
+}
+
+void InviteView::update(uint32_t dtMs) {
+  if (!visible_) return;
+  if (lang_ != gLang) retext();
+  if (hideIn_) {
+    if (dtMs >= hideIn_) hide();
+    else hideIn_ -= dtMs;
+  }
+}
+
 void PairView::create(lv_obj_t* parent) {
   root_ = lv_obj_create(parent);
   lv_obj_remove_style_all(root_);

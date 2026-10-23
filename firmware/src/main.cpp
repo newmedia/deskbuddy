@@ -52,6 +52,7 @@ struct EspPlatform : Platform {
     s.mic = prefs.getBool("mic", s.mic);
     s.lang = prefs.getUChar("lang", s.lang);
     if (prefs.isKey("group")) prefs.getString("group", s.group, sizeof(s.group));
+    s.groupVisible = prefs.getBool("gvis", s.groupVisible);
     prefs.end();
   }
   size_t loadBlob(const char* key, void* buf, size_t max) override {
@@ -76,6 +77,7 @@ struct EspPlatform : Platform {
     prefs.putBool("mic", s.mic);
     prefs.putUChar("lang", s.lang);
     prefs.putString("group", s.group);
+    prefs.putBool("gvis", s.groupVisible);
     prefs.end();
   }
   void localTime(struct tm& out) override {

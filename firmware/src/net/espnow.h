@@ -1,6 +1,6 @@
 #pragma once
 // ESP-NOW as the transport for buddies nearby (lib/buddy/src/mesh.h, docs/multi-buddy.md): broadcast
-// on the current Wi-Fi channel. Only on while the App has a group and the Wi-Fi radio is on.
+// on the current Wi-Fi channel. Only on while the App is in a group (or scanning) and Wi-Fi is on.
 
 #include <stddef.h>
 #include <stdint.h>

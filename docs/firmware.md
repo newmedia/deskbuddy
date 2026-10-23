@@ -341,25 +341,41 @@ The firmware and the web app exist in English and Dutch.
 
 ## Buddies nearby (ESP-NOW, prototype)
 
-Buddies with the same group code see each other in the same room and catch each other's yawns. Design,
-research and limits: [multi-buddy.md](multi-buddy.md).
+Buddies in the same group see each other in the same room and catch each other's yawns. Design,
+research and limits: [multi-buddy.md](multi-buddy.md). The web app has all of this in its Buddies tab.
 
-- `group <code>` (3–16 characters, no spaces) joins a group; `group off` leaves it; `group` shows
-  `on`/`off` (the code itself is never shown). Stored in NVS under `group`. Without a group nothing is
-  sent and everything received is ignored. The web app has the same under Settings → Buddies nearby.
-- `buddies` gives the list as JSON: own name, counters (`tx` sent, `rx` accepted, `bad` rejected) and
-  per buddy name, look, age in seconds and signal strength. `/api/status` and `json` have `"group"`
-  and `"buddies"` (the number nearby); the info panel shows "2 buddies nearby" instead of the version.
-- Every 3 s a buddy sends a `hello`; a buddy not heard for 10 s drops off the list (max 8).
-- Messages are small JSON (~95 bytes) with an HMAC-SHA256 over the group key (SHA-256 of the code),
-  truncated to 8 bytes, plus a boot id and sequence number against replays (`lib/buddy/src/mesh.cpp`,
-  `sha256.cpp`).
+**Groups**
+- A group is a random 128-bit key (from the hardware random number generator) plus a name of 1–20
+  characters. `group create <name>` makes one; the buddy is then its first member.
+- **Invite:** `<key as 32 hex>.<name>`. `group invite` gives the invite and the link
+  `https://newmedia.github.io/deskbuddy/?join=<invite>`; `group invite show` puts a QR with that link on
+  the buddy's screen (tap closes it, otherwise 60 s). Scanning it with the phone that controls your own
+  buddy opens the PWA, which shows "Invitation to join …" in the Buddies tab and joins over Bluetooth.
+  `group join <invite or link>` does the same by command. Whoever has the invite has the key: share it
+  only with people who may join.
+- **Searching:** a visible group sends its name and a public id (the first 4 bytes of a hash of the
+  key) every 5 s. `groups` listens for 30 s (ESP-NOW then also runs without a group) and lists the
+  visible groups with their number of buddies. The name is only a label: joining still needs the
+  invite. `group visible off` stops the name beacons.
+- `group` shows name, id and visibility (never the key); `group off` leaves the group. The invite and
+  the visibility are stored in NVS (`group`, `gvis`).
+
+**Messages**
+- Every 3 s a buddy sends a `hello`; a buddy not heard for 10 s drops off the list (max 8). `buddies`
+  gives the list as JSON (own name, counters `tx`/`rx`/`bad`, and per buddy name, look, age and signal
+  strength). `/api/status` and `json` have `"group"` and `"buddies"`; the info panel shows "2 buddies
+  nearby" instead of the version.
+- Messages are small JSON (~95 bytes) with an HMAC-SHA256 over the group key, truncated to 8 bytes,
+  plus a boot id and sequence number against replays (`lib/buddy/src/mesh.cpp`, `sha256.cpp`). Name
+  beacons are unsigned (everyone must be able to read them).
 - **Contagious yawn:** a buddy that gets sleepy by itself sends a `yawn` event. A buddy that is awake
   yawns after 0.8–2 s (sleepy for 3.5 s), at most once per 30 s, and does not pass it on.
+
+**Transport**
 - Device: `src/net/espnow.cpp`, broadcast on the current Wi-Fi channel, only while there is a group
-  and Wi-Fi is on; received frames go via a queue (PSRAM) to the main loop. Web emulator: the same
-  frames over UDP on localhost (ports 47801–47816), so several emulators on one computer see each
-  other; each has its own name from its HTTP port.
+  (or a search) and Wi-Fi is on; received frames go via a queue (PSRAM) to the main loop.
+- Web emulator: the same frames over UDP on localhost (ports 47801–47816), so several emulators on one
+  computer see each other; each has its own name from its HTTP port.
 
 ## Serial commands (115200 baud)
 
@@ -376,7 +392,8 @@ sound on|off|<blip|happy|love|surprised|sad|angry|dizzy|yawn|wake|purr|toggle>
 volume <0-100>
 skin classic|mascot
 lang [en|nl]                  # language; without argument = show current
-group [<code>|off]            # buddies nearby: join or leave a group; without argument = on/off
+group [create <name>|join <invite>|invite [show]|visible on|off|off]   # buddies nearby: group
+groups                        # search 30 s for visible groups nearby
 buddies                       # buddies nearby as JSON
 wifi status | setup | on | off | forget | scan | join "<ssid>" <password>
 ble on | off | forget | status

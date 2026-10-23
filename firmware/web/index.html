@@ -52,7 +52,7 @@ main.editing .foot{display:none}
 .conn .bars i.on{background:var(--text)}
 button.icon{flex:0 0 44px;width:44px;height:44px;padding:0;display:grid;place-items:center;border-radius:50%}
 .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:2;background:var(--bg);padding:4px 0}
-.tabs button{flex:1 1 0;min-width:0;min-height:40px;border-radius:999px;padding:8px 6px;white-space:nowrap;font-size:14px}
+.tabs button{flex:1 1 0;min-width:0;min-height:40px;border-radius:999px;padding:8px 6px;display:grid;place-items:center}
 .tabs button.on{background:var(--accent);color:#04151a;border-color:var(--accent);font-weight:600}
 section.tab-off{display:none}
 main.editing .tabs,main.editing section[data-tab],main.editing #ble-info{display:none}
@@ -120,10 +120,12 @@ a{color:var(--accent)}
     </button>
   </header>
   <nav class="tabs" role="tablist" data-ta="Sections">
-    <button role="tab" data-tab="control" data-t>Control</button>
-    <button role="tab" data-tab="settings" data-t>Settings</button>
-    <button role="tab" data-tab="wifi" data-t>Wi-Fi</button>
-    <button role="tab" data-tab="system" data-t>System</button>
+    <!-- Icons instead of words (five tabs do not fit on a phone); the name is the tooltip and aria-label -->
+    <button role="tab" data-tab="control" data-ta="Control" data-tt="Control"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5q3.5 3 7 0"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg></button>
+    <button role="tab" data-tab="buddies" data-ta="Buddies" data-tt="Buddies"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="9" r="3.2"/><path d="M3 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.5" cy="8" r="2.7"/><path d="M15 13.2c.5-.1 1-.2 1.5-.2 2.5 0 4.5 1.7 5 4.6"/></svg></button>
+    <button role="tab" data-tab="settings" data-ta="Settings" data-tt="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+    <button role="tab" data-tab="wifi" data-ta="Wi-Fi" data-tt="Wi-Fi"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.8 16a5 5 0 0 1 6.4 0"/><circle cx="12" cy="19.2" r="1.2" fill="currentColor" stroke="none"/></svg></button>
+    <button role="tab" data-tab="system" data-ta="System" data-tt="System"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2.5v3M15 2.5v3M9 18.5v3M15 18.5v3M2.5 9h3M2.5 15h3M18.5 9h3M18.5 15h3"/></svg></button>
   </nav>
   <section id="ble-info" hidden>
     <p class="muted" id="ble-msg" data-th>This app talks to your deskbuddy over Bluetooth. Tap <b>Connect via Bluetooth</b>; the first time, your phone asks for the pairing code that appears on the deskbuddy's screen.</p>
@@ -175,13 +177,30 @@ a{color:var(--accent)}
     </select>
   </section>
 
-  <section data-tab="settings" id="buddies-section">
+  <section data-tab="buddies" id="buddies-section">
     <h2 data-t>Buddies nearby</h2>
-    <p class="muted" style="margin-top:0" data-t>Buddies with the same group code see each other (in the same room, also without a router) and catch each other's yawns.</p>
-    <p id="buddies-now" class="status"></p>
-    <label for="group" data-t>Group code</label>
-    <div class="row"><input type="text" id="group" maxlength="16" autocapitalize="none" autocomplete="off" data-tp="3-16 characters, no spaces"><button id="group-join" style="flex:0 0 110px" data-t>Join</button></div>
-    <button id="group-leave" class="wide" data-t hidden>Leave group</button>
+    <p class="muted" style="margin-top:0" data-t>Buddies in the same group see each other (in the same room, also without a router) and catch each other's yawns.</p>
+    <div id="join-offer" class="status ok" hidden></div>
+    <div id="in-group" hidden>
+      <p id="buddies-now" class="status"></p>
+      <div class="stat" id="buddies-list" style="margin-top:10px"></div>
+      <label class="check"><input type="checkbox" id="group-visible"> <span data-t>Others nearby can find this group by searching</span></label>
+      <div class="row" style="margin-top:12px"><button id="invite-show" data-t>Show invite on the buddy</button><button id="invite-copy" data-t>Copy invite link</button></div>
+      <p class="muted" id="invite-text" hidden style="word-break:break-all;margin:8px 0 0"></p>
+      <button id="group-leave" class="wide" data-t>Leave group</button>
+    </div>
+    <div id="no-group" hidden>
+      <p class="status" data-t>Not in a group yet.</p>
+      <label data-t>Groups nearby</label>
+      <button id="scan-groups" data-t>Search for groups</button>
+      <div class="nets" id="groups-list"></div>
+      <p class="muted" id="groups-hint" hidden data-t>To join, ask someone in the group to show the invite on their buddy (Buddies tab), and scan it with the camera of the phone that controls your buddy. Or paste the invite below.</p>
+      <label for="new-group" data-t>New group</label>
+      <div class="row"><input type="text" id="new-group" maxlength="20" data-tp="Name, e.g. Team Dev"><button id="group-create" style="flex:0 0 110px" data-t>Create</button></div>
+      <label for="join-code" data-t>Join with an invite</label>
+      <div class="row"><input type="text" id="join-code" autocapitalize="none" autocomplete="off" data-tp="Invite or link"><button id="group-join" style="flex:0 0 110px" data-t>Join</button></div>
+      <p id="group-msg" class="status bad" hidden></p>
+    </div>
   </section>
 
   <section data-tab="system" id="install-section">
@@ -289,7 +308,7 @@ const NL = {
   // header, tabs, Bluetooth
   "Connection": "Verbinding", "Power": "Stroom", "Connect via Bluetooth": "Verbind via Bluetooth",
   "Customize appearance": "Uiterlijk aanpassen", "Appearance": "Uiterlijk", "Sections": "Onderdelen",
-  "Control": "Bediening", "Settings": "Instellingen", "Wi-Fi": "Wi-Fi", "System": "Systeem",
+  "Control": "Bediening", "Buddies": "Buddies", "Settings": "Instellingen", "Wi-Fi": "Wi-Fi", "System": "Systeem",
   "This app talks to your deskbuddy over Bluetooth. Tap <b>Connect via Bluetooth</b>; the first time, your phone asks for the pairing code that appears on the deskbuddy's screen.":
     "Deze app praat via Bluetooth met je deskbuddy. Tik op <b>Verbind via Bluetooth</b>; bij de eerste keer vraagt je telefoon om de koppelcode die op het scherm van de deskbuddy verschijnt.",
   "This browser doesn't support Web Bluetooth (e.g. iPhone/Safari). Use Chrome on Android or desktop, or open the deskbuddy over Wi-Fi at its IP address.":
@@ -373,12 +392,21 @@ const NL = {
   "Freckles": "Sproeten", "Eyeliner": "Eyeliner", "Lipstick": "Lippenstift", "Studs": "Knopjes", "Hoops": "Ringen",
   "Bow": "Strik", "Headband": "Haarband", "Flower": "Bloem",
   // buddies nearby
-  "Buddies nearby": "Buddies dichtbij", "Group code": "Groepscode", "Join": "Meedoen", "Leave group": "Groep verlaten",
-  "Buddies with the same group code see each other (in the same room, also without a router) and catch each other's yawns.":
-    "Buddies met dezelfde groepscode zien elkaar (in dezelfde ruimte, ook zonder router) en nemen elkaars gapen over.",
-  "3-16 characters, no spaces": "3-16 tekens, geen spaties", "Not in a group.": "Niet in een groep.",
-  "In a group, nobody nearby yet.": "In een groep, nog niemand dichtbij.", "In a group with: {names}": "In een groep met: {names}",
-  "The code must be 3-16 characters, without spaces.": "De code moet 3-16 tekens zijn, zonder spaties.",
+  "Buddies nearby": "Buddies dichtbij", "Join": "Meedoen", "Leave group": "Groep verlaten",
+  "Buddies in the same group see each other (in the same room, also without a router) and catch each other's yawns.":
+    "Buddies in dezelfde groep zien elkaar (in dezelfde ruimte, ook zonder router) en nemen elkaars gapen over.",
+  "Others nearby can find this group by searching": "Anderen in de buurt kunnen deze groep vinden door te zoeken",
+  "Show invite on the buddy": "Uitnodiging op de buddy tonen", "Copy invite link": "Uitnodigingslink kopi\u00ebren",
+  "Not in a group yet.": "Nog niet in een groep.", "Groups nearby": "Groepen in de buurt", "Search for groups": "Groepen zoeken",
+  "To join, ask someone in the group to show the invite on their buddy (Buddies tab), and scan it with the camera of the phone that controls your buddy. Or paste the invite below.":
+    "Vraag iemand uit de groep om de uitnodiging op zijn buddy te tonen (tabblad Buddies) en scan die met de camera van de telefoon die jouw buddy bedient. Of plak de uitnodiging hieronder.",
+  "New group": "Nieuwe groep", "Name, e.g. Team Dev": "Naam, bijv. Team Dev", "Create": "Aanmaken",
+  "Join with an invite": "Meedoen met een uitnodiging", "Invite or link": "Uitnodiging of link",
+  "Invitation to join \u201c{name}\u201d.": "Uitnodiging voor \u201c{name}\u201d.",
+  "\u201c{name}\u201d: {n} nearby.": "\u201c{name}\u201d: {n} dichtbij.", "\u201c{name}\u201d: nobody nearby yet.": "\u201c{name}\u201d: nog niemand dichtbij.",
+  "No visible groups found.": "Geen zichtbare groepen gevonden.", "1 buddy": "1 buddy", "{n} buddies": "{n} buddies",
+  "That invite is not valid.": "Die uitnodiging klopt niet.", "Copied:": "Gekopieerd:",
+  "Leave group \u201c{name}\u201d?": "Groep \u201c{name}\u201d verlaten?",
   // footer
   "Install firmware": "Firmware installeren", "Versions": "Versies", "Source code": "Broncode",
 };
@@ -605,25 +633,98 @@ function updateUi() {
   $("#upd-install").hidden = st.update !== "available";
   $("#upd-p").hidden = st.update !== "installing"; $("#upd-p").value = st.progress;
 }
-// Buddies nearby (ESP-NOW group): the list only while the Settings tab is open
+// Buddies nearby: groups with an invite (buddies tab). The details only while the tab is open.
+let pendingJoin = new URLSearchParams(location.search).get("join");  // the app was opened with an invite link
+let groupScanUntil = 0;
+const inviteName = inv => (inv || "").split(".").slice(1).join(".");
+function groupMsg(text) { const m = $("#group-msg"); m.hidden = !text; m.textContent = text || ""; }
 async function updateBuddies() {
-  const now = $("#buddies-now");
-  $("#group-leave").hidden = !st.group;
-  if (!st.group) { now.textContent = t("Not in a group."); now.className = "status"; return; }
+  const inGroup = !!st.group;
+  $("#in-group").hidden = !inGroup;
+  $("#no-group").hidden = inGroup;
+  const offer = $("#join-offer");
+  offer.hidden = !pendingJoin;
+  if (pendingJoin && !offer.dataset.for) {  // built once, so the button keeps working between refreshes
+    offer.dataset.for = pendingJoin;
+    offer.innerHTML = `${esc(t("Invitation to join \u201c{name}\u201d.", {name: inviteName(pendingJoin)}))} <button id="offer-join">${esc(t("Join"))}</button>`;
+    $("#offer-join").onclick = () => joinGroup(pendingJoin);
+  }
   if ($("#buddies-section").classList.contains("tab-off")) return;
-  let names = [];
-  try { names = JSON.parse((await api.cmd("buddies")).reply).buddies.map(b => `${b.name} (${b.look})`); } catch {}
-  now.textContent = names.length ? t("In a group with: {names}", {names: names.join(", ")}) : t("In a group, nobody nearby yet.");
-  now.className = "status" + (names.length ? " ok" : "");
+  if (inGroup) {
+    let g = {}, buddies = [];
+    try {
+      g = JSON.parse((await api.cmd("group")).reply);
+      buddies = JSON.parse((await api.cmd("buddies")).reply).buddies;
+    } catch {}
+    const now = $("#buddies-now");
+    now.textContent = buddies.length ? t("\u201c{name}\u201d: {n} nearby.", {name: g.name, n: buddies.length})
+      : t("\u201c{name}\u201d: nobody nearby yet.", {name: g.name});
+    now.className = "status" + (buddies.length ? " ok" : "");
+    // One row per buddy: name, character and signal strength
+    $("#buddies-list").innerHTML = buddies.map(b => `<span>${esc(b.name)}</span><span>${esc(b.look)} · ${esc(b.rssi)} dBm</span>`).join("");
+    if (document.activeElement !== $("#group-visible")) $("#group-visible").checked = !!g.visible;
+  } else if (Date.now() < groupScanUntil) {
+    try { renderGroups(JSON.parse((await api.cmd("groups")).reply).groups); } catch {}
+  } else if (groupScanUntil) {
+    groupScanUntil = 0;
+    $("#scan-groups").textContent = t("Search for groups");
+    if (!$("#groups-list").children.length) $("#groups-list").innerHTML = `<p class="muted" style="margin:0">${esc(t("No visible groups found."))}</p>`;
+  }
 }
-$("#group-join").onclick = async () => {
-  const code = $("#group").value.trim();
-  if (!/^\S{3,16}$/.test(code)) { const now = $("#buddies-now"); now.textContent = t("The code must be 3-16 characters, without spaces."); now.className = "status bad"; return; }
-  const j = await cmd(`group ${code}`);
-  if (j && j.ok) $("#group").value = "";
+function renderGroups(groups) {
+  const list = $("#groups-list");
+  list.innerHTML = groups.length ? "" : `<p class="muted" style="margin:0">${esc(t("Searching…"))}</p>`;
+  for (const g of groups) {
+    const b = document.createElement("button");
+    b.innerHTML = `<span>${esc(g.name)}</span><span class="muted">${esc(t(g.buddies === 1 ? "1 buddy" : "{n} buddies", {n: g.buddies}))}</span>`;
+    b.onclick = () => { $("#groups-hint").hidden = false; };  // joining needs the invite, not just the name
+    list.append(b);
+  }
+}
+$("#scan-groups").onclick = () => {
+  groupScanUntil = Date.now() + 30000;
+  $("#scan-groups").textContent = t("Searching…");
+  renderGroups([]);
+  updateBuddies();
 };
-$("#group").onkeydown = e => { if (e.key === "Enter") $("#group-join").click(); };
-$("#group-leave").onclick = () => cmd("group off");
+async function joinGroup(code) {
+  const j = await cmd(`group join ${code}`);
+  if (!j || !j.ok) { groupMsg(t("That invite is not valid.")); return; }
+  groupMsg("");
+  $("#join-code").value = "";
+  if (pendingJoin) {  // done with the link: remove ?join= from the address
+    pendingJoin = null;
+    const q = new URLSearchParams(location.search);
+    q.delete("join");
+    history.replaceState(null, "", q.toString() ? `?${q}` : location.pathname);
+  }
+}
+$("#group-join").onclick = () => { const c = $("#join-code").value.trim(); if (c) joinGroup(c); };
+$("#join-code").onkeydown = e => { if (e.key === "Enter") $("#group-join").click(); };
+$("#group-create").onclick = async () => {
+  const name = $("#new-group").value.trim();
+  if (!name) { $("#new-group").focus(); return; }
+  const j = await cmd(`group create ${name}`);
+  if (j && j.ok) $("#new-group").value = "";
+};
+$("#new-group").onkeydown = e => { if (e.key === "Enter") $("#group-create").click(); };
+$("#group-visible").onchange = e => cmd(`group visible ${e.target.checked ? "on" : "off"}`);
+$("#invite-show").onclick = () => cmd("group invite show");
+$("#invite-copy").onclick = async () => {
+  let link = "";
+  try { link = JSON.parse((await api.cmd("group invite")).reply).link; } catch {}
+  if (!link) return;
+  const p = $("#invite-text");
+  p.hidden = false;
+  // The clipboard only works over https (PWA); on the buddy's own page (http) the link is shown to copy by hand
+  try { await navigator.clipboard.writeText(link); p.textContent = `${t("Copied:")} ${link}`; }
+  catch { p.textContent = link; }
+};
+$("#group-leave").onclick = async () => {
+  let name = "";
+  try { name = JSON.parse((await api.cmd("group")).reply).name; } catch {}
+  if (confirm(t("Leave group \u201c{name}\u201d?", {name}))) { $("#invite-text").hidden = true; cmd("group off"); }
+};
 
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])); }
 
@@ -701,6 +802,7 @@ function showTab(name) {
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 let startTab = "control";
 try { startTab = localStorage.getItem("deskbuddy-tab") || startTab; } catch {}
+if (new URLSearchParams(location.search).has("join")) startTab = "buddies";  // invite link
 showTab(startTab);
 
 // Editor mode: edit the appearance instead of the regular tabs (toggle with the palette icon).

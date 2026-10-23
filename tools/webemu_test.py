@@ -392,31 +392,57 @@ def t_language():
 
 
 def t_buddies():
-    """Buddies nearby: group code, seeing each other, other group, contagious yawn with cooldown."""
+    """Buddies nearby: create a group, find it by searching, join with the invite link, invite QR,
+    visibility, other group, contagious yawn with cooldown."""
     if not PEER:
         check("peer emulator present (--peer)", False, "started by tools/webemu-test.sh")
         return
     pcmd = lambda line: cmd(line, PEER)
     pstatus = lambda: json.loads(http("/api/status", base=PEER)[2])
-    buddies = lambda base=None: json.loads(cmd("buddies", base)[1]["reply"])
+    reply = lambda r: json.loads(r[1]["reply"])
+    buddies = lambda base=None: reply(cmd("buddies", base))
     check("no group by default", status().get("group") is False and status().get("buddies") == 0, str(status().get("group")))
-    st, js = cmd("group ab")
-    check("too short group code gives 400", st == 400, f"{st} {js}")
-    st, js = cmd("group regtest")
-    check("group regtest", st == 200 and js.get("reply") == "ok group on" and status().get("group") is True, f"{st} {js}")
-    for c in ("lang en", "sleep off", "emotion neutral 0", "group regtest"):  # sleep off: no yawning by itself
+    st, js = cmd("group create 123456789012345678901")
+    check("too long group name gives 400", st == 400, f"{st} {js}")
+    st, js = cmd("group invite")
+    check("no invite without a group", st == 400, f"{st} {js}")
+    st, js = cmd("group create Reg Test")
+    g = reply(cmd("group"))
+    check("group create", st == 200 and g.get("group") and g.get("name") == "Reg Test" and len(g.get("id", "")) == 8
+          and g.get("visible") is True, f"{st} {js} {g}")
+    for c in ("lang en", "sleep off", "emotion neutral 0", "group off"):  # sleep off: no yawning by itself
         pcmd(c)
     cmd("sleep off")
+
+    found = wait_for(lambda: any(x["id"] == g["id"] and x["name"] == "Reg Test" for x in reply(pcmd("groups"))["groups"]), 10, 1)
+    check("a buddy without a group finds it by searching", found, str(reply(pcmd("groups"))))
+    inv = reply(cmd("group invite"))
+    check("invite and link", inv.get("invite", "").endswith(".Reg Test") and "?join=" in inv.get("link", "")
+          and "Reg%20Test" in inv.get("link", ""), str(inv))
+    st, js = pcmd("group join 00zz.Nope")
+    check("invalid invite gives 400", st == 400, f"{st} {js}")
+    st, js = pcmd("group join " + inv["link"])
+    check("join with the invite link", st == 200 and reply(pcmd("group")).get("id") == g["id"], f"{st} {js}")
     seen = wait_for(lambda: status().get("buddies") == 1 and pstatus().get("buddies") == 1, 8)
     check("both see each other within a few hellos", seen, f"{status().get('buddies')} / {pstatus().get('buddies')}")
     peer_name = buddies(PEER)["me"]
     check("buddies list names the other", any(b["name"] == peer_name for b in buddies()["buddies"]), str(buddies()))
 
+    st, _ = cmd("group invite show")
+    check("invite QR on the screen", st == 200 and wait_for(lambda: state()["view"] == "invite", 2), state()["view"])
+    touch(True, MID, MID)
+    time.sleep(0.06)
+    touch(False, MID, MID)
+    check("a tap closes the invite", wait_for(lambda: state()["view"] == "face", 2), state()["view"])
+    st, _ = cmd("group visible off")
+    check("group visible off", st == 200 and reply(cmd("group")).get("visible") is False)
+    cmd("group visible on")
+
     bad0 = buddies()["bad"]
-    pcmd("group other1")
+    pcmd("group create Other")
     rejected = wait_for(lambda: buddies()["bad"] > bad0, 6)
     check("frames from another group are rejected", rejected, str(buddies()))
-    pcmd("group regtest")
+    pcmd("group join " + inv["invite"])
     check("same group again: seen again", wait_for(lambda: pstatus().get("buddies") == 1, 8), str(buddies(PEER)))
 
     cmd("emotion neutral 0")
@@ -436,7 +462,6 @@ def t_buddies():
     check("group off", st == 200 and status().get("group") is False and status().get("buddies") == 0, f"{st} {js}")
     pcmd("group off")
     cmd("emotion neutral 0")
-
 
 TESTS = [
     ("start", t_start),

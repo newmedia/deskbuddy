@@ -162,6 +162,7 @@ struct EmuPlatform : Platform {
       s.ble = val("ble", s.ble);
       s.mic = val("mic", s.mic);
       s.lang = (uint8_t)val("lang", s.lang);
+      s.groupVisible = val("gvis", s.groupVisible);
     }
     std::string l;
     if (readFile(gState + "/look.bin", l) && l.size() == sizeof(Look)) memcpy(&s.look, l.data(), sizeof(Look));
@@ -171,8 +172,8 @@ struct EmuPlatform : Platform {
   }
   void saveSettings(const Settings& s) override {
     char t[160];
-    int n = snprintf(t, sizeof(t), "\nsound=%d\nvolume=%u\nbright=%u\nsleep=%u\nble=%d\nmic=%d\nlang=%u\n", s.sound, s.volume,
-                     s.brightness, s.sleepMin, s.ble, s.mic, s.lang);
+    int n = snprintf(t, sizeof(t), "\nsound=%d\nvolume=%u\nbright=%u\nsleep=%u\nble=%d\nmic=%d\nlang=%u\ngvis=%d\n", s.sound,
+                     s.volume, s.brightness, s.sleepMin, s.ble, s.mic, s.lang, s.groupVisible);
     writeFile(gState + "/settings.txt", t, (size_t)n);
     writeFile(gState + "/look.bin", &s.look, sizeof(Look));
     writeFile(gState + "/group", s.group, strlen(s.group));
@@ -195,7 +196,14 @@ struct EmuPlatform : Platform {
   void setBrightness(uint8_t v) override { brightness = v; }
   void reboot() override { rebootAt = nowMs() + 300; }
   void meshSend(const uint8_t* data, size_t len) override { meshBroadcast(data, len); }
-  uint32_t randomSeed() override { return nowMs() * 2654435761u ^ (uint32_t)getpid() << 8; }
+  uint32_t randomSeed() override {  // group keys: real random numbers, like the device's hardware RNG
+    uint32_t r = nowMs() * 2654435761u ^ (uint32_t)getpid() << 8;
+    if (FILE* f = fopen("/dev/urandom", "rb")) {
+      if (fread(&r, sizeof(r), 1, f) != 1) r ^= 0x9e3779b9u;
+      fclose(f);
+    }
+    return r;
+  }
   void startWifiSetup() override {
     if (dev.wifi == DeviceInfo::WifiMode::Station) return;
     setAp();
@@ -691,7 +699,7 @@ int main(int argc, char** argv) {
                      d.bleConnected ? "true" : "false", platform.blePaired ? "true" : "false", pairCode,
                      platform.offered.c_str(), d.version, emotionName(app.face.emotion()), platform.brightness,
                      app.sound.enabled() ? "true" : "false",
-                     app.setup.visible() ? "setup" : app.info.visible() ? "info" : app.clock.visible() ? "clock" : "face",
+                     app.setup.visible() ? "setup" : app.invite.visible() ? "invite" : app.info.visible() ? "info" : app.clock.visible() ? "clock" : "face",
                      micScene.name(), app.behaviour.dancing() ? "true" : "false", app.face.listening() ? "true" : "false",
                      kBoardName, kScreen);
             // All emotions and actions, so the regression test (tools/webemu-test.sh) picks up new ones automatically

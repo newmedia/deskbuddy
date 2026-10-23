@@ -21,6 +21,7 @@ void App::create(lv_obj_t* screen) {
   setup.create(screen);
   updating.create(screen);
   pair.create(screen);
+  invite.create(screen);
   screen_ = screen;
 
   // Default appearance at runtime: on the device App is a global object, and its member initializer
@@ -46,7 +47,8 @@ void App::create(lv_obj_t* screen) {
   applyBrightness();
   meshBoot_ = platform_.randomSeed();
   mesh.begin(dev_.bleName, meshBoot_);
-  mesh.setGroup(settings_.group);
+  mesh.join(settings_.group);
+  mesh.setVisible(settings_.groupVisible);
 }
 
 void App::showSplash(uint32_t ms) {
@@ -67,6 +69,10 @@ void App::onAccel(float ax, float ay, float az, uint32_t now) {
 
 void App::onGesture(const GestureEvent& g) {
   // Overlay open: a tap or swiping back closes it. In the info panel a tap on "Sound" toggles it.
+  if (invite.visible()) {
+    if (g.type == Gesture::Tap || g.type == Gesture::SwipeUp || g.type == Gesture::SwipeDown) invite.hide();
+    return;
+  }
   if (setup.visible()) {
     if (g.type == Gesture::Tap || g.type == Gesture::SwipeUp || g.type == Gesture::SwipeDown) setup.hide();
     return;
@@ -246,6 +252,7 @@ void App::update(uint32_t dtMs) {
   dev_.meshPeers = mesh.enabled() ? mesh.count(uptime_) : -1;
   info.update(dev_, dtMs);
   setup.update(dtMs);
+  invite.update(dtMs);
   // Show the Bluetooth pairing code as long as the phone asks for it
   if (dev_.blePasskey && !pair.visible()) {
     info.hide();
@@ -285,7 +292,8 @@ void App::update(uint32_t dtMs) {
   updating.update(installing, dev_.updateProgress, dev_.updateVersion);
   face.setMatrix(installing);
   splash.update();
-  face.setCovered(!installing && (clock.visible() || info.visible() || setup.visible() || pair.visible() || splash.visible()));
+  face.setCovered(!installing && (clock.visible() || info.visible() || setup.visible() || pair.visible() || invite.visible() ||
+                                  splash.visible()));
   applyBrightness();
 
   if (rebootIn_) {
@@ -342,25 +350,112 @@ void App::onMeshFrame(const uint8_t* data, size_t len, int rssi) {
   yawnAt_ = uptime_ + 800 + (uptime_ * 2654435761u >> 22) % 1200;  // after 0.8-2 s, not all at once
 }
 
-// group                -> group=on|off (the code itself stays secret)
-// group <code>         -> join a group (3-16 characters, no spaces); buddies with the same code see each other
-// group off            -> no buddies nearby
+// group                    -> {"group":..,"name":..,"id":..,"visible":..} (never the key)
+// group create <name>      -> new group with a random key (name 1-20 characters)
+// group join <invite>      -> join with an invite "<32 hex>.<name>" (or a link with ?join=)
+// group invite             -> the invite as text; group invite show -> QR with the join link on the screen
+// group visible on|off     -> may buddies that scan find the group's name?
+// group off                -> leave the group
+// groups                   -> scan for 30 s and list the visible groups nearby
+namespace {
+constexpr const char* kJoinUrl = "https://newmedia.github.io/deskbuddy/?join=";
+constexpr uint32_t kScanMs = 30000;
+// The invite as a query value: everything except letters, digits and -._~ as %XX
+void urlEncode(const char* in, char* out, size_t cap) {
+  size_t n = 0;
+  for (; *in && n + 4 < cap; in++) {
+    unsigned char c = (unsigned char)*in;
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || strchr("-._~", c)) out[n++] = (char)c;
+    else n += (size_t)snprintf(out + n, cap - n, "%%%02X", c);
+  }
+  out[n] = 0;
+}
+// "...?join=<invite>" or the invite itself -> the invite (with %XX decoded)
+void inviteFrom(const char* in, char* out, size_t cap) {
+  const char* p = strstr(in, "join=");
+  p = p ? p + 5 : in;
+  size_t n = 0;
+  for (; *p && *p != '&' && n + 1 < cap; p++) {
+    if (*p == '%' && p[1] && p[2]) {
+      char hex[3] = {p[1], p[2], 0};
+      out[n++] = (char)strtol(hex, nullptr, 16);
+      p += 2;
+    } else {
+      out[n++] = *p == '+' ? ' ' : *p;
+    }
+  }
+  out[n] = 0;
+}
+}  // namespace
+
 bool App::groupCommand(const char* line, char* reply, size_t len) {
   const char* a = line[5] ? line + 6 : "";
+  auto stored = [&] {  // the group changed: store it and reply with the new state
+    mesh.invite(settings_.group, sizeof(settings_.group));
+    save();
+  };
   if (!*a) {
-    snprintf(reply, len, "group=%s", mesh.enabled() ? "on" : "off");
+    snprintf(reply, len, "{\"group\":%s,\"name\":\"%s\",\"id\":\"%s\",\"visible\":%s}", mesh.enabled() ? "true" : "false",
+             mesh.groupName(), mesh.groupId(), mesh.visible() ? "true" : "false");
     return true;
   }
-  const char* code = !strcmp(a, "off") ? "" : a;
-  if (strchr(code, ' ') || !mesh.setGroup(code)) {
-    snprintf(reply, len, "usage: group <code of %u-%u characters, no spaces>|off", (unsigned)Mesh::kMinCode,
-             (unsigned)Mesh::kMaxCode);
-    return false;
+  if (!strncmp(a, "create ", 7)) {
+    uint32_t rnd[4];
+    for (uint32_t& r : rnd) r = platform_.randomSeed();
+    if (!mesh.create(rnd, a + 7)) {
+      snprintf(reply, len, "usage: group create <name of 1-%u characters>", (unsigned)Mesh::kMaxName);
+      return false;
+    }
+    stored();
+    snprintf(reply, len, "ok group %s", mesh.groupName());
+    return true;
   }
-  snprintf(settings_.group, sizeof(settings_.group), "%s", code);
-  save();
-  snprintf(reply, len, "ok group %s", *code ? "on" : "off");
-  return true;
+  if (!strncmp(a, "join ", 5)) {
+    char inv[Mesh::kInviteLen + 1];
+    inviteFrom(a + 5, inv, sizeof(inv));
+    if (!*inv || !mesh.join(inv)) {
+      snprintf(reply, len, "invalid invite");
+      return false;
+    }
+    stored();
+    snprintf(reply, len, "ok group %s", mesh.groupName());
+    return true;
+  }
+  if (!strcmp(a, "invite") || !strcmp(a, "invite show")) {
+    if (!mesh.enabled()) {
+      snprintf(reply, len, "not in a group");
+      return false;
+    }
+    char inv[Mesh::kInviteLen + 1], enc[3 * Mesh::kInviteLen + 1], url[220];
+    mesh.invite(inv, sizeof(inv));
+    urlEncode(inv, enc, sizeof(enc));
+    snprintf(url, sizeof(url), "%s%s", kJoinUrl, enc);
+    if (a[6]) {  // show: QR on the screen
+      info.hide();
+      clock.hide();
+      invite.show(mesh.groupName(), url);
+      snprintf(reply, len, "ok");
+    } else {
+      snprintf(reply, len, "{\"invite\":\"%s\",\"link\":\"%s\"}", inv, url);
+    }
+    return true;
+  }
+  if (!strcmp(a, "visible on") || !strcmp(a, "visible off")) {
+    settings_.groupVisible = !strcmp(a, "visible on");
+    mesh.setVisible(settings_.groupVisible);
+    save();
+    snprintf(reply, len, "ok group visible %s", settings_.groupVisible ? "on" : "off");
+    return true;
+  }
+  if (!strcmp(a, "off")) {
+    mesh.join("");
+    settings_.group[0] = 0;
+    save();
+    snprintf(reply, len, "ok group off");
+    return true;
+  }
+  snprintf(reply, len, "usage: group [create <name>|join <invite>|invite [show]|visible on|off|off]");
+  return false;
 }
 
 void App::applySleep() {
@@ -638,6 +733,11 @@ bool App::command(const char* line, char* reply, size_t len) {
     return true;
   }
   if (!strncmp(line, "group", 5) && (line[5] == 0 || line[5] == ' ')) return groupCommand(line, reply, len);
+  if (!strcmp(line, "groups")) {  // scan for 30 s; the visible groups heard so far
+    mesh.listen(uptime_, kScanMs);
+    mesh.groupsJson(uptime_, reply, len);
+    return true;
+  }
   if (!strcmp(line, "buddies")) {  // buddies nearby as JSON
     mesh.json(uptime_, reply, len);
     return true;

@@ -7,12 +7,16 @@ The text under a heading is the description of that release. Newest first.
 
 Test version: buddies in the same room see each other and catch each other's yawns.
 
-- **Buddies nearby (prototype)**: give buddies the same group code (Settings → Buddies nearby in the
-  web app, or `group <code>`) and they see each other over ESP-NOW, without a router in between. The
-  info panel shows "2 buddies nearby". Messages are signed with the group code, so buddies outside
-  your group cannot do anything with yours. Off by default.
+- **Buddies nearby (prototype)**: buddies in the same group see each other over ESP-NOW, without a
+  router in between, and the info panel shows "2 buddies nearby". Off by default.
+- **Groups**: create a group with a name in the new Buddies tab. Others join with the invite: show it
+  as a QR on your buddy and scan it with the phone that controls theirs, or share the link. Visible
+  groups can be found by searching (only the name; joining always needs the invite). Messages are
+  signed with the group's random key, so buddies outside your group cannot do anything with yours.
 - **Contagious yawn**: when a buddy gets sleepy by itself, the others nearby yawn along (at most once
   per 30 seconds, and without yawning back and forth).
+- **Web app**: the tabs are icons now (control, buddies, settings, Wi-Fi, system), with the name as
+  a tooltip; buddies have their own tab.
 - **Test versions**: buddies never update to a test version by themselves, but a buddy on a test
   version does move on to the next regular version. Install it via the install page with
   "Show test versions".

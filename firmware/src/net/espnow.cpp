@@ -72,7 +72,7 @@ void begin(buddy::App& a) {
 
 void loop() {
   if (!app || !rxQueue) return;
-  bool want = app->mesh.enabled() && WiFi.getMode() != WIFI_OFF;
+  bool want = app->meshRadioNeeded() && WiFi.getMode() != WIFI_OFF;  // in a group, or scanning
   if (want && !on) start();
   if (!want && on) stop();
   Frame f;
