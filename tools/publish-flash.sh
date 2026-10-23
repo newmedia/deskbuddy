@@ -28,9 +28,10 @@ git fetch -q origin gh-pages 2>/dev/null || true
 git worktree add -q -B gh-pages "$TMP" origin/gh-pages
 mkdir -p "$TMP/flash"
 
-# Releases (newest first), without drafts and pre-releases
+# Releases (newest first), without drafts. Pre-releases (test versions, e.g. v1.4.0-beta.1) are included
+# with "pre": true; the page only shows them when you ask for test versions.
 gh release list -R "$REPO" --limit 100 --json tagName,publishedAt,isPrerelease,isDraft \
-  --jq '[.[]|select(.isPrerelease|not)|select(.isDraft|not)]' > "$DL/releases.json"
+  --jq '[.[]|select(.isDraft|not)]' > "$DL/releases.json"
 TAGS="$(python3 -c "import json;print(' '.join(r['tagName'] for r in json.load(open('$DL/releases.json'))))")"
 [ -n "$TAGS" ] || { echo "No releases found." >&2; exit 1; }
 
@@ -101,7 +102,7 @@ if cur and cur not in notes and par:
 def boards(v):  # which boards this version exists for (the XL from the first release with firmware-xl.bin)
     return [b for b, f in (("original", "firmware.bin"), ("xl", "firmware-xl.bin")) if os.path.exists(os.path.join(sys.argv[4], v, f))]
 out = [{"version": r["tagName"][1:], "date": r["publishedAt"][:10], "note": notes.get(r["tagName"][1:], ""),
-        "boards": boards(r["tagName"][1:])} for r in rel]
+        "boards": boards(r["tagName"][1:]), "pre": bool(r.get("isPrerelease"))} for r in rel]
 json.dump({"versions": out}, open(sys.argv[3], "w"), ensure_ascii=False, indent=1)
 PY
 

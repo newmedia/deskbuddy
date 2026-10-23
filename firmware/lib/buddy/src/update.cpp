@@ -12,9 +12,10 @@ const lv_color_t kAccent = LV_COLOR_MAKE(0x00, 0xFF, 0x66);  // matrix green
 const lv_color_t kTrack = LV_COLOR_MAKE(0x08, 0x2A, 0x14);
 const lv_color_t kText = LV_COLOR_MAKE(0xB8, 0xFF, 0xD0);
 
-void parse(const char* s, long v[3]) {
+// "v1.4.0-beta.1" -> {1, 4, 0}; returns the pre-release part ("beta.1") or "" for a normal version
+const char* parse(const char* s, long v[3]) {
   v[0] = v[1] = v[2] = 0;
-  if (!s) return;
+  if (!s) return "";
   if (*s == 'v' || *s == 'V') s++;
   for (int i = 0; i < 3 && *s >= '0' && *s <= '9'; i++) {
     char* end;
@@ -23,6 +24,29 @@ void parse(const char* s, long v[3]) {
     if (*s != '.') break;
     s++;
   }
+  return *s == '-' ? s + 1 : "";
+}
+
+// Pre-release parts per semver: dot-separated identifiers, numbers compared as numbers
+int comparePre(const char* a, const char* b) {
+  while (*a && *b) {
+    size_t la = strcspn(a, "."), lb = strcspn(b, ".");
+    bool na = la && strspn(a, "0123456789") >= la, nb = lb && strspn(b, "0123456789") >= lb;
+    int c;
+    if (na && nb) {
+      long x = strtol(a, nullptr, 10), y = strtol(b, nullptr, 10);
+      c = x < y ? -1 : x > y;
+    } else if (na != nb) {
+      c = na ? -1 : 1;  // numbers sort before words
+    } else {
+      c = strncmp(a, b, la < lb ? la : lb);
+      if (!c) c = la < lb ? -1 : la > lb;
+    }
+    if (c) return c < 0 ? -1 : 1;
+    a += la + (a[la] == '.');
+    b += lb + (b[lb] == '.');
+  }
+  return *a ? 1 : *b ? -1 : 0;
 }
 }  // namespace
 
@@ -55,11 +79,13 @@ const char* updateStateName(UpdateState s) {
 
 int compareVersions(const char* a, const char* b) {
   long x[3], y[3];
-  parse(a, x);
-  parse(b, y);
+  const char* pa = parse(a, x);
+  const char* pb = parse(b, y);
   for (int i = 0; i < 3; i++)
     if (x[i] != y[i]) return x[i] < y[i] ? -1 : 1;
-  return 0;
+  // Same numbers: a pre-release comes before the release itself (1.4.0-beta.1 < 1.4.0-rc.1 < 1.4.0)
+  if (!*pa || !*pb) return *pa ? -1 : *pb ? 1 : 0;
+  return comparePre(pa, pb);
 }
 
 void UpdateView::create(lv_obj_t* parent) {

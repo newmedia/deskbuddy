@@ -14,8 +14,8 @@ const char* updateModeName(UpdateMode m);
 bool updateModeFromName(const char* n, UpdateMode& out);
 const char* updateStateName(UpdateState s);
 
-// Compares semver versions ("v1.2.3" or "1.2.3"; a suffix like "-rc1" is ignored).
-// Returns <0, 0 or >0. Invalid = 0.0.0.
+// Compares semver versions ("v1.2.3" or "1.2.3", optionally with a pre-release such as "-beta.1"):
+// 1.4.0-beta.1 < 1.4.0-beta.2 < 1.4.0-rc.1 < 1.4.0. Returns <0, 0 or >0. Invalid = 0.0.0.
 int compareVersions(const char* a, const char* b);
 
 // Ring along the edge of the round screen plus text, over the face.

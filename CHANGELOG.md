@@ -3,6 +3,22 @@
 Each version below becomes a release on GitHub (see `tools/release.sh` and `docs/firmware.md`).
 The text under a heading is the description of that release. Newest first.
 
+## v1.4.0-beta.1
+
+Test version: buddies in the same room see each other and catch each other's yawns.
+
+- **Buddies nearby (prototype)**: give buddies the same group code (Settings → Buddies nearby in the
+  web app, or `group <code>`) and they see each other over ESP-NOW, without a router in between. The
+  info panel shows "2 buddies nearby". Messages are signed with the group code, so buddies outside
+  your group cannot do anything with yours. Off by default.
+- **Contagious yawn**: when a buddy gets sleepy by itself, the others nearby yawn along (at most once
+  per 30 seconds, and without yawning back and forth).
+- **Test versions**: buddies never update to a test version by themselves, but a buddy on a test
+  version does move on to the next regular version. Install it via the install page with
+  "Show test versions".
+- For now all buddies must be on the same Wi-Fi network (same channel). Not yet measured on real
+  buddies; feedback welcome.
+
 ## v1.3.0
 
 The XL (2.16″, square screen) gets its own firmware, and a black screen on new buddies is fixed.

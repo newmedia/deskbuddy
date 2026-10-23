@@ -92,6 +92,8 @@ after 30 min.
   (`flash/<version>/firmware.bin` + `manifest.json`, and for the XL `firmware-xl.bin` +
   `manifest-xl.json`); bootloader, partition table and boot_app0 are shared (identical for both
   boards). `?board=xl` and `?v=0.3.2` in the URL select directly; the web app links with the right board.
+  Test versions (pre-releases) only appear with "Show test versions" (or `?beta`); "(latest)" is
+  always the newest regular version.
 - **Logo:** `firmware/web/icon.svg` is the deskbuddy logo (cyan ring with eyes and a smile). It is
   used in the web app (header and tab icon), the install page, the README, the boot screen and
   the info panel of the device (`draw::logo()` in `draw_util.h` draws the same shapes). Note:
@@ -130,6 +132,12 @@ We build ourselves, not with GitHub Actions. `tools/release.sh` does everything:
    pushes tag `v0.2.0` (`git tag -a v0.2.0 && git push origin v0.2.0`) and uses `gh release create` to
    create the release with `firmware.bin`, `firmware-xl.bin` and a `.sha256` for each.
    `tools/release.sh 0.2.0 --original-only` leaves out the XL (e.g. while it is not tested yet).
+   **Test versions:** `tools/release.sh 1.4.0-beta.1` (also `-alpha.N`, `-rc.N`) creates a GitHub
+   pre-release. Buddies never install it by themselves (the updater follows `releases/latest`, which
+   skips pre-releases), and version comparison follows semver (`1.4.0-beta.1` < `1.4.0-rc.1` <
+   `1.4.0`), so a buddy on a test version moves on to the next regular version. The "newer than"
+   check only looks at regular releases. Testers install it via the install page ("Show test
+   versions", `?beta` or a link with `?v=1.4.0-beta.1`) or by uploading the `.bin`.
 
 `gh` must have write access to `newmedia/deskbuddy` via the API (the script checks that).
 Pushing over SSH is not enough: if the organization blocks the GitHub CLI app, approve it under
