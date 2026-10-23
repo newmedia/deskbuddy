@@ -1,44 +1,77 @@
 {
  "versions": [
   {
+   "version": "1.3.0",
+   "date": "2026-10-23",
+   "note": "The XL (2.16″, square screen) gets its own firmware, and a black screen on new buddies is fixed.",
+   "boards": [
+    "original",
+    "xl"
+   ]
+  },
+  {
    "version": "1.2.0",
    "date": "2026-10-23",
-   "note": "English and Dutch: the buddy and the web app speak both, and the whole project is now in English."
+   "note": "English and Dutch: the buddy and the web app speak both, and the whole project is now in English.",
+   "boards": [
+    "original"
+   ]
   },
   {
    "version": "1.1.1",
    "date": "2026-10-22",
-   "note": "The deskbuddy logo is now everywhere: on the buddy's screen, in the web app and on the install page."
+   "note": "The deskbuddy logo is now everywhere: on the buddy's screen, in the web app and on the install page.",
+   "boards": [
+    "original"
+   ]
   },
   {
    "version": "1.1.0",
    "date": "2026-10-16",
-   "note": "The buddy now listens along: it reacts to claps, talking, music and noise."
+   "note": "The buddy now listens along: it reacts to claps, talking, music and noise.",
+   "boards": [
+    "original"
+   ]
   },
   {
    "version": "1.0.0",
    "date": "2026-10-16",
-   "note": "The first full version: its own look, new emotions, a revamped web app and a faster, more economical buddy. From now on we follow semver: new features raise the middle number (1.1.0), bugfixes only the last (1.0.1)."
+   "note": "The first full version: its own look, new emotions, a revamped web app and a faster, more economical buddy. From now on we follow semver: new features raise the middle number (1.1.0), bugfixes only the last (1.0.1).",
+   "boards": [
+    "original"
+   ]
   },
   {
    "version": "0.3.2",
    "date": "2026-10-15",
-   "note": "More economical: the buddy only draws when something moves, and updates also work from sleep mode."
+   "note": "More economical: the buddy only draws when something moves, and updates also work from sleep mode.",
+   "boards": [
+    "original"
+   ]
   },
   {
    "version": "0.3.1",
    "date": "2026-10-15",
-   "note": "Updates and Bluetooth now work together, plus new actions and faster display control."
+   "note": "Updates and Bluetooth now work together, plus new actions and faster display control.",
+   "boards": [
+    "original"
+   ]
   },
   {
    "version": "0.3.0",
    "date": "2026-10-15",
-   "note": "Bluetooth, an app for your phone and a faster, more economical buddy."
+   "note": "Bluetooth, an app for your phone and a faster, more economical buddy.",
+   "boards": [
+    "original"
+   ]
   },
   {
    "version": "0.2.0",
    "date": "2026-10-15",
-   "note": "First release that the deskbuddy can fetch by itself."
+   "note": "First release that the deskbuddy can fetch by itself.",
+   "boards": [
+    "original"
+   ]
   }
  ]
 }
