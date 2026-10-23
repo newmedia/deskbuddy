@@ -42,6 +42,9 @@ is only used for power, logs and flashing.
 
 There is also a `-G` variant with an LC76G GPS module.
 
+The XL size of deskbuddy.dev uses the ESP32-S3-Touch-AMOLED-2.16 (same pins, square 480×480 screen):
+see [xl-port.md](xl-port.md).
+
 ## Pin mapping
 
 Source: `examples/arduino/libraries/Mylibrary/pin_config.h` in Waveshare's repo.

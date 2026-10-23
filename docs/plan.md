@@ -82,6 +82,11 @@ offline, but with fewer features.
 9. **Sprite animations**: special animations from LittleFS (for example an LVGL image sequence) for
    events such as a birthday or a new notification.
 
+## XL (2.16″)
+
+Porting to the Waveshare ESP32-S3-Touch-AMOLED-2.16: pinout, differences and phases are in
+[xl-port.md](xl-port.md).
+
 ## Risks and points of attention
 - **Performance**: 466×466 at 16-bit is ±434 KB per frame. That calls for LVGL buffers in PSRAM,
   partial updates and DMA over QSPI. Aim for 30+ fps for the face.

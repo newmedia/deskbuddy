@@ -1,13 +1,14 @@
 #include "splash_view.h"
 
 #include "draw_util.h"
+#include "screen.h"
 
 namespace buddy {
 
 namespace {
 void drawCb(lv_event_t* e) {
   lv_obj_t* o = (lv_obj_t*)lv_event_get_current_target(e);
-  draw::logo(lv_event_get_layer(e), 233, 200, 250, lv_obj_get_style_opa(o, LV_PART_MAIN));
+  draw::logo(lv_event_get_layer(e), kScreenHalf, kScreenHalf - 33, 250, lv_obj_get_style_opa(o, LV_PART_MAIN));
 }
 }  // namespace
 

@@ -1,8 +1,9 @@
 // CO5300 AMOLED via QSPI with ESP-IDF esp_lcd, asynchronous with DMA:
 // while chunk N goes to the panel via DMA, LVGL is already drawing chunk N+1.
 //
-// Pipeline per chunk (40 lines):  LVGL draws (PSRAM)  ->  rotate 90° into a free DMA buffer
+// Pipeline per chunk (10 lines):  LVGL draws (PSRAM)  ->  rotate 90° into a free DMA buffer
 // (internal)  ->  set window + send pixels async  ->  LVGL may continue immediately.
+// On the XL the panel rotates itself (MADCTL), so the chunk is only copied instead of rotated.
 // LVGL draws directly in RGB565_SWAPPED (big-endian, what the panel wants): no separate byteswap pass.
 
 #include <Arduino.h>
@@ -24,17 +25,19 @@ namespace board {
 
 namespace {
 
-// DMA buffers: 466 x 10 x 2 = 9.3 KB per chunk, 2 = 18.6 KB internal. Larger doesn't fit next to Wi-Fi + BLE
+// DMA buffers: 466 x 10 x 2 = 9.3 KB per chunk (XL: 480 x 10 x 2 = 9.6 KB), 2 = 18.6 KB internal. Larger doesn't fit next to Wi-Fi + BLE
 // (the BT controller itself already holds a good part of the internal RAM). LVGL's draw buffer is
 // full-screen and lives in PSRAM: then LVGL draws each changed area in one go, instead of walking the
 // whole face drawing again per strip of 20 lines.
 constexpr int kBufLines = 10;
 constexpr size_t kBufBytes = LCD_WIDTH * kBufLines * 2;
 constexpr size_t kDrawBufBytes = LCD_WIDTH * LCD_HEIGHT * 2;
-constexpr int kColOffset = 6;                          // the panel starts at column 6 (Waveshare)
+constexpr int kColOffset = LCD_COL_OFFSET;              // first column of the panel (pins.h)
+#if LCD_SW_ROTATION
 // The board sits rotated 90° in the enclosure: the physical top of the panel points left.
 // ROTATION_270 puts the logical top on the physical right side, so the picture stands upright.
 constexpr lv_display_rotation_t kRotation = LV_DISPLAY_ROTATION_270;
+#endif
 
 esp_lcd_panel_io_handle_t io = nullptr;
 uint8_t* txBuf[2] = {nullptr, nullptr};  // DMA buffers (internal), used alternately
@@ -83,16 +86,20 @@ void flushCb(lv_display_t* disp, const lv_area_t* area, uint8_t* px) {
     int64_t t1 = esp_timer_get_time();
 
     lv_area_t a = {area->x1, area->y1 + y, area->x2, area->y1 + y + sh - 1};
+#if LCD_SW_ROTATION
     lv_display_rotate_area(disp, &a);
     lv_draw_sw_rotate(px + y * srcStride, txBuf[txCur], w, sh, srcStride,
                       lv_draw_buf_width_to_stride(lv_area_get_width(&a), cf), kRotation, cf);
+#else
+    memcpy(txBuf[txCur], px + y * srcStride, (size_t)srcStride * sh);  // panel rotates: copy only
+#endif
     int64_t t2 = esp_timer_get_time();
 
     setWindow(a.x1, a.y1, a.x2, a.y2);  // waits internally until the previous transfer is done
     esp_lcd_panel_io_tx_color(io, cmdWord(0x32, 0x2C), txBuf[txCur], (size_t)w * sh * 2);  // async
     txCur ^= 1;
     int64_t t3 = esp_timer_get_time();
-    rotateUs += (uint64_t)(t2 - t1);
+    rotateUs += (uint64_t)(t2 - t1);  // XL: the copy into the DMA buffer
     sendUs += (uint64_t)((t1 - t0) + (t3 - t2));  // waiting for the panel (not overlapped)
   }
   lv_display_flush_ready(disp);
@@ -138,7 +145,8 @@ bool initPanel() {
   cfg.flags.quad_mode = 1;
   if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &cfg, &io) != ESP_OK) return false;
 
-  // Hardware reset and init sequence (taken from Arduino_GFX Arduino_CO5300)
+  // Hardware reset and init sequence (Original: from Arduino_GFX Arduino_CO5300; XL: additions from
+  // Waveshare's ESP-IDF BSP for the 2.16)
   pinMode(LCD_RESET, OUTPUT);
   digitalWrite(LCD_RESET, HIGH);
   delay(10);
@@ -148,13 +156,19 @@ bool initPanel() {
   delay(200);
   writeCmd(0x11);  // sleep out
   delay(120);
-  const uint8_t v00 = 0x00, v80 = 0x80, v55 = 0x55, v20 = 0x20, vFF = 0xFF;
+  const uint8_t v00 = 0x00, v80 = 0x80, v55 = 0x55, v20 = 0x20, vFF = 0xFF, madctl = LCD_MADCTL;
+#ifdef DESKBUDDY_BOARD_XL
+  const uint8_t v10 = 0x10, vA0 = 0xA0;
+  writeCmd(0xFE, &v20, 1);  // manufacturer page 0x20
+  writeCmd(0x19, &v10, 1);
+  writeCmd(0x1C, &vA0, 1);
+#endif
   writeCmd(0xFE, &v00, 1);
   writeCmd(0xC4, &v80, 1);  // SPI mode
   writeCmd(0x3A, &v55, 1);  // 16 bits per pixel
   writeCmd(0x53, &v20, 1);
   writeCmd(0x63, &vFF, 1);  // brightness HBM
-  writeCmd(0x36, &v00, 1);  // MADCTL: RGB, no mirroring
+  writeCmd(0x36, &madctl, 1);  // MADCTL: RGB; XL: orientation of the panel (pins.h)
   writeCmd(0x20);           // inversion off
   writeCmd(0x29);           // display on
   writeCmd(0x58, &v00, 1);  // high-contrast off
@@ -187,7 +201,9 @@ bool beginDisplay() {
   lv_tick_set_cb(tickCb);
   lv_display_t* disp = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
   lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
+#if LCD_SW_ROTATION
   lv_display_set_rotation(disp, kRotation);
+#endif
   lv_display_set_buffers(disp, drawBuf, nullptr, kDrawBufBytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(disp, flushCb);
   lv_display_add_event_cb(disp, rounderCb, LV_EVENT_INVALIDATE_AREA, nullptr);

@@ -168,11 +168,11 @@ void App::statusJson(char* out, size_t len) {
     default: break;
   }
   snprintf(out, len,
-           "{\"version\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
+           "{\"version\":\"%s\",\"board\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
            "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u,\"updates\":\"%s\",\"update\":\"%s\","
            "\"latest\":\"%s\",\"progress\":%u,\"mic\":%s,\"ble\":%s,\"bleConnected\":%s,\"look\":\"%s\",\"lang\":\"%s\",\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
-           dev_.version, emotionName(face.emotion()), skinName(face.skin()), settings_.sound ? "true" : "false",
+           dev_.version, kBoardName, emotionName(face.emotion()), skinName(face.skin()), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
            dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin,
            updateModeName(dev_.updateMode), updateStateName(dev_.updateState), dev_.updateVersion,

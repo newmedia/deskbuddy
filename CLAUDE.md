@@ -17,13 +17,18 @@ be added in both languages.
 - `firmware/`: PlatformIO, with env `esp32` (device), `sim` (headless PC simulator), `emu`
   (interactive SDL emulator, `tools/emu.sh`) and `webemu` (web emulator with web interface and PWA,
   `tools/webemu.sh` -> http://localhost:8765/emu). Explained in `docs/firmware.md`.
+- Two boards: the Original (1.75", round 466x466) and the XL (2.16", square 480x480, `docs/xl-port.md`).
+  Every env has an `-xl` twin (`esp32-xl`, `sim-xl`, `emu-xl`, `webemu-xl`) that only adds
+  `-D DESKBUDDY_BOARD_XL`; screen size comes from `firmware/lib/buddy/src/screen.h` (never hard-code
+  466/233), panel settings per board from `firmware/src/board/pins.h`. The scripts take `--xl`.
 - Run `tools/webemu-test.sh` (regression test, `docs/regression-test.md`) after changes to the
   firmware logic or web app, and always before a release or a flash request.
 - Test functionality and the web app/PWA in the web emulator first (e.g. via the built-in browser,
-  config `webemu` in `.claude/launch.json`); measure performance on the device.
+  configs `webemu` and `webemu-xl` in `.claude/launch.json`); measure performance on the device.
 - Hardware-independent logic belongs in `firmware/lib/buddy/` (LVGL only), so the simulator can run
   it too. Hardware belongs in `firmware/src/board/`.
-- Check UI changes with `tools/sim.sh` and look at the PNGs in `sim-out/` before asking to flash.
+- Check UI changes with `tools/sim.sh` and `tools/sim.sh --xl` and look at the PNGs in `sim-out/` and
+  `sim-out-xl/` before asking to flash.
 - Plan and phases are in `docs/plan.md`. Navigation: swipe down = info (Wi-Fi/BLE/sound/skin),
   swipe up = clock.
 - Start the emulator detached with `setsid … &` and stop it with `pkill -x program`. Do not use

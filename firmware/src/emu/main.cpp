@@ -86,15 +86,13 @@ int main(int, char**) {
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
   SDL_Texture* tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, W, H);
 
- // Round screen: make everything outside the circle grey via an overlay texture.
+  // Visible screen (round or rounded square): make everything outside it grey via an overlay texture.
   SDL_Texture* mask = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STATIC, W, H);
   {
     static uint32_t px[W * H];
-    const float r = W / 2.0f;
     for (int y = 0; y < H; y++)
       for (int x = 0; x < W; x++) {
-        float dx = x + 0.5f - r, dy = y + 0.5f - r;
-        float d = sqrtf(dx * dx + dy * dy) - r;  // >0 = outside
+        float d = screenEdgeDistance(x, y);  // >0 = outside
         uint8_t a = d <= -1 ? 0 : (d >= 0 ? 255 : (uint8_t)((d + 1) * 255));
         px[y * W + x] = 0x30303000u | a;
       }

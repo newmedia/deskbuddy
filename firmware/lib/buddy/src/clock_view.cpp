@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "i18n.h"
+#include "screen.h"
 
 namespace buddy {
 
@@ -23,7 +24,7 @@ void ClockView::create(lv_obj_t* parent) {
   lv_obj_remove_flag(root_, LV_OBJ_FLAG_CLICKABLE);
 
   batt_ = lv_arc_create(root_);
-  lv_obj_set_size(batt_, 446, 446);
+  lv_obj_set_size(batt_, kScreen - 20, kScreen - 20);
   lv_obj_center(batt_);
   lv_arc_set_bg_angles(batt_, 135, 45);
   lv_arc_set_range(batt_, 0, 100);

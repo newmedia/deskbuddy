@@ -3,6 +3,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "screen.h"
+
 namespace buddy {
 
 namespace {
@@ -13,7 +15,7 @@ constexpr uint32_t kLongMs = 650;
 constexpr int kSwipeMin = 90;         // px
 constexpr uint32_t kSwipeMs = 600;
 constexpr float kPetPath = 260;       // px back and forth
-constexpr float kHalf = 233;
+constexpr float kHalf = kScreenHalf;
 
 GestureEvent ev(Gesture g, int x, int y) {
   GestureEvent e;

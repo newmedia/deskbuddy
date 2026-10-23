@@ -49,7 +49,13 @@ bool beginTouch() {
   touchOk = touch.begin(Wire, TP_ADDR, I2C_SDA, I2C_SCL);
   if (touchOk) {
     touch.setMaxCoordinates(LCD_WIDTH, LCD_HEIGHT);
+#if LCD_SW_ROTATION
     touch.setMirrorXY(true, true);
+#else
+    // XL: same mapping as Waveshare's example for MADCTL 0xA0 (same SensorLib); verify on the device
+    touch.setSwapXY(true);
+    touch.setMirrorXY(true, false);
+#endif
     pinMode(TP_INT, INPUT_PULLUP);
     attachInterrupt(TP_INT, onTouchIrq, FALLING);
   }
@@ -70,9 +76,15 @@ bool readTouch(int& x, int& y) {
   if (p.getPointCount() == 0) return false;  // hasPoints() can be true without a valid point
   lastActive = now;
   int px = p.getPoint(0).x, py = p.getPoint(0).y;
+#if LCD_SW_ROTATION
   // Physical -> logical (inverse of ROTATION_270: logical (x,y) -> physical (W-1-y, x))
   x = py;
   y = LCD_WIDTH - 1 - px;
+#else
+  // The panel rotates in hardware and the touch chip is set up to match: already logical
+  x = px;
+  y = py;
+#endif
   return true;
 }
 
@@ -91,7 +103,8 @@ bool readAccel(float& ax, float& ay, float& az) {
   if (!imu.getAccelerometer(x, y, az)) return false;
   // IMU axes -> screen axes, measured with tools/imu-measure.py: standing upright, gravity
   // points along IMU-y (= down on the screen), tilting right gives +x, and tilting the top
-  // towards you gives +z.
+  // towards you gives +z. XL: not measured yet (depends on how the board sits in the case); same
+  // mapping until then.
   ax = x;
   ay = y;
   return true;

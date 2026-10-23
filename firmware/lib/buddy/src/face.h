@@ -5,6 +5,7 @@
 #include <lvgl.h>
 
 #include "look.h"
+#include "screen.h"
 #include <math.h>
 #include <stdint.h>
 
@@ -66,7 +67,7 @@ struct Spring {
 
 class Face {
  public:
-  static constexpr int kSize = 466;
+  static constexpr int kSize = kScreen;  // screen size of this board (screen.h)
 
   void create(lv_obj_t* parent);
   void update(uint32_t dtMs);

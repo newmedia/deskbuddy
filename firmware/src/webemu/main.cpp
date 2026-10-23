@@ -566,6 +566,12 @@ int main(int argc, char** argv) {
             respond(fd, 200, P == "/icon.svg" ? "image/svg+xml" : P == "/sw.js" ? "text/javascript" : "application/json", f);
           } else if (P == "/emu" || P == "/emu/") {
             readFile(gRoot + "/firmware/src/webemu/emu.html", html);
+            // Screen of this build (Original: round 466, XL: rounded square 480) for canvas, mask and touch
+            char scr[160];
+            snprintf(scr, sizeof(scr), "<script>window.SCREEN = {size: %d, corner: %d, board: \"%s\"};</script>\n", kScreen,
+                     (int)kCornerRadius, kBoardName);
+            size_t i = html.find("<script>");
+            if (i != std::string::npos) html.insert(i, scr);
             respond(fd, 200, "text/html; charset=utf-8", html);
           } else if (P == "/emu/fake-bluetooth.js") {
             std::string f;
@@ -639,13 +645,14 @@ int main(int argc, char** argv) {
             snprintf(reply, sizeof(reply),
                      "{\"wifi\":%d,\"battery\":%d,\"charging\":%s,\"ble\":%s,\"bleConnected\":%s,\"blePaired\":%s,"
                      "\"pairCode\":%u,\"offered\":\"%s\",\"version\":\"%s\",\"emotion\":\"%s\",\"brightness\":%u,"
-                     "\"sound\":%s,\"view\":\"%s\",\"micScene\":\"%s\",\"dancing\":%s,\"listening\":%s,\"emotions\":[",
+                     "\"sound\":%s,\"view\":\"%s\",\"micScene\":\"%s\",\"dancing\":%s,\"listening\":%s,\"board\":\"%s\",\"screen\":%d,\"emotions\":[",
                      (int)d.wifi, d.batteryPct, d.charging ? "true" : "false", d.bleEnabled ? "true" : "false",
                      d.bleConnected ? "true" : "false", platform.blePaired ? "true" : "false", pairCode,
                      platform.offered.c_str(), d.version, emotionName(app.face.emotion()), platform.brightness,
                      app.sound.enabled() ? "true" : "false",
                      app.setup.visible() ? "setup" : app.info.visible() ? "info" : app.clock.visible() ? "clock" : "face",
-                     micScene.name(), app.behaviour.dancing() ? "true" : "false", app.face.listening() ? "true" : "false");
+                     micScene.name(), app.behaviour.dancing() ? "true" : "false", app.face.listening() ? "true" : "false",
+                     kBoardName, kScreen);
             // All emotions and actions, so the regression test (tools/webemu-test.sh) picks up new ones automatically
             std::string js = reply;
             for (int i = 0; i < (int)Emotion::Count; i++)

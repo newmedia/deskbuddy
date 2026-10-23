@@ -1,7 +1,7 @@
 # Regression test (web emulator)
 
-`tools/webemu-test.sh` checks in about 80 seconds whether the firmware logic still does what it
-should, without a device. The test runs on the [web emulator](firmware.md#web-emulator-test-everything-without-a-device).
+`tools/webemu-test.sh` checks in about 2.5 minutes whether the firmware logic still does what it
+should, without a device, for both boards: the Original (env `webemu`) and the XL (env `webemu-xl`). The test runs on the [web emulator](firmware.md#web-emulator-test-everything-without-a-device).
 That is the same `App` as on the device, with the same web API.
 
 ## When to run
@@ -22,16 +22,17 @@ tools/webemu-test.sh
 tools/webemu-test.sh -v
 ```
 
-With `-v` you also see every passed check, not just the failures.
+With `-v` you also see every passed check, not just the failures. `--board original` or
+`--board xl` tests only one board (about 80 seconds).
 
 What the script does:
-1. builds env `webemu` (`pio run -e webemu`)
+1. per board: builds env `webemu` or `webemu-xl` (`pio run -e webemu-xl`)
 2. finds a free port and starts the emulator in the background, with its **own, empty state** in a
    temporary folder (via `WEBEMU_STATE`). Your regular emulator settings in
    `firmware/.pio/webemu-state/` stay untouched, and an emulator already running on 8765 is not in
    the way
 3. runs `tools/webemu_test.py`, which checks everything over HTTP
-4. stops the emulator and cleans up the temporary folder, also on Ctrl+C
+4. stops the emulator and cleans up the temporary folder, also on Ctrl+C; then the next board
 
 ## Reading the result
 

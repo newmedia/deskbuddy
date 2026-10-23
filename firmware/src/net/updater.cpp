@@ -22,7 +22,12 @@ using buddy::UpdateMode;
 using buddy::UpdateState;
 
 constexpr const char* kLatestUrl = "https://api.github.com/repos/newmedia/deskbuddy/releases/latest";
+// Each board has its own asset: an XL must never install the Original's firmware (and vice versa).
+#ifdef DESKBUDDY_BOARD_XL
+constexpr const char* kAsset = "/firmware-xl.bin";
+#else
 constexpr const char* kAsset = "/firmware.bin";
+#endif
 constexpr uint32_t kFirstCheck = 30000;              // wait a bit after connecting (NTP, settle)
 constexpr uint32_t kInterval = 12UL * 3600 * 1000;   // then every 12 hours
 constexpr uint32_t kRetry = 30UL * 60 * 1000;        // retry 30 min after a failed check
@@ -214,7 +219,9 @@ void doCheck() {
     return;
   }
   if (!url[0]) {
-    fail("release has no firmware.bin");
+    char msg[48];
+    snprintf(msg, sizeof(msg), "release has no %s", kAsset + 1);
+    fail(msg);
     return;
   }
   snprintf(assetUrl, sizeof(assetUrl), "%s", url);

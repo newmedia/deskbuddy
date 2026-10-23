@@ -15,7 +15,7 @@ header{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wra
 header .sub{color:var(--dim);font-size:13px}
 .wrap{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 .dev{flex:0 1 480px;min-width:0;display:grid;gap:12px}
-.screen{position:relative;width:100%;max-width:466px;aspect-ratio:1;border-radius:50%;background:#000;box-shadow:0 0 0 10px #1a2228,0 0 0 11px var(--line);margin:12px auto 6px;touch-action:none;cursor:pointer;overflow:hidden}
+.screen{position:relative;width:100%;max-width:480px;aspect-ratio:1;border-radius:50%;background:#000;box-shadow:0 0 0 10px #1a2228,0 0 0 11px var(--line);margin:12px auto 6px;touch-action:none;cursor:pointer;overflow:hidden}
 .screen canvas{width:100%;height:100%;display:block;border-radius:50%}
 .status{text-align:center;color:var(--dim);font-size:13px;min-height:1.4em}
 section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
@@ -50,7 +50,7 @@ a{color:var(--accent)}
 </header>
 <div class="wrap">
   <div class="dev">
-    <div class="screen" id="screen"><canvas id="cv" width="466" height="466"></canvas></div>
+    <div class="screen" id="screen"><canvas id="cv"></canvas></div>
     <div class="status" id="status"></div>
 
     <section>
@@ -130,7 +130,14 @@ const $ = s => document.querySelector(s);
 const input = (params) => fetch("/emu/input?" + new URLSearchParams(params), {method: "POST"}).catch(() => {});
 
 // ---------- Screen ----------
-const cv = $("#cv"), ctx = cv.getContext("2d"), img = ctx.createImageData(466, 466);
+// SCREEN comes from the emulator: Original = round 466, XL = square with rounded corners 480
+const SC = window.SCREEN || {size: 466, corner: 233, board: "original"}, N = SC.size;
+const cv = $("#cv"), ctx = cv.getContext("2d");
+cv.width = cv.height = N;
+const img = ctx.createImageData(N, N);
+for (const el of [$("#screen"), cv]) el.style.borderRadius = SC.corner >= N / 2 ? "50%" : `${SC.corner / N * 100}%`;
+$("#screen").style.maxWidth = `${N}px`;
+if (SC.board === "xl") $("h1").textContent += " (XL)";
 let frame = 0, online = false;
 async function pullScreen() {
   try {
@@ -163,7 +170,7 @@ const scr = $("#screen");
 let down = false, lastSend = 0, pending = null;
 function pos(e) {
   const r = scr.getBoundingClientRect();
-  return {x: Math.round((e.clientX - r.left) / r.width * 466), y: Math.round((e.clientY - r.top) / r.height * 466)};
+  return {x: Math.round((e.clientX - r.left) / r.width * N), y: Math.round((e.clientY - r.top) / r.height * N)};
 }
 function sendTouch(p, isDown) { input({t: "touch", down: isDown ? 1 : 0, x: p.x, y: p.y}); lastSend = performance.now(); }
 scr.addEventListener("pointerdown", e => { down = true; scr.setPointerCapture(e.pointerId); sendTouch(pos(e), true); });

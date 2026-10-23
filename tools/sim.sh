@@ -3,13 +3,16 @@
 #   tools/sim.sh            -> PNG per emotion + contact sheet + demo.gif
 #   tools/sim.sh emotions   -> only the PNGs
 #   tools/sim.sh check      -> one overview per character of all emotions and actions (sim-out/check_NN.png)
+#   tools/sim.sh --xl ...   -> the same for the XL (square 480x480) in sim-out-xl/
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ENV=sim
 OUT="$ROOT/sim-out"
+if [ "${1:-}" = "--xl" ]; then ENV=sim-xl; OUT="$ROOT/sim-out-xl"; shift; fi
 MODE="${1:-all}"
 cd "$ROOT/firmware"
-"$ROOT/.venv/bin/pio" run -e sim -s
-BIN="$ROOT/firmware/.pio/build/sim/program"
+"$ROOT/.venv/bin/pio" run -e "$ENV" -s
+BIN="$ROOT/firmware/.pio/build/$ENV/program"
 rm -rf "$OUT" && mkdir -p "$OUT/frames"
 
 if [ "$MODE" = "check" ]; then

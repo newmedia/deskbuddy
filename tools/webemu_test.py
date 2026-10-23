@@ -14,6 +14,9 @@ import urllib.request
 
 BASE = sys.argv[1].rstrip("/")
 VERBOSE = "-v" in sys.argv[2:]
+BOARD = sys.argv[sys.argv.index("--board") + 1] if "--board" in sys.argv else "original"
+SCREEN = {"original": 466, "xl": 480}[BOARD]
+MID = SCREEN // 2  # centre of the screen; swipes start 113 px above or 127 px below it
 results = []  # (group, name, ok, detail)
 group = "?"
 
@@ -86,8 +89,13 @@ def t_start():
     check("emulator reachable", ok)
     if not ok:
         raise SystemExit(1)
+    s = state()
+    check(f"board is {BOARD} with a {SCREEN}x{SCREEN} screen", s.get("board") == BOARD and s.get("screen") == SCREEN,
+          f"{s.get('board')} {s.get('screen')}")
+    check("board in /api/status", status().get("board") == BOARD, str(status().get("board")))
     st, h, body = http("/emu/screen")
-    check("/emu/screen returns 466x466 RGB565", st == 200 and len(body) == 466 * 466 * 2, f"{st}, {len(body)} bytes")
+    check(f"/emu/screen returns {SCREEN}x{SCREEN} RGB565", st == 200 and len(body) == SCREEN * SCREEN * 2,
+          f"{st}, {len(body)} bytes")
 
 
 def t_emotions():
@@ -279,16 +287,16 @@ def swipe(x0, y0, x1, y1, steps=10, ms=250):
 
 def t_swipe():
     check("starts on the face", state()["view"] == "face", state()["view"])
-    swipe(233, 120, 233, 360)
+    swipe(MID, MID - 113, MID, MID + 127)
     check("swipe down -> info", wait_for(lambda: state()["view"] == "info", 2), state()["view"])
-    swipe(233, 360, 233, 120)
+    swipe(MID, MID + 127, MID, MID - 113)
     check("swiping back closes info", wait_for(lambda: state()["view"] == "face", 2), state()["view"])
     time.sleep(0.3)
-    swipe(233, 360, 233, 120)
+    swipe(MID, MID + 127, MID, MID - 113)
     check("swipe up -> clock", wait_for(lambda: state()["view"] == "clock", 2), state()["view"])
-    touch(True, 233, 233)  # a tap closes the clock
+    touch(True, MID, MID)  # a tap closes the clock
     time.sleep(0.06)
-    touch(False, 233, 233)
+    touch(False, MID, MID)
     check("back to face", wait_for(lambda: state()["view"] == "face", 2), state()["view"])
 
 
@@ -412,7 +420,7 @@ def main():
         bad = sum(1 for r in rs if not r[2])
         print(f"{g:<12} {len(rs) - bad:>5} {bad:>5}{'  <--' if bad else ''}")
     bad = [r for r in results if not r[2]]
-    print(f"\n{len(results) - len(bad)}/{len(results)} checks passed in {time.time() - t0:.0f} s"
+    print(f"\n[{BOARD}] {len(results) - len(bad)}/{len(results)} checks passed in {time.time() - t0:.0f} s"
           + (" -- PASSED" if not bad else f" -- {len(bad)} FAILED"))
     return 1 if bad else 0
 

@@ -6,6 +6,14 @@
       "runtimeExecutable": "tools/webemu.sh",
       "runtimeArgs": [],
       "port": 8765
+    },
+    {
+      "name": "webemu-xl",
+      "runtimeExecutable": "tools/webemu.sh",
+      "runtimeArgs": [
+        "--xl"
+      ],
+      "port": 8766
     }
   ]
 }

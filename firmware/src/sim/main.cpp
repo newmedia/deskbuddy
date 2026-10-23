@@ -51,13 +51,11 @@ static void savePpm(const std::string& path) {
     exit(1);
   }
   fprintf(f, "P6\n%d %d\n255\n", W, H);
-  const float r = W / 2.0f;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      float dx = x + 0.5f - r, dy = y + 0.5f - r;
       uint8_t rgb[3];
-      if (dx * dx + dy * dy > r * r) {
-        rgb[0] = rgb[1] = rgb[2] = 0x30;  // outside the round screen
+      if (!onScreen(x, y)) {
+        rgb[0] = rgb[1] = rgb[2] = 0x30;  // outside the visible screen (round or rounded square)
       } else {
         uint16_t c = fb[y * W + x];
         rgb[0] = ((c >> 11) & 0x1f) * 255 / 31;

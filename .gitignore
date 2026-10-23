@@ -2,6 +2,7 @@
 backups/
 .claude/settings.local.json
 sim-out/
+sim-out-xl/
 firmware/.pio/
 firmware/src/net/web_index.h
 __pycache__/

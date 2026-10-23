@@ -378,6 +378,15 @@ tools/sim.sh check    # one overview per character of all emotions and actions -
 tools/emu.sh          # interactive emulator (once: sudo apt install libsdl2-dev)
 tools/webemu.sh       # web emulator with web interface and PWA -> http://localhost:8765/emu
 cd firmware && ../.venv/bin/pio run -e esp32   # build only
+```
+
+**XL (2.16″, square 480×480):** every env has an `-xl` twin and the scripts take `--xl`:
+`tools/sim.sh --xl` (-> `sim-out-xl/`), `tools/emu.sh --xl`, `tools/webemu.sh --xl`
+(-> http://localhost:8766/emu, own settings in `.pio/webemu-xl-state/`), `pio run -e esp32-xl`.
+The screen size comes from `lib/buddy/src/screen.h`, the panel settings from `src/board/pins.h`;
+see [xl-port.md](xl-port.md).
+
+```bash
 tools/flash.sh        # build + flash (asks for confirmation, requires a backup)
 tools/monitor.sh      # serial log and commands
 ```
@@ -409,14 +418,15 @@ Settings, custom profiles, the Bluetooth pairing and the "installed" version are
 
 ### Regression test
 
-`tools/webemu-test.sh` (`-v` also shows the passed checks) builds env `webemu` and starts it on a
+`tools/webemu-test.sh` (`-v` also shows the passed checks) tests both boards: per board it builds env
+`webemu` or `webemu-xl` (only one: `--board original|xl`) and starts it on a
 free port with its own, empty state (`WEBEMU_STATE`, your regular `webemu-state` stays untouched).
 Then `tools/webemu_test.py` checks everything over HTTP: all emotions and actions (the lists come
 from `/emu/state`, so new ones are included automatically), blink/bounce/shake, characters and
 custom profiles, Wi-Fi scan and connect (wrong password, network gone, correct), BLE (pairing code,
 wrong code, line commands, bonded), swiping to info and clock (`view` in `/emu/state`), sound (PCM
 after `play whistle`), language, and updates (check, install, restart with new version and saved
-settings, upload via `POST /update`). Takes about 30 s. Ends with an overview per group; exit code 0
+settings, upload via `POST /update`), plus the board and screen size. Takes about 80 s per board. Ends with an overview per group; exit code 0
 means all good, otherwise 1 plus the end of the emulator log. Run it before a release.
 Guide (reading the result, adding checks, problems): [regression-test.md](regression-test.md).
 
