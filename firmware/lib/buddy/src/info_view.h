@@ -43,6 +43,7 @@ struct DeviceInfo {
   UpdateState updateState = UpdateState::Idle;
   uint8_t updateProgress = 0;  // 0..100 during installation
   char updateVersion[16] = ""; // latest release, e.g. "v0.2.0"
+  int meshPeers = -1;          // buddies nearby (mesh.h); -1 = no group
 
   bool operator==(const DeviceInfo& o) const;
 };

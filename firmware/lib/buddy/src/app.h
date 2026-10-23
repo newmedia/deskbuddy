@@ -14,6 +14,7 @@
 #include "gestures.h"
 #include "i18n.h"
 #include "info_view.h"
+#include "mesh.h"
 #include "setup_view.h"
 #include "mic.h"
 #include "splash_view.h"
@@ -31,6 +32,7 @@ struct Settings {
   bool ble = true;          // Bluetooth on
   bool mic = true;          // listen to sound (level only; nothing is recorded)
   uint8_t lang = 0;         // Lang: 0 = English, 1 = Dutch (on-screen text and web app)
+  char group[Mesh::kMaxCode + 1] = "";  // group code for buddies nearby (mesh.h); "" = off
 };
 
 struct Platform {
@@ -44,6 +46,10 @@ struct Platform {
   virtual void deviceInfo(DeviceInfo& out) = 0;
   virtual void setBrightness(uint8_t) {}
   virtual void reboot() {}
+  // Buddies nearby: broadcast a frame (ESP-NOW on the device, UDP in the web emulator). Received
+  // frames go to App::onMeshFrame.
+  virtual void meshSend(const uint8_t* data, size_t len) { (void)data; (void)len; }
+  virtual uint32_t randomSeed() { return 0x9e3779b9u; }  // device: hardware random number
   virtual void startWifiSetup() {}  // start the setup AP (when not connected yet)
   virtual void setBle(bool) {}
   virtual void forgetBle() {}
@@ -69,6 +75,7 @@ class App : public CommandHost {
   void onGesture(const GestureEvent& g);
   void update(uint32_t dtMs);
   bool command(const char* line, char* reply, size_t len);
+  void onMeshFrame(const uint8_t* data, size_t len, int rssi);  // from the platform's transport
   // Status as JSON for the web API (and BLE).
   void statusJson(char* out, size_t len);
   void showWifiSetup();
@@ -100,8 +107,11 @@ class App : public CommandHost {
   SoundSynth sound;
   MicListener mic;
   UpdateView updating;
+  Mesh mesh;
 
  private:
+  void meshUpdate();
+  bool groupCommand(const char* line, char* reply, size_t len);
   void applyBrightness();
   void save();
   void syncDev();
@@ -126,6 +136,12 @@ class App : public CommandHost {
   uint32_t saveIn_ = 0;
   uint32_t rebootIn_ = 0;
   uint32_t infoPoll_ = 0;
+  // Buddies nearby: our own clock for the mesh, and the contagious yawn
+  uint32_t uptime_ = 0;
+  uint32_t meshBoot_ = 0;      // random per start: other buddies see a restart
+  uint32_t yawnAt_ = 0;        // >0: caught a yawn from a buddy, yawn at this time
+  uint32_t lastContagion_ = 0; // last caught yawn (cooldown)
+  bool yawnFromPeer_ = false;  // the current sleepy spell was caught: do not pass it on
 };
 
 }  // namespace buddy

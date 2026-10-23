@@ -44,6 +44,9 @@ void App::create(lv_obj_t* screen) {
   platform_.deviceInfo(dev_);
   syncDev();
   applyBrightness();
+  meshBoot_ = platform_.randomSeed();
+  mesh.begin(dev_.bleName, meshBoot_);
+  mesh.setGroup(settings_.group);
 }
 
 void App::showSplash(uint32_t ms) {
@@ -175,17 +178,19 @@ void App::statusJson(char* out, size_t len) {
            "{\"version\":\"%s\",\"board\":\"%s\",\"emotion\":\"%s\",\"skin\":\"%s\",\"sound\":%s,\"volume\":%u,"
            "\"brightness\":%u,\"battery\":%d,\"charging\":%s,\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\","
            "\"rssi\":%d,\"hostname\":\"%s\",\"idle\":%lu,\"sleep\":%u,\"updates\":\"%s\",\"update\":\"%s\","
-           "\"latest\":\"%s\",\"progress\":%u,\"mic\":%s,\"ble\":%s,\"bleConnected\":%s,\"look\":\"%s\",\"lang\":\"%s\",\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
+           "\"latest\":\"%s\",\"progress\":%u,\"mic\":%s,\"ble\":%s,\"bleConnected\":%s,\"look\":\"%s\",\"lang\":\"%s\",\"group\":%s,\"buddies\":%d,\"heap\":%lu,\"heapMin\":%lu,\"psram\":%lu,\"fps\":%.1f,\"renderMs\":%.1f,\"load\":%.0f}",
            dev_.version, kBoardName, emotionName(face.emotion()), skinName(face.skin()), settings_.sound ? "true" : "false",
            settings_.volume, settings_.brightness, dev_.batteryPct, dev_.charging ? "true" : "false", wifi, dev_.ssid,
            dev_.ip, dev_.rssi, dev_.hostname, (unsigned long)(behaviour.idleMs() / 1000), settings_.sleepMin,
            updateModeName(dev_.updateMode), updateStateName(dev_.updateState), dev_.updateVersion,
-           (unsigned)dev_.updateProgress, settings_.mic ? "true" : "false", settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false", settings_.look.name, langName(gLang),
+           (unsigned)dev_.updateProgress, settings_.mic ? "true" : "false", settings_.ble ? "true" : "false", dev_.bleConnected ? "true" : "false", settings_.look.name, langName(gLang), mesh.enabled() ? "true" : "false",
+           mesh.enabled() ? mesh.count(uptime_) : 0,
            (unsigned long)dev_.heapFree, (unsigned long)dev_.heapMin, (unsigned long)dev_.psramFree, dev_.fps,
            dev_.renderMs, dev_.load);
 }
 
 void App::update(uint32_t dtMs) {
+  uptime_ += dtMs;
   behaviour.update(dtMs);
   // Microphone: events go to the behaviour; while dancing the equalizer mouth moves along
   for (SoundEvent se; (se = mic.poll()) != SoundEvent::None;) behaviour.onSound(se);
@@ -202,8 +207,16 @@ void App::update(uint32_t dtMs) {
     } else if (muteNextEmotion_) muteNextEmotion_ = false;
     else if (woke) sound.play(Sound::Wake);
     else if (Sound s = soundForEmotion(e); s != Sound::None) sound.play(s);
+    // Yawning is contagious: a buddy that gets sleepy by itself tells the others (a caught yawn is
+    // not passed on, otherwise they keep yawning at each other)
+    if (e == Emotion::Sleepy && !yawnFromPeer_) {
+      char f[Mesh::kMaxFrame];
+      if (size_t n = mesh.event("yawn", f, sizeof(f))) platform_.meshSend((const uint8_t*)f, n);
+    }
+    if (e != Emotion::Sleepy) yawnFromPeer_ = false;
     lastEmotion_ = e;
   }
+  meshUpdate();
 
   switch (face.takeCue()) {
     case Cue::Whistle: sound.play(Sound::Whistle); break;
@@ -230,6 +243,7 @@ void App::update(uint32_t dtMs) {
   struct tm now;
   platform_.localTime(now);
   clock.update(now, dev_.batteryPct, dev_.charging, dtMs);
+  dev_.meshPeers = mesh.enabled() ? mesh.count(uptime_) : -1;
   info.update(dev_, dtMs);
   setup.update(dtMs);
   // Show the Bluetooth pairing code as long as the phone asks for it
@@ -296,6 +310,58 @@ void App::update(uint32_t dtMs) {
 }
 
 void App::save() { saveIn_ = 1500; }
+
+namespace {
+constexpr uint32_t kYawnCooldownMs = 30000;  // catch at most one yawn per 30 s
+constexpr uint32_t kCaughtYawnMs = 3500;     // how long a caught yawn lasts
+}  // namespace
+
+void App::meshUpdate() {
+  // Called from update(): uptime_ is our clock for the mesh (hello interval, ages, cooldown)
+  if (strcmp(mesh.name(), dev_.bleName)) mesh.begin(dev_.bleName, meshBoot_);  // name is known after BLE start
+  char f[Mesh::kMaxFrame];
+  if (size_t n = mesh.tick(uptime_, settings_.look.name, f, sizeof(f))) platform_.meshSend((const uint8_t*)f, n);
+  if (yawnAt_ && (int32_t)(uptime_ - yawnAt_) >= 0) {
+    yawnAt_ = 0;
+    Emotion e = face.emotion();
+    if (e != Emotion::Sleepy && e != Emotion::Asleep && !face.busy()) {
+      yawnFromPeer_ = true;
+      behaviour.command(Emotion::Sleepy, kCaughtYawnMs);
+    }
+  }
+}
+
+void App::onMeshFrame(const uint8_t* data, size_t len, int rssi) {
+  char what[16];
+  if (!mesh.receive(data, len, rssi, uptime_, what, sizeof(what))) return;
+  if (strcmp(what, "yawn")) return;
+  Emotion e = face.emotion();
+  bool cooled = !lastContagion_ || uptime_ - lastContagion_ >= kYawnCooldownMs;
+  if (e == Emotion::Sleepy || e == Emotion::Asleep || yawnAt_ || !cooled) return;
+  lastContagion_ = uptime_;
+  yawnAt_ = uptime_ + 800 + (uptime_ * 2654435761u >> 22) % 1200;  // after 0.8-2 s, not all at once
+}
+
+// group                -> group=on|off (the code itself stays secret)
+// group <code>         -> join a group (3-16 characters, no spaces); buddies with the same code see each other
+// group off            -> no buddies nearby
+bool App::groupCommand(const char* line, char* reply, size_t len) {
+  const char* a = line[5] ? line + 6 : "";
+  if (!*a) {
+    snprintf(reply, len, "group=%s", mesh.enabled() ? "on" : "off");
+    return true;
+  }
+  const char* code = !strcmp(a, "off") ? "" : a;
+  if (strchr(code, ' ') || !mesh.setGroup(code)) {
+    snprintf(reply, len, "usage: group <code of %u-%u characters, no spaces>|off", (unsigned)Mesh::kMinCode,
+             (unsigned)Mesh::kMaxCode);
+    return false;
+  }
+  snprintf(settings_.group, sizeof(settings_.group), "%s", code);
+  save();
+  snprintf(reply, len, "ok group %s", *code ? "on" : "off");
+  return true;
+}
 
 void App::applySleep() {
   if (settings_.sleepMin == 0) {
@@ -569,6 +635,11 @@ bool App::command(const char* line, char* reply, size_t len) {
                settings_.mic ? "on" : "off", mic.db(), mic.floorDb(), mic.speech() ? "yes" : "no", mic.music() ? "yes" : "no",
                behaviour.dancing() ? "yes" : "no");
     }
+    return true;
+  }
+  if (!strncmp(line, "group", 5) && (line[5] == 0 || line[5] == ' ')) return groupCommand(line, reply, len);
+  if (!strcmp(line, "buddies")) {  // buddies nearby as JSON
+    mesh.json(uptime_, reply, len);
     return true;
   }
   if (!strcmp(line, "json")) {  // status as JSON (for BLE clients; the web uses /api/status)

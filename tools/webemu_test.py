@@ -17,13 +17,15 @@ VERBOSE = "-v" in sys.argv[2:]
 BOARD = sys.argv[sys.argv.index("--board") + 1] if "--board" in sys.argv else "original"
 SCREEN = {"original": 466, "xl": 480}[BOARD]
 MID = SCREEN // 2  # centre of the screen; swipes start 113 px above or 127 px below it
+# Second emulator for the buddies group (fake ESP-NOW between the two); without it that group is skipped
+PEER = sys.argv[sys.argv.index("--peer") + 1].rstrip("/") if "--peer" in sys.argv else None
 results = []  # (group, name, ok, detail)
 group = "?"
 
 
-def http(path, data=None, method=None, ctype=None, timeout=5):
+def http(path, data=None, method=None, ctype=None, timeout=5, base=None):
     """Returns (status, headers, body bytes); connection errors give status 0."""
-    req = urllib.request.Request(BASE + path, data=data, method=method)
+    req = urllib.request.Request((base or BASE) + path, data=data, method=method)
     if ctype:
         req.add_header("Content-Type", ctype)
     try:
@@ -42,8 +44,8 @@ def jget(path):
     return json.loads(body)
 
 
-def cmd(line):
-    st, _, body = http("/api/cmd?c=" + urllib.parse.quote(line))
+def cmd(line, base=None):
+    st, _, body = http("/api/cmd?c=" + urllib.parse.quote(line), base=base)
     try:
         js = json.loads(body)
     except ValueError:
@@ -389,6 +391,53 @@ def t_language():
     time.sleep(2)
 
 
+def t_buddies():
+    """Buddies nearby: group code, seeing each other, other group, contagious yawn with cooldown."""
+    if not PEER:
+        check("peer emulator present (--peer)", False, "started by tools/webemu-test.sh")
+        return
+    pcmd = lambda line: cmd(line, PEER)
+    pstatus = lambda: json.loads(http("/api/status", base=PEER)[2])
+    buddies = lambda base=None: json.loads(cmd("buddies", base)[1]["reply"])
+    check("no group by default", status().get("group") is False and status().get("buddies") == 0, str(status().get("group")))
+    st, js = cmd("group ab")
+    check("too short group code gives 400", st == 400, f"{st} {js}")
+    st, js = cmd("group regtest")
+    check("group regtest", st == 200 and js.get("reply") == "ok group on" and status().get("group") is True, f"{st} {js}")
+    for c in ("lang en", "sleep off", "emotion neutral 0", "group regtest"):  # sleep off: no yawning by itself
+        pcmd(c)
+    cmd("sleep off")
+    seen = wait_for(lambda: status().get("buddies") == 1 and pstatus().get("buddies") == 1, 8)
+    check("both see each other within a few hellos", seen, f"{status().get('buddies')} / {pstatus().get('buddies')}")
+    peer_name = buddies(PEER)["me"]
+    check("buddies list names the other", any(b["name"] == peer_name for b in buddies()["buddies"]), str(buddies()))
+
+    bad0 = buddies()["bad"]
+    pcmd("group other1")
+    rejected = wait_for(lambda: buddies()["bad"] > bad0, 6)
+    check("frames from another group are rejected", rejected, str(buddies()))
+    pcmd("group regtest")
+    check("same group again: seen again", wait_for(lambda: pstatus().get("buddies") == 1, 8), str(buddies(PEER)))
+
+    cmd("emotion neutral 0")
+    time.sleep(0.5)
+    cmd("emotion sleepy 3000")
+    caught = wait_for(lambda: pstatus().get("emotion") == "sleepy", 5)
+    check("yawn is contagious", caught, str(pstatus().get("emotion")))
+    time.sleep(4.5)  # the caught yawn (3.5 s) is over
+    check("the caught yawn passes", pstatus().get("emotion") != "sleepy", str(pstatus().get("emotion")))
+    cmd("emotion neutral 0")
+    time.sleep(0.5)
+    cmd("emotion sleepy 2000")
+    time.sleep(3)
+    check("cooldown: no second yawn within 30 s", pstatus().get("emotion") != "sleepy", str(pstatus().get("emotion")))
+
+    st, js = cmd("group off")
+    check("group off", st == 200 and status().get("group") is False and status().get("buddies") == 0, f"{st} {js}")
+    pcmd("group off")
+    cmd("emotion neutral 0")
+
+
 TESTS = [
     ("start", t_start),
     ("emotions", t_emotions),
@@ -400,6 +449,7 @@ TESTS = [
     ("sound", t_audio),
     ("microphone", t_mic),
     ("language", t_language),
+    ("buddies", t_buddies),
     ("updates", t_update),
 ]
 

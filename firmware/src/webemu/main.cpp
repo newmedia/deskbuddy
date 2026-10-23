@@ -44,6 +44,39 @@ uint32_t frameNo = 1;  // increments with every new frame
 std::string gRoot, gState;
 char** gArgv = nullptr;
 
+// Fake ESP-NOW (buddies nearby, mesh.h): UDP on localhost. Every emulator on this computer takes the
+// first free port of kMeshPorts and "broadcasts" by sending to all of them except its own.
+constexpr int kMeshFirst = 47801, kMeshPorts = 16;
+int gMeshFd = -1, gMeshPort = 0;
+
+void meshOpen() {
+  gMeshFd = socket(AF_INET, SOCK_DGRAM, 0);
+  for (int p = kMeshFirst; p < kMeshFirst + kMeshPorts && gMeshFd >= 0; p++) {
+    sockaddr_in a = {};
+    a.sin_family = AF_INET;
+    a.sin_port = htons((uint16_t)p);
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (bind(gMeshFd, (sockaddr*)&a, sizeof(a)) == 0) {
+      gMeshPort = p;
+      fcntl(gMeshFd, F_SETFL, O_NONBLOCK);
+      return;
+    }
+  }
+  fprintf(stderr, "fake ESP-NOW: no free UDP port in %d-%d\n", kMeshFirst, kMeshFirst + kMeshPorts - 1);
+}
+
+void meshBroadcast(const uint8_t* data, size_t len) {
+  if (!gMeshPort) return;
+  for (int p = kMeshFirst; p < kMeshFirst + kMeshPorts; p++) {
+    if (p == gMeshPort) continue;
+    sockaddr_in a = {};
+    a.sin_family = AF_INET;
+    a.sin_port = htons((uint16_t)p);
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sendto(gMeshFd, data, len, 0, (sockaddr*)&a, sizeof(a));
+  }
+}
+
 uint32_t nowMs() {
   timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -132,6 +165,8 @@ struct EmuPlatform : Platform {
     }
     std::string l;
     if (readFile(gState + "/look.bin", l) && l.size() == sizeof(Look)) memcpy(&s.look, l.data(), sizeof(Look));
+    std::string g;
+    if (readFile(gState + "/group", g) && g.size() < sizeof(s.group)) snprintf(s.group, sizeof(s.group), "%s", g.c_str());
     dev.bleEnabled = s.ble;
   }
   void saveSettings(const Settings& s) override {
@@ -140,6 +175,7 @@ struct EmuPlatform : Platform {
                      s.brightness, s.sleepMin, s.ble, s.mic, s.lang);
     writeFile(gState + "/settings.txt", t, (size_t)n);
     writeFile(gState + "/look.bin", &s.look, sizeof(Look));
+    writeFile(gState + "/group", s.group, strlen(s.group));
   }
   size_t loadBlob(const char* key, void* buf, size_t max) override {
     std::string d;
@@ -158,6 +194,8 @@ struct EmuPlatform : Platform {
   void deviceInfo(DeviceInfo& out) override { out = dev; }
   void setBrightness(uint8_t v) override { brightness = v; }
   void reboot() override { rebootAt = nowMs() + 300; }
+  void meshSend(const uint8_t* data, size_t len) override { meshBroadcast(data, len); }
+  uint32_t randomSeed() override { return nowMs() * 2654435761u ^ (uint32_t)getpid() << 8; }
   void startWifiSetup() override {
     if (dev.wifi == DeviceInfo::WifiMode::Station) return;
     setAp();
@@ -511,6 +549,9 @@ int main(int argc, char** argv) {
   lv_display_add_event_cb(disp, refrReadyCb, LV_EVENT_REFR_READY, nullptr);
 
   EmuPlatform platform;
+  meshOpen();
+  // Own name per emulator (from the HTTP port), so several emulators can see each other as buddies
+  snprintf(platform.dev.bleName, sizeof(platform.dev.bleName), "deskbuddy-%04X", (unsigned)port & 0xffff);
   {
     std::string v;
     if (readFile(gState + "/version", v) && !v.empty() && v.size() < sizeof(platform.dev.version))
@@ -749,6 +790,11 @@ int main(int argc, char** argv) {
       app.onAccel(tiltX, tiltY, az, t0);
     }
     platform.tick(t0);
+    for (uint8_t mf[Mesh::kMaxFrame + 1];;) {  // fake ESP-NOW frames from other emulators
+      ssize_t n = gMeshFd >= 0 ? recv(gMeshFd, mf, sizeof(mf), 0) : -1;
+      if (n <= 0) break;
+      app.onMeshFrame(mf, (size_t)n, -45);
+    }
     uint32_t dt = t0 - last;
     last = t0;
     app.update(dt);

@@ -1,7 +1,8 @@
 # Multiple deskbuddies: reacting to each other and doing things together
 
-Status: **idea / design proposal** (2026-10-16). Nothing built yet. This document describes what is
-possible, which technology fits, and a proposed order of work.
+Status: **prototype** (2026-10-23): seeing each other and a contagious yawn over ESP-NOW, with signed
+messages and a group code (see "Prototype" below and `firmware.md`). The rest is still a design
+proposal. This document describes what is possible, which technology fits, and the order of work.
 
 ## What do we want?
 
@@ -84,6 +85,18 @@ the channel the radio is on at that moment, by default at 1 Mbps. No router, no 
 Two buddies on the same router: a `hello` broadcast every few seconds with an HMAC over the group
 key, a "buddies nearby" list in `json` and the info panel, and a contagious yawn. Measure: internal
 RAM, how many `hello`s arrive with BLE connected, and the delay from event to reaction.
+
+### Prototype (built 2026-10-23)
+
+- `group <code>` / `group off` / `buddies`, and Settings → Buddies nearby in the web app.
+- `hello` every 3 s, list of up to 8 buddies (gone after 10 s), "N buddies nearby" in the info panel.
+- Frames as proposed below, signed with a truncated HMAC-SHA256 over the group key; boot id + sequence
+  number against replays (a replay of an old boot is not caught yet).
+- Contagious yawn with a random delay, a 30 s cooldown and no passing on.
+- Device: ESP-NOW broadcast on the current channel (`src/net/espnow.cpp`); web emulator: UDP on
+  localhost; the regression test runs two emulators against each other.
+- Not done yet: channel search for buddies without home Wi-Fi, "look at whoever does something",
+  synchronized actions, a measurement on two real buddies (RAM, delivery with BLE on, delay).
 
 ## Messages (draft)
 

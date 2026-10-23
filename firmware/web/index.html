@@ -175,6 +175,15 @@ a{color:var(--accent)}
     </select>
   </section>
 
+  <section data-tab="settings" id="buddies-section">
+    <h2 data-t>Buddies nearby</h2>
+    <p class="muted" style="margin-top:0" data-t>Buddies with the same group code see each other (in the same room, also without a router) and catch each other's yawns.</p>
+    <p id="buddies-now" class="status"></p>
+    <label for="group" data-t>Group code</label>
+    <div class="row"><input type="text" id="group" maxlength="16" autocapitalize="none" autocomplete="off" data-tp="3-16 characters, no spaces"><button id="group-join" style="flex:0 0 110px" data-t>Join</button></div>
+    <button id="group-leave" class="wide" data-t hidden>Leave group</button>
+  </section>
+
   <section data-tab="system" id="install-section">
     <h2 data-t>Install firmware via USB</h2>
     <p class="muted" style="margin-top:0" data-t>Setting up a new board, or picking a specific version (including an older one)? You can do that from the browser with a USB cable, without building anything.</p>
@@ -363,6 +372,13 @@ const NL = {
   "Bob": "Bob", "Pigtails": "Staartjes", "Normal": "Normaal", "Dots": "Stipjes", "Straight": "Recht", "Closed smile": "Gesloten glimlach",
   "Freckles": "Sproeten", "Eyeliner": "Eyeliner", "Lipstick": "Lippenstift", "Studs": "Knopjes", "Hoops": "Ringen",
   "Bow": "Strik", "Headband": "Haarband", "Flower": "Bloem",
+  // buddies nearby
+  "Buddies nearby": "Buddies dichtbij", "Group code": "Groepscode", "Join": "Meedoen", "Leave group": "Groep verlaten",
+  "Buddies with the same group code see each other (in the same room, also without a router) and catch each other's yawns.":
+    "Buddies met dezelfde groepscode zien elkaar (in dezelfde ruimte, ook zonder router) en nemen elkaars gapen over.",
+  "3-16 characters, no spaces": "3-16 tekens, geen spaties", "Not in a group.": "Niet in een groep.",
+  "In a group, nobody nearby yet.": "In een groep, nog niemand dichtbij.", "In a group with: {names}": "In een groep met: {names}",
+  "The code must be 3-16 characters, without spaces.": "De code moet 3-16 tekens zijn, zonder spaties.",
   // footer
   "Install firmware": "Firmware installeren", "Versions": "Versies", "Source code": "Broncode",
 };
@@ -571,6 +587,7 @@ async function refresh() {
     .map(([k, v]) => `<span>${esc(k)}</span><span>${esc(v)}</span>`).join("");
   $("#wifi-now").textContent = t("Now: {wifi}", {wifi});
   updateUi();
+  updateBuddies();
 }
 function updateUi() {
   if (document.activeElement !== $("#updates")) $("#updates").value = st.updates;
@@ -588,6 +605,26 @@ function updateUi() {
   $("#upd-install").hidden = st.update !== "available";
   $("#upd-p").hidden = st.update !== "installing"; $("#upd-p").value = st.progress;
 }
+// Buddies nearby (ESP-NOW group): the list only while the Settings tab is open
+async function updateBuddies() {
+  const now = $("#buddies-now");
+  $("#group-leave").hidden = !st.group;
+  if (!st.group) { now.textContent = t("Not in a group."); now.className = "status"; return; }
+  if ($("#buddies-section").classList.contains("tab-off")) return;
+  let names = [];
+  try { names = JSON.parse((await api.cmd("buddies")).reply).buddies.map(b => `${b.name} (${b.look})`); } catch {}
+  now.textContent = names.length ? t("In a group with: {names}", {names: names.join(", ")}) : t("In a group, nobody nearby yet.");
+  now.className = "status" + (names.length ? " ok" : "");
+}
+$("#group-join").onclick = async () => {
+  const code = $("#group").value.trim();
+  if (!/^\S{3,16}$/.test(code)) { const now = $("#buddies-now"); now.textContent = t("The code must be 3-16 characters, without spaces."); now.className = "status bad"; return; }
+  const j = await cmd(`group ${code}`);
+  if (j && j.ok) $("#group").value = "";
+};
+$("#group").onkeydown = e => { if (e.key === "Enter") $("#group-join").click(); };
+$("#group-leave").onclick = () => cmd("group off");
+
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])); }
 
 $("#scan").onclick = async () => {

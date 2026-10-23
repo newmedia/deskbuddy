@@ -331,6 +331,28 @@ The firmware and the web app exist in English and Dutch.
 - New UI text: add it in both languages (firmware `tr(en, nl)` in `lib/buddy/src/i18n.h`, web app
   dictionary in `firmware/web/index.html`).
 
+## Buddies nearby (ESP-NOW, prototype)
+
+Buddies with the same group code see each other in the same room and catch each other's yawns. Design,
+research and limits: [multi-buddy.md](multi-buddy.md).
+
+- `group <code>` (3–16 characters, no spaces) joins a group; `group off` leaves it; `group` shows
+  `on`/`off` (the code itself is never shown). Stored in NVS under `group`. Without a group nothing is
+  sent and everything received is ignored. The web app has the same under Settings → Buddies nearby.
+- `buddies` gives the list as JSON: own name, counters (`tx` sent, `rx` accepted, `bad` rejected) and
+  per buddy name, look, age in seconds and signal strength. `/api/status` and `json` have `"group"`
+  and `"buddies"` (the number nearby); the info panel shows "2 buddies nearby" instead of the version.
+- Every 3 s a buddy sends a `hello`; a buddy not heard for 10 s drops off the list (max 8).
+- Messages are small JSON (~95 bytes) with an HMAC-SHA256 over the group key (SHA-256 of the code),
+  truncated to 8 bytes, plus a boot id and sequence number against replays (`lib/buddy/src/mesh.cpp`,
+  `sha256.cpp`).
+- **Contagious yawn:** a buddy that gets sleepy by itself sends a `yawn` event. A buddy that is awake
+  yawns after 0.8–2 s (sleepy for 3.5 s), at most once per 30 s, and does not pass it on.
+- Device: `src/net/espnow.cpp`, broadcast on the current Wi-Fi channel, only while there is a group
+  and Wi-Fi is on; received frames go via a queue (PSRAM) to the main loop. Web emulator: the same
+  frames over UDP on localhost (ports 47801–47816), so several emulators on one computer see each
+  other; each has its own name from its HTTP port.
+
 ## Serial commands (115200 baud)
 
 The same command protocol is also used via WebSocket, BLE and MQTT later.
@@ -346,6 +368,8 @@ sound on|off|<blip|happy|love|surprised|sad|angry|dizzy|yawn|wake|purr|toggle>
 volume <0-100>
 skin classic|mascot
 lang [en|nl]                  # language; without argument = show current
+group [<code>|off]            # buddies nearby: join or leave a group; without argument = on/off
+buddies                       # buddies nearby as JSON
 wifi status | setup | on | off | forget | scan | join "<ssid>" <password>
 ble on | off | forget | status
 json                          # status as JSON (for BLE clients)
@@ -357,7 +381,7 @@ clock | info | status | help
 
 | Path | Contents |
 |---|---|
-| `lib/buddy/` | Hardware-independent (LVGL only): `face` and `face_mascot` (procedural face, two skins), `face_fx` (actions and effects), `sound` (synth), `behaviour` (emotions and boredom), `gestures` (touch and IMU), `clock_view`, `info_view`, `commands`, `app` (ties everything together and handles navigation) |
+| `lib/buddy/` | Hardware-independent (LVGL only): `face` and `face_mascot` (procedural face, two skins), `face_fx` (actions and effects), `sound` (synth), `behaviour` (emotions and boredom), `gestures` (touch and IMU), `clock_view`, `info_view`, `commands`, `mesh` + `sha256` (buddies nearby), `app` (ties everything together and handles navigation) |
 | `src/board/` | Hardware: CO5300 display via QSPI, CST9217 touch, QMI8658 IMU, AXP2101 PMU and PCF85063 RTC |
 | `src/main.cpp` | Device: polling loop, serial commands, buttons |
 | `src/sim/` | Headless PC simulator that runs the same `App` (PNGs, GIF and MP4 with sound) |

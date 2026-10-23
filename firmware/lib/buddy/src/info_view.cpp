@@ -18,7 +18,7 @@ bool DeviceInfo::operator==(const DeviceInfo& o) const {
          !strcmp(hostname, o.hostname) && bleEnabled == o.bleEnabled && bleConnected == o.bleConnected &&
          !strcmp(bleName, o.bleName) && sound == o.sound && mascot == o.mascot && !strcmp(lookName, o.lookName) && batteryPct == o.batteryPct && charging == o.charging &&
          !strcmp(version, o.version) && updateMode == o.updateMode && updateState == o.updateState &&
-         updateProgress == o.updateProgress && !strcmp(updateVersion, o.updateVersion);
+         updateProgress == o.updateProgress && !strcmp(updateVersion, o.updateVersion) && meshPeers == o.meshPeers;
 }
 
 lv_obj_t* InfoView::row(const char* symbol, lv_obj_t** value, lv_obj_t** sub, lv_obj_t** iconOut) {
@@ -232,7 +232,12 @@ void InfoView::update(const DeviceInfo& in, uint32_t dtMs) {
                           in.updateVersion);
     lv_obj_set_style_text_color(footer_, kAccent, 0);
   } else {
-    lv_label_set_text_fmt(footer_, "deskbuddy.dev %s", in.version);
+    if (in.meshPeers > 0)  // buddies nearby (same group) instead of the version: the round screen is narrow there
+      lv_label_set_text_fmt(footer_, in.meshPeers == 1 ? tr("1 buddy nearby", "1 buddy dichtbij")
+                                                       : tr("%d buddies nearby", "%d buddies dichtbij"),
+                            in.meshPeers);
+    else
+      lv_label_set_text_fmt(footer_, "deskbuddy.dev %s", in.version);
     lv_obj_set_style_text_color(footer_, kDim, 0);
   }
   lv_obj_update_layout(root_);  // the text width is known now: logo next to it

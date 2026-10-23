@@ -12,6 +12,7 @@
 #include "board/board.h"
 #include "board/pins.h"
 #include "net/ble.h"
+#include "net/espnow.h"
 #include "net/net.h"
 #include "net/updater.h"
 
@@ -50,6 +51,7 @@ struct EspPlatform : Platform {
     s.ble = prefs.getBool("ble", s.ble);
     s.mic = prefs.getBool("mic", s.mic);
     s.lang = prefs.getUChar("lang", s.lang);
+    if (prefs.isKey("group")) prefs.getString("group", s.group, sizeof(s.group));
     prefs.end();
   }
   size_t loadBlob(const char* key, void* buf, size_t max) override {
@@ -73,6 +75,7 @@ struct EspPlatform : Platform {
     prefs.putBool("ble", s.ble);
     prefs.putBool("mic", s.mic);
     prefs.putUChar("lang", s.lang);
+    prefs.putString("group", s.group);
     prefs.end();
   }
   void localTime(struct tm& out) override {
@@ -97,6 +100,8 @@ struct EspPlatform : Platform {
   void setBrightness(uint8_t v) override { board::setBrightness(v); }
   void startWifiSetup() override { net::startSetupAp(); }
   void reboot() override { ESP.restart(); }
+  void meshSend(const uint8_t* data, size_t len) override { espnow::send(data, len); }
+  uint32_t randomSeed() override { return esp_random(); }
   void setBle(bool on) override { ble::setEnabled(on); }
   void forgetBle() override { ble::forgetBonds(); }
   void wifi(const char* action, const char* ssid, const char* pass, char* reply, size_t len) override {
@@ -173,6 +178,7 @@ void setup() {
       },
       [] { ble::resume(); });
   net::begin(app);
+  espnow::begin(app);  // buddies nearby: starts once the App has a group (mesh.h)
   {
     uint64_t mac = ESP.getEfuseMac();
     char name[24];
@@ -230,6 +236,7 @@ void loop() {
   handleSerial();
   net::loop();
   ble::loop();
+  espnow::loop();
   app.update(dt);
   // Sleepy or asleep: only slow animations (Zzz, eyelids), so ~8-10 fps; awake: 30 fps.
   Emotion e = app.face.emotion();

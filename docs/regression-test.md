@@ -30,7 +30,8 @@ What the script does:
 2. finds a free port and starts the emulator in the background, with its **own, empty state** in a
    temporary folder (via `WEBEMU_STATE`). Your regular emulator settings in
    `firmware/.pio/webemu-state/` stay untouched, and an emulator already running on 8765 is not in
-   the way
+   the way. Next to it a second "peer" emulator starts (its own state too) for the buddies checks:
+   the two see each other over the fake ESP-NOW (UDP on localhost)
 3. runs `tools/webemu_test.py`, which checks everything over HTTP
 4. stops the emulator and cleans up the temporary folder, also on Ctrl+C; then the next board
 
@@ -48,9 +49,10 @@ swipes           5     0
 sound            2     0
 microphone      12     0
 language         9     0
+buddies         11     0
 updates         13     0
 
-114/114 checks passed in 78 s -- PASSED
+[original] 127/127 checks passed in 92 s -- PASSED
 ```
 
 - **Exit code 0**: all good. **Exit code 1**: at least one check failed.
@@ -74,6 +76,7 @@ updates         13     0
 | swipes | swipe down → info, swipe back → face, swipe up → clock, tap → face (`view` in `/emu/state`) |
 | sound | after `sound on` + `play whistle`, `/emu/audio` returns real PCM |
 | microphone | emulated microphone scenes (clap, double clap, noise, music, speech) give the right reaction; `mic`, `mic on|off` |
+| buddies | with the peer emulator: no group by default, a too short code gives 400, both in group `regtest` see each other, frames from another group are rejected, a yawn is contagious and passes, the cooldown prevents a second yawn within 30 s, `group off` |
 | language | `lang` shows the current language (default `en`), `lang nl` / `lang en` switch it, an invalid value returns 400, `"lang"` in `/api/status`, a custom look is called "Eigen"/"Custom", the language is preserved after a restart, the web app contains the Dutch dictionary and the EN/NL switch |
 | updates | `update check` → `available` with the offered version, `update install` → `installing` with increasing progress, restart with new version, look and custom profile preserved; `POST /update` rejects a small file and installs a file >100 KB |
 
