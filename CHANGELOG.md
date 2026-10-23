@@ -3,6 +3,15 @@
 Each version below becomes a release on GitHub (see `tools/release.sh` and `docs/firmware.md`).
 The text under a heading is the description of that release. Newest first.
 
+## v1.4.0-beta.2
+
+Test version: the same as beta.1, with a tidier Buddies tab in the web page on the buddy itself.
+
+- **Buddies tab**: a card per topic. In a group: the group name with "N buddies nearby", one row per
+  buddy, and inviting in its own card ("Show QR on buddy", "Copy link"). Not in a group: "Join a
+  group" (search, or join with an invite) and "New group". Leave group is now a subtle red button.
+- Everything else as in v1.4.0-beta.1 below.
+
 ## v1.4.0-beta.1
 
 Test version: buddies in the same room see each other and catch each other's yawns.
