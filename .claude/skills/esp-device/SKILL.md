@@ -13,10 +13,13 @@ description: Inspect, back up, monitor or flash the deskbuddy ESP32-S3 (Waveshar
 3. **Tooling**: if `.venv/bin/esptool` does not exist, run `tools/setup.sh`.
 4. **Read-only** (safe, no need to ask):
    - `tools/chip-info.sh`: chip, MAC, flash size
-   - `tools/backup-flash.sh`: dump of 16 MB plus partition table
+   - `tools/backup-flash.sh`: dump of 16 MB plus partition table (`backups/backup-<mac>-<date>.bin`)
    - `timeout 10 tools/monitor.sh`: boot log. A reset via esptool produces the full boot log.
 5. **Writing** (flashing or erasing): only after explicit confirmation from the user **and** with an
-   existing backup in `backups/`. Custom firmware: `tools/flash.sh --yes` (only after that confirmation).
+   existing backup of this chip in `backups/` (its MAC in the file name; `tools/flash.sh` checks it).
+   Custom firmware: `tools/flash.sh --yes` for the Original, `tools/flash.sh --xl --yes` for the XL
+   (ESP32-S3-Touch-AMOLED-2.16, see `docs/xl-port.md`). Both have the same chip: esptool cannot tell
+   them apart, so check which board it is (boot log, or ask) before choosing.
    Restoring works like this:
    `.venv/bin/esptool --chip esp32s3 --port $PORT write-flash 0 backups/<file>.bin`
 6. If the connection does not work, enable download mode: hold BOOT, tap PWR or reset,

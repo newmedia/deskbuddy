@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Creates a firmware release on GitHub: builds locally (env esp32) with the version from the tag and
-# uploads firmware.bin + firmware.bin.sha256 as assets. The deskbuddy fetches those itself.
+# Creates a firmware release on GitHub: builds locally with the version from the tag, for both boards,
+# and uploads the assets. Each deskbuddy fetches its own: the Original firmware.bin (env esp32), the XL
+# firmware-xl.bin (env esp32-xl), each with a .sha256.
 #
-#   tools/release.sh 0.2.0          (or v0.2.0)
+#   tools/release.sh 0.2.0                  (or v0.2.0)
+#   tools/release.sh 0.2.0 --original-only  without firmware-xl.bin (e.g. while the XL is untested)
 #
 # Requirements: clean working tree on main, gh logged in, and a section "## v0.2.0" in CHANGELOG.md
 # describing what is new; that text becomes the release description.
@@ -13,8 +15,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO="newmedia/deskbuddy"
 cd "$ROOT"
 
-[ $# -ge 1 ] || { echo "usage: tools/release.sh <version>   e.g. tools/release.sh 0.2.0" >&2; exit 1; }
+[ $# -ge 1 ] || { echo "usage: tools/release.sh <version> [--original-only]   e.g. tools/release.sh 0.2.0" >&2; exit 1; }
 VERSION="${1#v}"
+BUILDS="esp32:firmware.bin esp32-xl:firmware-xl.bin"
+[ "${2:-}" = "--original-only" ] && BUILDS="esp32:firmware.bin"
 TAG="v$VERSION"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version must be x.y.z (semver), not '$1'." >&2; exit 1; }
 
@@ -61,18 +65,21 @@ if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
   exit 1
 fi
 
-echo "== building $TAG"
-cd firmware
-PLATFORMIO_BUILD_FLAGS="-D DESKBUDDY_VERSION=\\\"$VERSION\\\"" ../.venv/bin/pio run -e esp32
-cd "$ROOT"
-
 OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
-cp firmware/.pio/build/esp32/firmware.bin "$OUT/firmware.bin"
-grep -aq "$VERSION" "$OUT/firmware.bin" || { echo "Version $VERSION not found in the binary; the build flag did not work." >&2; exit 1; }
-(cd "$OUT" && sha256sum firmware.bin > firmware.bin.sha256)
+# env -> asset name
+ASSETS=()
+for PAIR in $BUILDS; do
+  ENV="${PAIR%%:*}" BIN="${PAIR#*:}"
+  echo "== building $TAG for $ENV"
+  (cd firmware && PLATFORMIO_BUILD_FLAGS="-D DESKBUDDY_VERSION=\\\"$VERSION\\\"" ../.venv/bin/pio run -e "$ENV")
+  cp "firmware/.pio/build/$ENV/firmware.bin" "$OUT/$BIN"
+  grep -aq "$VERSION" "$OUT/$BIN" || { echo "Version $VERSION not found in $BIN; the build flag did not work." >&2; exit 1; }
+  (cd "$OUT" && sha256sum "$BIN" > "$BIN.sha256")
+  echo "== $(cat "$OUT/$BIN.sha256")"
+  ASSETS+=("$OUT/$BIN" "$OUT/$BIN.sha256")
+done
 echo "$NOTES" > "$OUT/notes.md"
-echo "== $(cat "$OUT/firmware.bin.sha256")"
 
 echo "== tagging and uploading"
 if [ "$RESUME" = 0 ]; then
@@ -80,5 +87,5 @@ if [ "$RESUME" = 0 ]; then
 fi
 git push origin "$TAG"
 gh release create "$TAG" -R "$REPO" --verify-tag --title "deskbuddy $TAG" --notes-file "$OUT/notes.md" \
-  "$OUT/firmware.bin" "$OUT/firmware.bin.sha256"
+  "${ASSETS[@]}"
 echo "== done: https://github.com/$REPO/releases/tag/$TAG"

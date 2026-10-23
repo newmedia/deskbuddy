@@ -32,12 +32,12 @@ device (make a backup first if you want to keep the original).
 sudo usermod -aG dialout $USER   # once, then log in again
 tools/setup.sh                   # venv with esptool + pyserial
 tools/chip-info.sh               # chip/flash info (read-only)
-tools/backup-flash.sh            # full flash backup to backups/
+tools/backup-flash.sh            # full flash backup to backups/ (MAC of the chip in the file name)
 tools/monitor.sh                 # view the serial log
 tools/sim.sh                     # firmware preview on the PC (sim-out/demo.gif)
 tools/webemu.sh                  # web emulator: http://localhost:8765/emu
 tools/webemu-test.sh             # regression test without a device (exit code 0 = pass)
-tools/flash.sh                   # flash the deskbuddy firmware (asks for confirmation)
+tools/flash.sh                   # flash the deskbuddy firmware (asks for confirmation; --xl for the XL)
 ```
 
 The device shows up as `303a:1001` (Espressif USB JTAG/serial) on `/dev/ttyACM0`.

@@ -3,7 +3,9 @@
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 mkdir -p "$ROOT/backups"
-OUT="$ROOT/backups/original-firmware-$(date +%Y%m%d-%H%M%S).bin"
+# The chip's MAC (from the port name) goes into the file name: tools/flash.sh requires a backup of this chip.
+MAC="$(basename "$PORT" | sed -n 's/.*_\(\([0-9A-Fa-f]\{2\}:\)\{5\}[0-9A-Fa-f]\{2\}\)-if00$/\1/p' | tr -d ':' | tr 'A-F' 'a-f')"
+OUT="$ROOT/backups/backup-${MAC:-unknown}-$(date +%Y%m%d-%H%M%S).bin"
 "$ESPTOOL" --chip esp32s3 --port "$PORT" --baud 921600 read-flash 0 0x1000000 "$OUT"
 sha256sum "$OUT" | tee "$OUT.sha256"
 echo "Partition table (offset 0x8000):"

@@ -42,19 +42,25 @@ code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0
     <img src="../icon.svg" alt="deskbuddy.dev">
     <div>
       <h1>Install deskbuddy.dev</h1>
-      <p class="muted" style="margin:2px 0 0">Put the firmware on your Waveshare ESP32-S3-Touch-AMOLED-1.75, straight from your browser. All you need is a USB cable.</p>
+      <p class="muted" style="margin:2px 0 0">Put the firmware on your Waveshare board, straight from your browser. All you need is a USB cable.</p>
     </div>
   </div>
 
   <section id="nosupport">
     <h2>This browser can't do it</h2>
     <p>Installing over USB uses Web Serial, which only <b>Chrome</b>, <b>Edge</b> and <b>Opera</b> offer, on a computer (Windows, macOS, Linux or ChromeOS). Firefox, Safari and phones do not support it.</p>
-    <p class="muted">Prefer to flash it yourself? Download <code>firmware.bin</code> from the <a href="https://github.com/newmedia/deskbuddy/releases/latest">releases</a> and use <code>esptool</code>.</p>
+    <p class="muted">Prefer to flash it yourself? Download <code>firmware.bin</code> (Original) or <code>firmware-xl.bin</code> (XL) from the <a href="https://github.com/newmedia/deskbuddy/releases/latest">releases</a> and use <code>esptool</code>.</p>
   </section>
 
   <section>
     <h2>Install</h2>
-    <label for="version" style="margin-top:0">Version</label>
+    <label for="board" style="margin-top:0">Board</label>
+    <select id="board" aria-label="Board">
+      <option value="original">Original · 1.75″ round · ESP32-S3-Touch-AMOLED-1.75</option>
+      <option value="xl">XL · 2.16″ square · ESP32-S3-Touch-AMOLED-2.16</option>
+    </select>
+    <p class="note">Pick the board you have: the firmware of the other one gives a wrong picture (installing the right one fixes it).</p>
+    <label for="version">Version</label>
     <select id="version" aria-label="Firmware version"><option>loading…</option></select>
     <p class="note" id="vnote"></p>
     <div class="install" style="margin-top:14px">
@@ -91,28 +97,51 @@ code{background:#0e1418;border:1px solid var(--line);border-radius:6px;padding:0
 </main>
 <script>
 if (!("serial" in navigator)) document.getElementById("nosupport").style.display = "block";
-const sel = document.getElementById("version"), btn = document.getElementById("btn");
+const sel = document.getElementById("version"), btn = document.getElementById("btn"), boardSel = document.getElementById("board");
 const note = document.getElementById("vnote"), ver = document.getElementById("ver");
-let list = [];
+const MANIFEST = {original: "manifest.json", xl: "manifest-xl.json"};
+let all = [], list = [];
+// Versions for the chosen board (older versions.json without "boards": Original only)
+function fill(board, v) {
+  list = all.filter(e => (e.boards || ["original"]).includes(board));
+  sel.innerHTML = "";
+  list.forEach((e, i) => sel.add(new Option(`v${e.version}${i === 0 ? " (latest)" : ""} · ${e.date}`, e.version)));
+  btn.hidden = !list.length;
+  if (!list.length) {
+    sel.add(new Option("no firmware for this board yet"));
+    note.textContent = "There is no released firmware for the XL yet. It follows in a later version.";
+    ver.textContent = "";
+    updateUrl(board, null);
+    return;
+  }
+  pick(v);
+}
 function pick(v) {
   const e = list.find(x => x.version === v) || list[0];
-  if (!e) return;
   sel.value = e.version;
-  btn.setAttribute("manifest", `${e.version}/manifest.json`);
+  btn.setAttribute("manifest", `${e.version}/${MANIFEST[boardSel.value]}`);
   ver.textContent = `v${e.version}`;
   const latest = e === list[0];
   note.innerHTML = (e.note ? e.note.replace(/[<>&]/g, c => ({"<": "&lt;", ">": "&gt;", "&": "&amp;"}[c])) + " " : "") +
     `<a href="https://github.com/newmedia/deskbuddy/releases/tag/v${e.version}">Release notes</a>` +
     (latest ? "" : " · <b>This is not the latest version</b>: older versions may have known issues.");
-  history.replaceState(null, "", latest ? location.pathname : `?v=${e.version}`);
+  updateUrl(boardSel.value, latest ? null : e.version);
 }
+// ?board=xl&v=1.2.0 (both optional); the plain URL means Original, latest version
+function updateUrl(board, v) {
+  const q = new URLSearchParams();
+  if (board !== "original") q.set("board", board);
+  if (v) q.set("v", v);
+  history.replaceState(null, "", q.toString() ? `?${q}` : location.pathname);
+}
+const params = new URLSearchParams(location.search);
+if (params.get("board") === "xl") boardSel.value = "xl";
 fetch("versions.json").then(r => r.json()).then(j => {
-  list = j.versions;
-  sel.innerHTML = "";
-  list.forEach((e, i) => sel.add(new Option(`v${e.version}${i === 0 ? " (latest)" : ""} · ${e.date}`, e.version)));
-  pick(new URLSearchParams(location.search).get("v"));
+  all = j.versions;
+  fill(boardSel.value, params.get("v"));
 }).catch(() => { sel.innerHTML = "<option>could not load the version list</option>"; });
 sel.onchange = () => pick(sel.value);
+boardSel.onchange = () => fill(boardSel.value, null);
 </script>
 </body>
 </html>

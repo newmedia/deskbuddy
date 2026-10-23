@@ -138,6 +138,21 @@ Option 1 is less work and less risk; the board is fixed anyway, unlike the langu
   `firmware.bin`. Until releases contain that asset (phase 5), an XL reports "release has no
   firmware-xl.bin" when it checks for updates.
 
+### Prepared for phase 5 (2026-10-23, not released yet)
+
+- `tools/release.sh` builds `esp32` and `esp32-xl` and uploads `firmware.bin` and `firmware-xl.bin`
+  (each with a `.sha256`).
+- `tools/publish-flash.sh` also fetches `firmware-xl.bin` when a release has it, with its own
+  `manifest-xl.json`; `versions.json` lists the boards per version. The install page asks for the
+  board first and only offers XL versions that exist (none yet: it says so and hides the button).
+- Web app: "Board" under System → Status; the install links open with `?board=xl` on an XL.
+- `tools/flash.sh --xl` flashes the XL build. Because both boards have the same chip, it names the
+  board in the confirmation and requires a backup of the connected chip (MAC in the file name;
+  `tools/backup-flash.sh` now names its dumps `backup-<mac>-<date>.bin`).
+
+Release the XL firmware only after phase 4: the first release with `firmware-xl.bin` makes it
+installable from the install page. Until then use `tools/release.sh <version> --original-only`.
+
 ### To verify on the device (phase 4)
 
 - Picture: orientation (MADCTL `0xA0`), no offset or tearing, colours; `perf` (the "rotate" time is now
@@ -146,7 +161,6 @@ Option 1 is less work and less risk; the board is fixed anyway, unlike the langu
 - Corner radius of the visible area (`kCornerRadius` in `screen.h`, estimated at 40 px; only used by
   the emulators).
 - Audio, battery/PMU, RTC, Wi-Fi/BLE: same chips and pins, so expected to work as on the Original.
-- `tools/flash.sh` builds and flashes the Original env; it needs an `--xl` option before phase 4.
 
 ### Open questions
 

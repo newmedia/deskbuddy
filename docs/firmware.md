@@ -66,7 +66,8 @@ or with `cd firmware && ../.venv/bin/pio run -e esp32 -t upload --upload-port de
 Connected to the home network, the deskbuddy requests
 `https://api.github.com/repos/newmedia/deskbuddy/releases/latest` 30 s after connecting and then
 every 12 hours (HTTPS with the CA bundle from ESP-IDF). If the tag is newer than its own version
-(semver), it fetches the asset `firmware.bin` of that release and flashes it with `HTTPUpdate` (the
+(semver), it fetches the asset for its own board (`firmware.bin` on the Original, `firmware-xl.bin` on
+the XL; a release without that asset is skipped) and flashes it with `HTTPUpdate` (the
 redirect to GitHub's download server is followed). Checking and installing run in a separate task;
 the face keeps moving.
 
@@ -86,9 +87,11 @@ after 30 min.
 
 ### Installing via the browser (install page)
 
-- **Version choice:** the page shows all GitHub releases; the newest is preselected. Each version
-  has its own folder (`flash/<version>/firmware.bin` and `manifest.json`), the rest is shared.
-  `?v=0.3.2` in the URL selects a version directly.
+- **Board and version choice:** first the board (Original or XL), then the version; the newest is
+  preselected and the XL only shows versions that have XL firmware. Each version has its own folder
+  (`flash/<version>/firmware.bin` + `manifest.json`, and for the XL `firmware-xl.bin` +
+  `manifest-xl.json`); bootloader, partition table and boot_app0 are shared (identical for both
+  boards). `?board=xl` and `?v=0.3.2` in the URL select directly; the web app links with the right board.
 - **Logo:** `firmware/web/icon.svg` is the deskbuddy logo (cyan ring with eyes and a smile). It is
   used in the web app (header and tab icon), the install page, the README, the boot screen and
   the info panel of the device (`draw::logo()` in `draw_util.h` draws the same shapes). Note:
@@ -105,7 +108,8 @@ For anyone putting the firmware on a board for the first time there is a page at
 - It writes four parts: bootloader (0x0), partition table (0x8000), boot_app0 (0xE000) and the app (0x10000).
   The NVS partition (0x9000) is left alone: Wi-Fi and settings are preserved.
 - The firmware comes from the newest GitHub release. So after every release you run
-  `tools/publish-flash.sh` (fetches `firmware.bin`, checks the sha256 and publishes to `gh-pages`).
+  `tools/publish-flash.sh` (fetches `firmware.bin` and, if the release has it, `firmware-xl.bin`,
+  checks the sha256 and publishes to `gh-pages`; `DRYRUN=<dir>` builds the site locally instead).
   Bootloader and partition table come from the local build (`.pio/build/esp32`) and do not change.
 - `tools/publish-pwa.sh` refreshes only the page itself (`firmware/web/flash/index.html`).
 - Updating also works without this page: the buddy fetches new versions from GitHub by itself.
@@ -122,9 +126,10 @@ We build ourselves, not with GitHub Actions. `tools/release.sh` does everything:
    the description of the release on GitHub). Without a section the script stops and shows a draft
    based on the commits since the previous tag. Commit the changelog.
 2. `tools/release.sh 0.2.0` checks that the working directory is clean and that the version is newer
-   than the last tag, builds `esp32` with `-D DESKBUDDY_VERSION="0.2.0"`, creates and pushes tag
-   `v0.2.0` (`git tag -a v0.2.0 && git push origin v0.2.0`) and uses `gh release create` to create
-   the release with `firmware.bin` and `firmware.bin.sha256`.
+   than the last tag, builds `esp32` and `esp32-xl` with `-D DESKBUDDY_VERSION="0.2.0"`, creates and
+   pushes tag `v0.2.0` (`git tag -a v0.2.0 && git push origin v0.2.0`) and uses `gh release create` to
+   create the release with `firmware.bin`, `firmware-xl.bin` and a `.sha256` for each.
+   `tools/release.sh 0.2.0 --original-only` leaves out the XL (e.g. while it is not tested yet).
 
 `gh` must have write access to `newmedia/deskbuddy` via the API (the script checks that).
 Pushing over SSH is not enough: if the organization blocks the GitHub CLI app, approve it under
@@ -387,12 +392,15 @@ The screen size comes from `lib/buddy/src/screen.h`, the panel settings from `sr
 see [xl-port.md](xl-port.md).
 
 ```bash
-tools/flash.sh        # build + flash (asks for confirmation, requires a backup)
+tools/flash.sh        # build + flash the Original (asks for confirmation, requires a backup of this chip)
+tools/flash.sh --xl   # the same for the XL (both boards have the same chip: choose the right one)
 tools/monitor.sh      # serial log and commands
 ```
 
 Going back to the original firmware works with
-`esptool --chip esp32s3 write-flash 0 backups/original-firmware-*.bin`.
+`esptool --chip esp32s3 write-flash 0 backups/<file>.bin`. `tools/backup-flash.sh` puts the chip's MAC
+in the file name (`backups/backup-<mac>-<date>.bin`); `tools/flash.sh` only flashes when there is a
+backup of the connected chip.
 
 ## Web emulator (test everything without a device)
 
